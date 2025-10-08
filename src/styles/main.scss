@@ -127,7 +127,8 @@
   }
 }
 
-.react-flow__pane.draggable, .react-flow__node.draggable {
+.react-flow__pane.draggable,
+.react-flow__node.draggable {
   bottom: unset;
   display: unset;
   overflow: unset;

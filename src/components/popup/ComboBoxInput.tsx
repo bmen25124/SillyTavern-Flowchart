@@ -10,7 +10,7 @@ interface ComboBoxInputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const ComboBoxInput: FC<ComboBoxInputProps> = ({ value, onChange, options, listId, ...props }) => {
   return (
     <>
-      <input type="text" className="text_pole" value={value} onChange={onChange} list={listId} {...props} />
+      <input type="text" className="text_pole nodrag" value={value} onChange={onChange} list={listId} {...props} />
       <datalist id={listId}>
         {options.map((option, index) => (
           <option key={index} value={option} />
