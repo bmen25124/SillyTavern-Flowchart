@@ -5,8 +5,8 @@
     "type": "module",
     "main": "src/scripts/main.js",
     "scripts": {
-        "dev": "cross-env NODE_ENV=development sass src/styles/main.scss dist/style.css --source-map & cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
-        "build": "cross-env NODE_ENV=production sass src/styles/main.scss dist/style.css --no-source-map && cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
+        "dev": "cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
+        "build": "cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
         "prettify": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\" \"src/**/*.scss\""
     },
@@ -30,8 +30,10 @@
         "css-loader": "^7.1.2",
         "jest": "^29.7.0",
         "jquery": "^3.7.1",
+        "mini-css-extract-plugin": "^2.9.4",
         "prettier": "^3.4.2",
         "sass": "^1.83.4",
+        "sass-loader": "^16.0.5",
         "style-loader": "^4.0.0",
         "terser-webpack-plugin": "^5.3.10",
         "ts-jest": "^29.2.5",

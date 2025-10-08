@@ -12,6 +12,9 @@ import { selected_group, st_echo, this_chid } from 'sillytavern-utils-lib/config
 import { PromptEngineeringMode } from './config.js';
 import * as Handlebars from 'handlebars';
 
+import './styles/main.scss';
+import '@xyflow/react/dist/style.css';
+
 const generator = new Generator();
 
 async function getBaseMessagesForProfile(profileId: string, lastMessageId?: number): Promise<Message[]> {

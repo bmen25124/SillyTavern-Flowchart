@@ -1,5 +1,6 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
@@ -16,14 +17,26 @@ module.exports = {
     },
     externalsType: 'module',
     externals: [
-        function({ context, request }, callback) {
-            if (request.includes('../../..')) {
-                // Return the path as an external module import
-                return callback(null, `module ${request}`);
+        function ({ context, request }, callback) {
+            // Externalize deep relative paths that are NOT targeting node_modules.
+            // This correctly identifies SillyTavern's runtime scripts.
+            if (request.startsWith('../../..') && !request.includes('node_modules')) {
+                const isFromMySrc = context && !context.includes('node_modules');
+                const isFromUtilsLib = context && context.includes('sillytavern-utils-lib');
+
+                if (isFromMySrc || isFromUtilsLib) {
+                    return callback(null, `module ${request}`);
+                }
             }
+
             // Continue without externalizing the import
             callback();
         },
+    ],
+    plugins: [
+        new MiniCssExtractPlugin({
+            filename: 'style.css',
+        }),
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
@@ -60,8 +73,8 @@ module.exports = {
                 ],
             },
             {
-                test: /\.css$/,
-                use: ['style-loader', 'css-loader'],
+                test: /\.(s[ac]ss|css)$/i,
+                use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
             },
         ],
     },

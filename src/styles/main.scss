@@ -39,6 +39,7 @@
 .flowchart-errors {
   color: var(--warning);
   margin-top: 10px;
+
   ul {
     margin-top: 5px;
   }
@@ -116,6 +117,7 @@
   .two-column-layout {
     display: flex;
     gap: 20px;
+
     .setting-column {
       flex: 1;
       display: flex;
@@ -125,3 +127,8 @@
   }
 }
 
+.react-flow {
+  .draggable {
+    all: unset;
+  }
+}

@@ -1,8 +1,17 @@
 import { FC, useCallback, useState } from 'react';
 import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
-import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+import {
+  ReactFlow,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  EdgeChange,
+  Edge,
+  NodeChange,
+  Connection,
+  Node,
+} from '@xyflow/react';
 
 const initialNodes = [
   { id: 'n1', position: { x: 0, y: 0 }, data: { label: 'Node 1' } },
@@ -18,21 +27,21 @@ export const FlowChartGround: FC = () => {
   const [edges, setEdges] = useState(initialEdges);
 
   const onNodesChange = useCallback(
-    (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
+    // @ts-ignore
+    (changes: NodeChange<Node>[]) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
     [],
   );
   const onEdgesChange = useCallback(
-    (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
+    (changes: EdgeChange<Edge>[]) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
     [],
   );
   const onConnect = useCallback(
-    (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    (connection: Connection) => setEdges((edgesSnapshot) => addEdge(connection, edgesSnapshot)),
     [],
   );
 
-
   return (
-    <div className="flowchart-popup-ground" style={{ width: '100vw', height: '100vh' }}>
+    <div className="flowchart-popup-ground" style={{ width: '900px', height: '350px' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
