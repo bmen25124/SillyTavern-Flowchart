@@ -127,8 +127,16 @@
   }
 }
 
-.react-flow {
-  .draggable {
-    all: unset;
-  }
+.react-flow__pane.draggable, .react-flow__node.draggable {
+  bottom: unset;
+  display: unset;
+  overflow: unset;
+  min-width: unset;
+  min-height: unset;
+  max-width: unset;
+  max-height: unset;
+}
+
+.react-flow__nodes {
+  width: unset !important;
 }

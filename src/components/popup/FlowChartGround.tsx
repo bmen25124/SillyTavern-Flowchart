@@ -48,6 +48,7 @@ export const FlowChartGround: FC = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        colorMode='dark'
         fitView
       />
     </div>
