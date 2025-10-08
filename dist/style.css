@@ -1,0 +1,110 @@
+.flowchart-settings .flowchart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.flowchart-settings .setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flowchart-settings .setting-row:last-child {
+  margin-top: 10px;
+}
+.flowchart-settings .setting-row button {
+  align-self: flex-start;
+}
+
+.mes details {
+  margin-top: 8px;
+}
+
+.mes details > summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--SmartThemeEmColor);
+  padding: 2px;
+}
+.mes details > summary span {
+  font-style: italic;
+}
+
+.flowchart-errors {
+  color: var(--warning);
+  margin-top: 10px;
+}
+.flowchart-errors ul {
+  margin-top: 5px;
+}
+
+.flowchart-success {
+  color: var(--active);
+  margin-top: 10px;
+}
+
+.flowchart-data-popup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+}
+.flowchart-data-popup .flowchart-popup-header {
+  border-bottom: 1px solid var(--SmartThemeBorderColor);
+  padding-bottom: 10px;
+}
+.flowchart-data-popup .flowchart-popup-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.flowchart-data-popup .flowchart-popup-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+.flowchart-data-popup .flowchart-popup-content details {
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+.flowchart-data-popup .flowchart-popup-content summary {
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.flowchart-data-popup .flowchart-popup-section .setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 15px;
+}
+.flowchart-data-popup .flowchart-popup-section .setting-row .input-with-button {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.flowchart-data-popup .flowchart-popup-section .setting-row .input-with-button input,
+.flowchart-data-popup .flowchart-popup-section .setting-row .input-with-button select {
+  flex-grow: 1;
+}
+.flowchart-data-popup .flowchart-popup-footer {
+  border-top: 1px solid var(--SmartThemeBorderColor);
+  padding-top: 10px;
+  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.flowchart-data-popup .two-column-layout {
+  display: flex;
+  gap: 20px;
+}
+.flowchart-data-popup .two-column-layout .setting-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/*# sourceMappingURL=style.css.map */

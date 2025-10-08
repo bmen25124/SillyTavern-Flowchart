@@ -1,0 +1,127 @@
+.flowchart-settings {
+  .flowchart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &:last-child {
+      margin-top: 10px;
+    }
+
+    button {
+      align-self: flex-start;
+    }
+  }
+}
+
+.mes details {
+  margin-top: 8px;
+}
+
+.mes details > summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--SmartThemeEmColor);
+  padding: 2px;
+
+  span {
+    font-style: italic;
+  }
+}
+
+// Utility classes for popups
+.flowchart-errors {
+  color: var(--warning);
+  margin-top: 10px;
+  ul {
+    margin-top: 5px;
+  }
+}
+
+.flowchart-success {
+  color: var(--active);
+  margin-top: 10px;
+}
+
+// Popup Styles
+.flowchart-data-popup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+
+  .flowchart-popup-header {
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    padding-bottom: 10px;
+  }
+
+  .flowchart-popup-tabs {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .flowchart-popup-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+
+    details {
+      border: 1px solid var(--SmartThemeBorderColor);
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    summary {
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+  }
+
+  .flowchart-popup-section .setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 15px;
+
+    .input-with-button {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+
+      input,
+      select {
+        flex-grow: 1;
+      }
+    }
+  }
+
+  .flowchart-popup-footer {
+    border-top: 1px solid var(--SmartThemeBorderColor);
+    padding-top: 10px;
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .two-column-layout {
+    display: flex;
+    gap: 20px;
+    .setting-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+  }
+}
+
