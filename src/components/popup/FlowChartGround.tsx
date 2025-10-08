@@ -14,18 +14,18 @@ import {
   Position,
 } from '@xyflow/react';
 import { StarterNode } from '../nodes/StarterNode.js';
-import { EventNames } from 'sillytavern-utils-lib/types';
 
 const initialNodes: Node[] = [
   {
     id: 'n1',
     position: { x: 0, y: 0 },
-    data: { label: 'Node 1', allEventTypes: Object.values(EventNames), selectedEventType: '' },
+    data: { selectedEventType: '' },
     type: 'starterNode',
+    width: 200,
   },
   {
     id: 'n2',
-    position: { x: 0, y: 100 },
+    position: { x: 250, y: 0 },
     data: { label: 'Node 2' },
     sourcePosition: Position.Right,
     targetPosition: Position.Left,
