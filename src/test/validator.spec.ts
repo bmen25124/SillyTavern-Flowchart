@@ -12,7 +12,12 @@ describe('validateFlow', () => {
   it('should return valid for a simple valid flow', () => {
     const flow: FlowData = {
       nodes: [
-        { id: '1', type: 'starterNode', position: { x: 0, y: 0 }, data: { selectedEventType: 'user_message_rendered' } },
+        {
+          id: '1',
+          type: 'starterNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         { id: '2', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'test' } },
       ],
       edges: [{ id: 'e1-2', source: '1', target: '2', sourceHandle: null, targetHandle: null }],
@@ -57,7 +62,14 @@ describe('validateFlow', () => {
 
   it('should return invalid for an edge with a non-existent target node', () => {
     const flow: FlowData = {
-      nodes: [{ id: '1', type: 'starterNode', position: { x: 0, y: 0 }, data: { selectedEventType: 'user_message_rendered' } }],
+      nodes: [
+        {
+          id: '1',
+          type: 'starterNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
+      ],
       edges: [{ id: 'e1-2', source: '1', target: '2', sourceHandle: null, targetHandle: null }],
     };
     const { isValid, errors } = validateFlow(flow);
@@ -85,7 +97,12 @@ describe('validateFlow', () => {
   it('should return invalid for a starter node with an incoming connection', () => {
     const flow: FlowData = {
       nodes: [
-        { id: '1', type: 'starterNode', position: { x: 0, y: 0 }, data: { selectedEventType: 'user_message_rendered' } },
+        {
+          id: '1',
+          type: 'starterNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         { id: '2', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'test' } },
       ],
       edges: [{ id: 'e2-1', source: '2', target: '1', sourceHandle: null, targetHandle: null }],
@@ -99,7 +116,12 @@ describe('validateFlow', () => {
   it('should handle multiple errors', () => {
     const flow: FlowData = {
       nodes: [
-        { id: '1', type: 'starterNode', position: { x: 0, y: 0 }, data: { selectedEventType: 'user_message_rendered' } },
+        {
+          id: '1',
+          type: 'starterNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         { id: '2', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 123 } }, // Invalid data
       ],
       edges: [

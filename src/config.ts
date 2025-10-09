@@ -10,8 +10,6 @@ export enum PromptEngineeringMode {
   XML = 'xml',
 }
 
-
-
 export interface ExtensionSettings {
   version: string;
   formatVersion: string;
