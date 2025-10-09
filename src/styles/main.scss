@@ -179,6 +179,7 @@
 }
 
 .flowchart-popup-ground {
+  position: relative;
   flex-grow: 1;
   border: 1px solid var(--SmartThemeBorderColor);
   border-radius: 4px;
@@ -218,6 +219,32 @@
         white-space: pre-wrap;
         word-break: break-all;
       }
+    }
+  }
+}
+
+.flowchart-context-menu {
+  position: absolute;
+  background: var(--background-color-modal);
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  min-width: 180px;
+
+  ul {
+    list-style: none;
+    padding: 5px 0;
+    margin: 0;
+  }
+
+  li {
+    padding: 8px 12px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--primary-color);
+      color: var(--text-color-black);
     }
   }
 }

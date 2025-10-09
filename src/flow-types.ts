@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EventNames } from 'sillytavern-utils-lib/types';
+import { Connection, Edge, Node } from '@xyflow/react';
 
 // These parameters are ordered method parameters.
 // For example, `{ messageId: z.number() }` means, `function (messageId: number)`
@@ -8,6 +9,114 @@ export const EventNameParameters: Record<string, Record<string, z.ZodType>> = {
   [EventNames.USER_MESSAGE_RENDERED]: { messageId: z.number() },
   [EventNames.CHARACTER_MESSAGE_RENDERED]: { messageId: z.number() },
 };
+
+export enum FlowDataType {
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  PROFILE_ID = 'profileId',
+  MESSAGES = 'messages',
+  SCHEMA = 'schema',
+  STRUCTURED_RESULT = 'structuredResult',
+  ANY = 'any',
+}
+
+export type HandleSpec = {
+  id: string | null;
+  type: FlowDataType;
+};
+
+export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: HandleSpec[] }> = {
+  triggerNode: {
+    inputs: [],
+    outputs: [],
+  },
+  ifNode: {
+    inputs: [],
+    // Outputs are for control flow. The runner doesn't pass data from them.
+    // We will treat them as ANY to allow connection. The true source of data for the
+    // next node will be a predecessor of the ifNode.
+    outputs: [{ id: 'false', type: FlowDataType.ANY }], // + dynamic condition handles
+  },
+  createMessagesNode: {
+    inputs: [
+      { id: 'profileId', type: FlowDataType.PROFILE_ID },
+      { id: 'lastMessageId', type: FlowDataType.NUMBER },
+    ],
+    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
+  },
+  stringNode: {
+    inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
+    outputs: [{ id: null, type: FlowDataType.STRING }],
+  },
+  numberNode: {
+    inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
+    outputs: [{ id: null, type: FlowDataType.NUMBER }],
+  },
+  structuredRequestNode: {
+    inputs: [
+      { id: 'profileId', type: FlowDataType.PROFILE_ID },
+      { id: 'messages', type: FlowDataType.MESSAGES },
+      { id: 'schema', type: FlowDataType.SCHEMA },
+      { id: 'messageId', type: FlowDataType.NUMBER },
+      { id: 'maxResponseToken', type: FlowDataType.NUMBER },
+    ],
+    outputs: [{ id: null, type: FlowDataType.STRUCTURED_RESULT }],
+  },
+  schemaNode: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.SCHEMA }],
+  },
+  profileIdNode: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
+  },
+};
+
+export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[]): boolean {
+  const sourceNode = nodes.find((node) => node.id === connection.source);
+  const targetNode = nodes.find((node) => node.id === connection.target);
+
+  if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
+    return false;
+  }
+
+  const sourceHandleTypes = NodeHandleTypes[sourceNode.type]?.outputs;
+  const targetHandleTypes = NodeHandleTypes[targetNode.type]?.inputs;
+
+  if (!sourceHandleTypes || !targetHandleTypes) {
+    return false;
+  }
+
+  let sourceHandleType: FlowDataType | undefined;
+  if (sourceNode.type === 'ifNode') {
+    // @ts-ignore
+    const isConditionHandle = sourceNode.data?.conditions?.some((c: any) => c.id === connection.sourceHandle);
+    if (connection.sourceHandle === 'false' || isConditionHandle) {
+      sourceHandleType = FlowDataType.ANY;
+    }
+  } else {
+    sourceHandleType = sourceHandleTypes.find((h) => h.id === connection.sourceHandle)?.type;
+  }
+
+  const targetHandleType = targetHandleTypes.find((h) => h.id === connection.targetHandle)?.type;
+
+  if (!sourceHandleType || !targetHandleType) {
+    return false;
+  }
+
+  if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
+    return true;
+  }
+  if (targetHandleType === FlowDataType.PROFILE_ID && sourceHandleType === FlowDataType.STRING) {
+    return true;
+  }
+  if (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID) {
+    return true;
+  }
+
+  return sourceHandleType === targetHandleType;
+}
 
 export const TriggerNodeDataSchema = z.object({
   selectedEventType: z.string().refine((val) => Object.values(EventNames).includes(val as any), {

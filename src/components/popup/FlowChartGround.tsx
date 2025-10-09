@@ -1,5 +1,15 @@
-import { FC, useMemo } from 'react';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import { FC, useMemo, useCallback, useRef, useState } from 'react';
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  Connection,
+  Edge,
+  ReactFlowProvider,
+  useReactFlow,
+  Node,
+  OnConnectStartParams,
+} from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
 import { TriggerNode } from '../nodes/TriggerNode.js';
 import { IfNode } from '../nodes/IfNode.js';
@@ -13,13 +23,26 @@ import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { STButton, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
-import { NodePalette } from './NodePalette.js';
+import { NodePalette, availableNodes } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
 import { createDefaultFlow } from '../../config.js';
+import { NodeHandleTypes, checkConnectionValidity } from '../../flow-types.js';
+
+type AddNodeContextMenu = {
+  x: number;
+  y: number;
+  options: {
+    label: string;
+    action: () => void;
+  }[];
+};
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useFlow();
+  const { screenToFlowPosition } = useReactFlow();
+  const connectingNode = useRef<OnConnectStartParams | null>(null);
+  const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
 
   const nodeTypes = useMemo(
     () => ({
@@ -35,6 +58,125 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
     [],
   );
 
+  const isValidConnection = useCallback(
+    (connection: Edge | Connection) => checkConnectionValidity(connection, nodes),
+    [nodes],
+  );
+
+  const onConnectStart = useCallback((_: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
+    connectingNode.current = params;
+  }, []);
+
+  const onConnectEnd = useCallback(
+    (event: MouseEvent) => {
+      if (!connectingNode.current) return;
+
+      const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
+      if (!startNodeId || !handleType) {
+        connectingNode.current = null;
+        return;
+      }
+
+      const startNode = nodes.find((n) => n.id === startNodeId);
+      if (!startNode || !startNode.type) {
+        connectingNode.current = null;
+        return;
+      }
+
+      const findCompatibleNodes = () => {
+        const candidates: { nodeType: string; nodeLabel: string; connectToHandle: string | null }[] = [];
+
+        if (handleType === 'source') {
+          for (const nodeDef of availableNodes) {
+            const targetInputs = NodeHandleTypes[nodeDef.type]?.inputs;
+            if (!targetInputs) continue;
+            for (const targetHandle of targetInputs) {
+              const tempTargetNode: Node = {
+                id: 'temp',
+                type: nodeDef.type,
+                position: { x: 0, y: 0 },
+                data: structuredClone(nodeDef.data),
+              };
+              if (
+                checkConnectionValidity(
+                  { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: targetHandle.id },
+                  [...nodes, tempTargetNode],
+                )
+              ) {
+                candidates.push({
+                  nodeType: nodeDef.type,
+                  nodeLabel: nodeDef.label,
+                  connectToHandle: targetHandle.id,
+                });
+              }
+            }
+          }
+        } else {
+          for (const nodeDef of availableNodes) {
+            const sourceOutputs = NodeHandleTypes[nodeDef.type]?.outputs;
+            if (!sourceOutputs) continue;
+            for (const sourceHandle of sourceOutputs) {
+              const tempSourceNode: Node = {
+                id: 'temp',
+                type: nodeDef.type,
+                position: { x: 0, y: 0 },
+                data: structuredClone(nodeDef.data),
+              };
+              if (
+                checkConnectionValidity(
+                  { source: 'temp', sourceHandle: sourceHandle.id, target: startNodeId, targetHandle: startHandleId },
+                  [...nodes, tempSourceNode],
+                )
+              ) {
+                candidates.push({
+                  nodeType: nodeDef.type,
+                  nodeLabel: nodeDef.label,
+                  connectToHandle: sourceHandle.id,
+                });
+              }
+            }
+          }
+        }
+        return Array.from(new Map(candidates.map((item) => [item.nodeType, item])).values());
+      };
+
+      const compatibleNodes = findCompatibleNodes();
+      connectingNode.current = null;
+      if (compatibleNodes.length === 0) return;
+
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      const createAndConnectNode = (nodeType: string, connectToHandle: string | null) => {
+        const nodeDef = availableNodes.find((n) => n.type === nodeType);
+        if (!nodeDef) return;
+
+        const newNode = addNode({ type: nodeType, position, data: structuredClone(nodeDef.data) });
+        const connection =
+          handleType === 'source'
+            ? { source: startNodeId, sourceHandle: startHandleId, target: newNode.id, targetHandle: connectToHandle }
+            : { source: newNode.id, sourceHandle: connectToHandle, target: startNodeId, targetHandle: startHandleId };
+        onConnect(connection);
+      };
+
+      if (compatibleNodes.length === 1) {
+        createAndConnectNode(compatibleNodes[0].nodeType, compatibleNodes[0].connectToHandle);
+      } else {
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          options: compatibleNodes.map(({ nodeType, nodeLabel, connectToHandle }) => ({
+            label: nodeLabel,
+            action: () => {
+              createAndConnectNode(nodeType, connectToHandle);
+              setContextMenu(null);
+            },
+          })),
+        });
+      }
+    },
+    [nodes, screenToFlowPosition, addNode, onConnect],
+  );
+
   const nodesWithInvalidClass = useMemo(
     () =>
       nodes.map((node) => ({
@@ -45,20 +187,38 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
   );
 
   return (
-    <div className="flowchart-popup-ground">
+    <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
         nodes={nodesWithInvalidClass}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd as any}
+        onPaneClick={() => {}}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
+        isValidConnection={isValidConnection}
       >
         <Background />
         <Controls />
       </ReactFlow>
+      {contextMenu && (
+        <div
+          className="flowchart-context-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x, zIndex: 999, position: 'fixed' }}
+        >
+          <ul>
+            {contextMenu.options.map((option) => (
+              <li key={option.label} onClick={option.action}>
+                {option.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
@@ -190,7 +350,9 @@ const FlowManager: FC = () => {
 export const FlowChartGround: FC = () => {
   return (
     <FlowProvider>
-      <FlowManager />
+      <ReactFlowProvider>
+        <FlowManager />
+      </ReactFlowProvider>
     </FlowProvider>
   );
 };
