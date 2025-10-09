@@ -8,6 +8,7 @@ import { StringNode } from '../nodes/StringNode.js';
 import { NumberNode } from '../nodes/NumberNode.js';
 import { StructuredRequestNode } from '../nodes/StructuredRequestNode.js';
 import { SchemaNode } from '../nodes/SchemaNode.js';
+import { ProfileIdNode } from '../nodes/ProfileIdNode.js';
 import { settingsManager } from '../Settings.js';
 import { STPresetSelect, STButton } from 'sillytavern-utils-lib/components';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
@@ -28,6 +29,7 @@ const FlowCanvas: FC = () => {
       numberNode: NumberNode,
       structuredRequestNode: StructuredRequestNode,
       schemaNode: SchemaNode,
+      profileIdNode: ProfileIdNode,
     }),
     [],
   );

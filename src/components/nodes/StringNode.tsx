@@ -13,20 +13,15 @@ export type StringNodeProps = {
 export const StringNode: FC<StringNodeProps> = ({ id, data }) => {
   const { updateNodeData } = useFlow();
 
-  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateNodeData(id, { name: event.target.value });
-  };
-
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateNodeData(id, { value: event.target.value });
   };
 
   return (
     <BaseNode id={id} title="String">
+      <Handle type="target" position={Position.Left} />
       <div style={{ width: 200 }}>
-        <label>Name</label>
-        <STInput value={data.name} onChange={handleNameChange} />
-        <label style={{ marginTop: '10px', display: 'block' }}>Value</label>
+        <label>Value</label>
         <STInput value={data.value} onChange={handleValueChange} />
       </div>
       <Handle type="source" position={Position.Right} />

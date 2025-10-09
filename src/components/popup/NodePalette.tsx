@@ -6,8 +6,8 @@ const availableNodes = [
   { type: 'starterNode', label: 'Starter Node', data: { selectedEventType: 'user_message_rendered' } },
   { type: 'ifNode', label: 'If Node', data: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }] } },
   { type: 'createMessagesNode', label: 'Create Messages Node', data: { profileId: '' } },
-  { type: 'stringNode', label: 'String Node', data: { name: 'myString', value: 'hello' } },
-  { type: 'numberNode', label: 'Number Node', data: { name: 'myNumber', value: 123 } },
+  { type: 'stringNode', label: 'String Node', data: { value: 'hello' } },
+  { type: 'numberNode', label: 'Number Node', data: { value: 123 } },
   {
     type: 'structuredRequestNode',
     label: 'Structured Request Node',
@@ -19,7 +19,8 @@ const availableNodes = [
       maxResponseToken: 1000,
     },
   },
-  { type: 'schemaNode', label: 'Schema Node', data: { name: 'mySchema', fields: [] } },
+  { type: 'schemaNode', label: 'Schema Node', data: { fields: [] } },
+  { type: 'profileIdNode', label: 'Profile ID Node', data: { profileId: '' } },
 ];
 
 export const NodePalette: FC = () => {

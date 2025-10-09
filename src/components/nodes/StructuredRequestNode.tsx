@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useEdges } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { StructuredRequestNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
@@ -14,6 +14,14 @@ export type StructuredRequestNodeProps = {
 
 export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data }) => {
   const { updateNodeData } = useFlow();
+  const edges = useEdges();
+
+  const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
+  const isMessageIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messageId');
+  const isMaxResponseTokenConnected = edges.some(
+    (edge) => edge.target === id && edge.targetHandle === 'maxResponseToken',
+  );
+  const isProfileIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'profileId');
 
   const handleProfileChange = (profile?: ConnectionProfile) => {
     updateNodeData(id, { profileId: profile?.id || '' });
@@ -21,35 +29,80 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
 
   return (
     <BaseNode id={id} title="Structured Request">
-      <Handle type="target" position={Position.Left} />
-      <div style={{ width: 200 }}>
-        <label>Connection Profile</label>
-        <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
-        <label style={{ marginTop: '10px', display: 'block' }}>Schema Name</label>
-        <STInput value={data.schemaName} onChange={(e) => updateNodeData(id, { schemaName: e.target.value })} />
-        <label style={{ marginTop: '10px', display: 'block' }}>Message ID</label>
-        <STInput
-          type="number"
-          value={data.messageId}
-          onChange={(e) => updateNodeData(id, { messageId: Number(e.target.value) })}
-        />
-        <label style={{ marginTop: '10px', display: 'block' }}>Prompt Engineering Mode</label>
-        <STSelect
-          value={data.promptEngineeringMode}
-          onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value })}
-        >
-          {Object.values(PromptEngineeringMode).map((mode) => (
-            <option key={mode} value={mode}>
-              {mode}
-            </option>
-          ))}
-        </STSelect>
-        <label style={{ marginTop: '10px', display: 'block' }}>Max Response Token</label>
-        <STInput
-          type="number"
-          value={data.maxResponseToken}
-          onChange={(e) => updateNodeData(id, { maxResponseToken: Number(e.target.value) })}
-        />
+      <div style={{ width: 200, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="profileId"
+            style={{ transform: 'translateY(-50%)', top: '0.5rem' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Connection Profile</label>
+          {!isProfileIdConnected && (
+            <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
+          )}
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="schema"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Schema Name</label>
+          {!isSchemaConnected && (
+            <STInput value={data.schemaName} onChange={(e) => updateNodeData(id, { schemaName: e.target.value })} />
+          )}
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="messageId"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Message ID</label>
+          {!isMessageIdConnected && (
+            <STInput
+              type="number"
+              value={data.messageId}
+              onChange={(e) => updateNodeData(id, { messageId: Number(e.target.value) })}
+            />
+          )}
+        </div>
+
+        <div>
+          <label style={{ marginLeft: '10px' }}>Prompt Engineering Mode</label>
+          <STSelect
+            value={data.promptEngineeringMode}
+            onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value })}
+          >
+            {Object.values(PromptEngineeringMode).map((mode) => (
+              <option key={mode} value={mode}>
+                {mode}
+              </option>
+            ))}
+          </STSelect>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="maxResponseToken"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Max Response Token</label>
+          {!isMaxResponseTokenConnected && (
+            <STInput
+              type="number"
+              value={data.maxResponseToken}
+              onChange={(e) => updateNodeData(id, { maxResponseToken: Number(e.target.value) })}
+            />
+          )}
+        </div>
       </div>
       <Handle type="source" position={Position.Right} />
     </BaseNode>

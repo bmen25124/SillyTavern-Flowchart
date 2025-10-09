@@ -8,6 +8,7 @@ import {
   NumberNodeDataSchema,
   StructuredRequestNodeDataSchema,
   SchemaNodeDataSchema,
+  ProfileIdNodeDataSchema,
 } from './flow-types.js';
 
 const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
@@ -18,6 +19,7 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   numberNode: NumberNodeDataSchema,
   structuredRequestNode: StructuredRequestNodeDataSchema,
   schemaNode: SchemaNodeDataSchema,
+  profileIdNode: ProfileIdNodeDataSchema,
 };
 
 export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string[] } => {

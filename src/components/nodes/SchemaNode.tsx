@@ -13,10 +13,6 @@ export type SchemaNodeProps = {
 export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
   const { updateNodeData } = useFlow();
 
-  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateNodeData(id, { name: event.target.value });
-  };
-
   const handleFieldChange = (fieldId: string, field: { name: string; type: 'string' | 'number' | 'boolean' }) => {
     const newFields = data.fields.map((f) => (f.id === fieldId ? { ...f, ...field } : f));
     updateNodeData(id, { fields: newFields });
@@ -35,9 +31,7 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
   return (
     <BaseNode id={id} title="Schema">
       <div style={{ width: 300 }}>
-        <label>Name</label>
-        <STInput value={data.name} onChange={handleNameChange} />
-        <label style={{ marginTop: '10px', display: 'block' }}>Fields</label>
+        <label>Fields</label>
         {(data.fields || []).map((field) => (
           <div key={field.id} style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
             <STInput

@@ -57,7 +57,6 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
 
   return (
     <BaseNode id={id} title="If Conditions">
-      <Handle type="target" position={Position.Left} />
       <div style={{ width: 300 }}>
         {data.conditions.map((condition, index) => (
           <div key={condition.id} style={{ marginBottom: '10px' }}>

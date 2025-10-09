@@ -8,6 +8,7 @@ import {
   SchemaNodeDataSchema,
   StringNodeDataSchema,
   StructuredRequestNodeDataSchema,
+  ProfileIdNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './config.js';
@@ -117,12 +118,19 @@ class FlowRunner {
       case 'createMessagesNode': {
         const parseResult = CreateMessagesNodeDataSchema.safeParse(currentNode.data);
         if (parseResult.success) {
-          const { profileId, lastMessageId } = parseResult.data;
-          try {
-            const messages = await getBaseMessagesForProfile(profileId, lastMessageId);
-            nextInput = { ...input, messages };
-          } catch (error) {
-            console.error(`[FlowChart] Error in createMessagesNode ${currentNode.id}:`, error);
+          const { profileId: staticProfileId, lastMessageId: staticLastMessageId } = parseResult.data;
+          const profileId = input.profileId ?? staticProfileId;
+          const lastMessageId = input.lastMessageId ?? staticLastMessageId;
+
+          if (profileId) {
+            try {
+              const messages = await getBaseMessagesForProfile(profileId, lastMessageId);
+              nextInput = { ...input, messages };
+            } catch (error) {
+              console.error(`[FlowChart] Error in createMessagesNode ${currentNode.id}:`, error);
+            }
+          } else {
+            console.error(`[FlowChart] Profile ID not found for createMessagesNode ${currentNode.id}.`);
           }
         } else {
           console.error(`[FlowChart] Invalid data for createMessagesNode ${currentNode.id}:`, parseResult.error.issues);
@@ -180,8 +188,11 @@ class FlowRunner {
       case 'stringNode': {
         const parseResult = StringNodeDataSchema.safeParse(currentNode.data);
         if (parseResult.success) {
-          const { name, value } = parseResult.data;
-          nextInput = { ...input, [name]: value };
+          const { value } = parseResult.data;
+          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+          if (outgoingEdge?.targetHandle) {
+            nextInput = { ...input, [outgoingEdge.targetHandle]: value };
+          }
         } else {
           console.error(`[FlowChart] Invalid data for stringNode ${currentNode.id}:`, parseResult.error.issues);
         }
@@ -194,8 +205,11 @@ class FlowRunner {
       case 'numberNode': {
         const parseResult = NumberNodeDataSchema.safeParse(currentNode.data);
         if (parseResult.success) {
-          const { name, value } = parseResult.data;
-          nextInput = { ...input, [name]: value };
+          const { value } = parseResult.data;
+          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+          if (outgoingEdge?.targetHandle) {
+            nextInput = { ...input, [outgoingEdge.targetHandle]: value };
+          }
         } else {
           console.error(`[FlowChart] Invalid data for numberNode ${currentNode.id}:`, parseResult.error.issues);
         }
@@ -209,27 +223,43 @@ class FlowRunner {
       case 'structuredRequestNode': {
         const parseResult = StructuredRequestNodeDataSchema.safeParse(currentNode.data);
         if (parseResult.success) {
-          const { profileId, schemaName, messageId, promptEngineeringMode, maxResponseToken } = parseResult.data;
-          const schema = input[schemaName];
-          const messages = input['messages'];
-          if (schema && messages) {
+          const {
+            profileId: staticProfileId,
+            schemaName,
+            messageId: staticMessageId,
+            promptEngineeringMode,
+            maxResponseToken: staticMaxResponseToken,
+          } = parseResult.data;
+
+          const profileId = input.profileId ?? staticProfileId;
+          const schema = input.schema;
+          const messageId = input.messageId ?? staticMessageId;
+          const maxResponseToken = input.maxResponseToken ?? staticMaxResponseToken;
+          const messages = input.messages;
+
+          if (profileId && schema && messages && messageId !== undefined && maxResponseToken !== undefined) {
             try {
               const result = await makeStructuredRequest(
                 profileId,
                 messages,
                 schema,
-                schemaName,
+                schemaName || 'response',
                 messageId,
                 promptEngineeringMode as any,
                 maxResponseToken,
               );
-              nextInput = { ...input, [schemaName]: result };
+              const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+              if (outgoingEdge?.targetHandle) {
+                nextInput = { ...input, [outgoingEdge.targetHandle]: result };
+              } else {
+                nextInput = { ...input, structuredResult: result };
+              }
             } catch (error) {
               console.error(`[FlowChart] Error in structuredRequestNode ${currentNode.id}:`, error);
             }
           } else {
             console.error(
-              `[FlowChart] Schema or messages not found for structuredRequestNode ${currentNode.id}. Make sure a schema node and a create messages node are connected.`,
+              `[FlowChart] Missing inputs for structuredRequestNode ${currentNode.id}. Check connections for schema, messages, messageId, and maxResponseToken.`,
             );
           }
         } else {
@@ -247,7 +277,7 @@ class FlowRunner {
       case 'schemaNode': {
         const parseResult = SchemaNodeDataSchema.safeParse(currentNode.data);
         if (parseResult.success) {
-          const { name, fields } = parseResult.data;
+          const { fields } = parseResult.data;
           const schema = z.object(
             fields.reduce(
               (acc, field) => {
@@ -269,9 +299,30 @@ class FlowRunner {
               {} as Record<string, z.ZodType<any, any>>,
             ),
           );
-          nextInput = { ...input, [name]: schema };
+
+          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+          if (outgoingEdge?.targetHandle) {
+            nextInput = { ...input, [outgoingEdge.targetHandle]: schema };
+          }
         } else {
           console.error(`[FlowChart] Invalid data for schemaNode ${currentNode.id}:`, parseResult.error.issues);
+        }
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+        if (outgoingEdge) {
+          nextNodeId = outgoingEdge.target;
+        }
+        break;
+      }
+      case 'profileIdNode': {
+        const parseResult = ProfileIdNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { profileId } = parseResult.data;
+          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+          if (outgoingEdge?.targetHandle) {
+            nextInput = { ...input, [outgoingEdge.targetHandle]: profileId };
+          }
+        } else {
+          console.error(`[FlowChart] Invalid data for profileIdNode ${currentNode.id}:`, parseResult.error.issues);
         }
         const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
         if (outgoingEdge) {

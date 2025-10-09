@@ -13,10 +13,6 @@ export type NumberNodeProps = {
 export const NumberNode: FC<NumberNodeProps> = ({ id, data }) => {
   const { updateNodeData } = useFlow();
 
-  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateNodeData(id, { name: event.target.value });
-  };
-
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     updateNodeData(id, { value: value === '' ? 0 : Number(value) });
@@ -24,10 +20,9 @@ export const NumberNode: FC<NumberNodeProps> = ({ id, data }) => {
 
   return (
     <BaseNode id={id} title="Number">
+      <Handle type="target" position={Position.Left} />
       <div style={{ width: 200 }}>
-        <label>Name</label>
-        <STInput value={data.name} onChange={handleNameChange} />
-        <label style={{ marginTop: '10px', display: 'block' }}>Value</label>
+        <label>Value</label>
         <STInput type="number" value={data.value} onChange={handleValueChange} />
       </div>
       <Handle type="source" position={Position.Right} />
