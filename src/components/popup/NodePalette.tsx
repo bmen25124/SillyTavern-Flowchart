@@ -3,7 +3,7 @@ import { useFlow } from './FlowContext.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 
 const availableNodes = [
-  { type: 'starterNode', label: 'Starter Node', data: { selectedEventType: 'user_message_rendered' } },
+  { type: 'triggerNode', label: 'Trigger Node', data: { selectedEventType: 'user_message_rendered' } },
   { type: 'ifNode', label: 'If Node', data: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }] } },
   { type: 'createMessagesNode', label: 'Create Messages Node', data: { profileId: '' } },
   { type: 'stringNode', label: 'String Node', data: { value: 'hello' } },

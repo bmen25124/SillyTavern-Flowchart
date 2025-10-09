@@ -23,7 +23,7 @@ describe('LowLevelFlowRunner', () => {
   it('should execute a simple flow from start to finish', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'starterNode', position: { x: 0, y: 0 }, data: {} },
+        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
         { id: 'string', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'hello' } },
       ],
       edges: [{ id: 'e-start-string', source: 'start', target: 'string', sourceHandle: null, targetHandle: null }],
@@ -37,7 +37,7 @@ describe('LowLevelFlowRunner', () => {
   it('should execute a stringNode and produce its value as output', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'starterNode', position: { x: 0, y: 0 }, data: {} },
+        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
         { id: 'string', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'test_string' } },
       ],
       edges: [{ id: 'e-start-string', source: 'start', target: 'string', sourceHandle: null, targetHandle: null }],
@@ -51,7 +51,7 @@ describe('LowLevelFlowRunner', () => {
   it('should call getBaseMessagesForProfile for createMessagesNode', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'starterNode', position: { x: 0, y: 0 }, data: {} },
+        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
         {
           id: 'createMsg',
           type: 'createMessagesNode',
@@ -69,7 +69,7 @@ describe('LowLevelFlowRunner', () => {
   it('should correctly evaluate an ifNode and follow the true path', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'starterNode', position: { x: 0, y: 0 }, data: {} },
+        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
         {
           id: 'if',
           type: 'ifNode',
@@ -102,7 +102,7 @@ describe('LowLevelFlowRunner', () => {
     const schema = z.object({ name: z.string() });
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'starterNode', position: { x: 0, y: 0 }, data: {} },
+        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
         {
           id: 'schema',
           type: 'schemaNode',

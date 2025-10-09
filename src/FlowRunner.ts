@@ -31,7 +31,7 @@ class FlowRunner {
     const allFlows = settings.flows;
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
 
-    // Find all starter nodes and group them by event type
+    // Find all trigger nodes and group them by event type
     for (const flowId in allFlows) {
       const flow = allFlows[flowId];
       const { isValid, errors } = validateFlow(flow);
@@ -42,15 +42,15 @@ class FlowRunner {
         continue;
       }
 
-      const starterNodes = flow.nodes.filter((node) => node.type === 'starterNode');
+      const triggerNodes = flow.nodes.filter((node) => node.type === 'triggerNode');
 
-      for (const starterNode of starterNodes) {
-        const eventType = starterNode.data.selectedEventType as string;
+      for (const triggerNode of triggerNodes) {
+        const eventType = triggerNode.data.selectedEventType as string;
         if (eventType) {
           if (!eventTriggers[eventType]) {
             eventTriggers[eventType] = [];
           }
-          eventTriggers[eventType].push({ flowId, nodeId: starterNode.id });
+          eventTriggers[eventType].push({ flowId, nodeId: triggerNode.id });
         }
       }
     }

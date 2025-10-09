@@ -5,17 +5,17 @@ import { EventNames } from 'sillytavern-utils-lib/types';
 import { useFlow } from '../popup/FlowContext.js';
 import { BaseNode } from './BaseNode.js';
 
-export type StarterNodeData = {
+export type TriggerNodeData = {
   selectedEventType: string;
 };
 
-export type StarterNodeProps = {
+export type TriggerNodeProps = {
   id: string;
   isConnectable: boolean;
-  data: StarterNodeData;
+  data: TriggerNodeData;
 };
 
-export const StarterNode: FC<StarterNodeProps> = ({ id, isConnectable, data }) => {
+export const TriggerNode: FC<TriggerNodeProps> = ({ id, isConnectable, data }) => {
   const { updateNodeData } = useFlow();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +32,6 @@ export const StarterNode: FC<StarterNodeProps> = ({ id, isConnectable, data }) =
         options={Object.values(EventNames)}
         listId={id}
       />
-      <Handle type="source" position={Position.Right} isConnectable={isConnectable} />
     </BaseNode>
   );
 };

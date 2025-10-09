@@ -10,6 +10,7 @@ import {
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
+import { validateFlow } from './validator.js';
 
 export interface FlowRunnerDependencies {
   getBaseMessagesForProfile: (profileId: string, lastMessageId?: number) => Promise<any[]>;
@@ -26,9 +27,15 @@ export interface FlowRunnerDependencies {
 }
 
 export class LowLevelFlowRunner {
-  constructor(private dependencies: FlowRunnerDependencies) {}
+  constructor(private dependencies: FlowRunnerDependencies) { }
 
   public async executeFlow(flow: FlowData, startNodeId: string, initialInput: Record<string, any>) {
+    const { isValid, errors } = validateFlow(flow);
+
+    if (!isValid) {
+      throw new Error(errors.join('\n'));
+    }
+
     console.log(`[FlowChart] Executing flow from node ${startNodeId} with args`, initialInput);
 
     const startNode = flow.nodes.find((n) => n.id === startNodeId);
@@ -143,7 +150,7 @@ export class LowLevelFlowRunner {
     let output: any = {};
 
     switch (node.type) {
-      case 'starterNode': {
+      case 'triggerNode': {
         output = { ...input };
         break;
       }

@@ -9,12 +9,12 @@ export const EventNameParameters: Record<string, Record<string, z.ZodType>> = {
   [EventNames.CHARACTER_MESSAGE_RENDERED]: { messageId: z.number() },
 };
 
-export const StarterNodeDataSchema = z.object({
+export const TriggerNodeDataSchema = z.object({
   selectedEventType: z.string().refine((val) => Object.values(EventNames).includes(val as any), {
     message: 'Invalid event type',
   }),
 });
-export type StarterNodeData = z.infer<typeof StarterNodeDataSchema>;
+export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;
 
 export const IfNodeDataSchema = z.object({
   conditions: z

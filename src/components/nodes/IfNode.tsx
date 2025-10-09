@@ -31,7 +31,7 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
   const { nodes, edges, updateNodeData } = useFlow();
 
   const typeDeclarations = useMemo(() => {
-    const findStarterNode = (startNodeId: string): Node | undefined => {
+    const findTriggerNode = (startNodeId: string): Node | undefined => {
       const queue: string[] = [startNodeId];
       const visited = new Set<string>();
 
@@ -43,7 +43,7 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
         visited.add(currentNodeId);
 
         const currentNode = nodes.find((n) => n.id === currentNodeId);
-        if (currentNode?.type === 'starterNode') {
+        if (currentNode?.type === 'triggerNode') {
           return currentNode;
         }
 
@@ -55,10 +55,10 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
       return undefined;
     };
 
-    const starterNode = findStarterNode(id);
-    if (!starterNode || !starterNode.data.selectedEventType) return '';
+    const triggerNode = findTriggerNode(id);
+    if (!triggerNode || !triggerNode.data.selectedEventType) return '';
 
-    const eventType = starterNode.data.selectedEventType as string;
+    const eventType = triggerNode.data.selectedEventType as string;
     const eventSchema = EventNameParameters[eventType];
     return eventSchema ? zodSchemaToTypescript(eventSchema) : '';
   }, [id, nodes, edges]);

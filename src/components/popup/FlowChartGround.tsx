@@ -1,7 +1,7 @@
 import { FC, useMemo } from 'react';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
-import { StarterNode } from '../nodes/StarterNode.js';
+import { TriggerNode } from '../nodes/TriggerNode.js';
 import { IfNode } from '../nodes/IfNode.js';
 import { CreateMessagesNode } from '../nodes/CreateMessagesNode.js';
 import { StringNode } from '../nodes/StringNode.js';
@@ -22,7 +22,7 @@ const FlowCanvas: FC = () => {
 
   const nodeTypes = useMemo(
     () => ({
-      starterNode: StarterNode,
+      triggerNode: TriggerNode,
       ifNode: IfNode,
       createMessagesNode: CreateMessagesNode,
       stringNode: StringNode,

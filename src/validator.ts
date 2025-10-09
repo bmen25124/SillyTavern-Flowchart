@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  StarterNodeDataSchema,
+  TriggerNodeDataSchema,
   IfNodeDataSchema,
   CreateMessagesNodeDataSchema,
   StringNodeDataSchema,
@@ -12,7 +12,7 @@ import {
 import { FlowData } from './constants.js';
 
 const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
-  starterNode: StarterNodeDataSchema,
+  triggerNode: TriggerNodeDataSchema,
   ifNode: IfNodeDataSchema,
   createMessagesNode: CreateMessagesNodeDataSchema,
   stringNode: StringNodeDataSchema,
@@ -103,12 +103,17 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
     // If a cycle is detected, further validation might be unreliable.
   }
 
-  // 4. Validate starter nodes
-  const starterNodes = flow.nodes.filter((n) => n.type === 'starterNode');
-  for (const starterNode of starterNodes) {
-    const hasIncomingEdge = flow.edges.some((e) => e.target === starterNode.id);
+  // 4. Validate trigger nodes
+  const triggerNodes = flow.nodes.filter((n) => n.type === 'triggerNode');
+  for (const triggerNode of triggerNodes) {
+    const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
     if (hasIncomingEdge) {
-      errors.push(`Starter Node [${starterNode.id}] cannot have incoming connections.`);
+      errors.push(`Trigger Node [${triggerNode.id}] cannot have incoming connections.`);
+    }
+
+    const hasOutgoingEdge = flow.edges.some((e) => e.source === triggerNode.id);
+    if (hasOutgoingEdge) {
+      errors.push(`Trigger Node [${triggerNode.id}] cannot have outgoing connections.`);
     }
   }
 

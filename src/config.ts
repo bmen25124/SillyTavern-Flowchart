@@ -31,7 +31,7 @@ const FORMAT_VERSION = 'F_1.0';
 const DEFAULT_FLOW_NODES: Node[] = [
   {
     id: 'n1',
-    type: 'starterNode',
+    type: 'triggerNode',
     position: { x: 0, y: 0 },
     data: { selectedEventType: 'user_message_rendered' },
     width: 200,
