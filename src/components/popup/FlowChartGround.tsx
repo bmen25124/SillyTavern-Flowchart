@@ -1,4 +1,4 @@
-import { FC, useMemo, useCallback, useRef, useState } from 'react';
+import { FC, useMemo, useCallback, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -39,10 +39,11 @@ type AddNodeContextMenu = {
 };
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode } = useFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
   const { screenToFlowPosition } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
   const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
+  const wasConnectionSuccessful = useRef(false);
 
   const nodeTypes = useMemo(
     () => ({
@@ -63,17 +64,26 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
     [nodes],
   );
 
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      wasConnectionSuccessful.current = true;
+      baseOnConnect(connection);
+    },
+    [baseOnConnect],
+  );
+
   const onConnectStart = useCallback((_: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
     connectingNode.current = params;
+    wasConnectionSuccessful.current = false;
   }, []);
 
   const onConnectEnd = useCallback(
     (event: MouseEvent) => {
       if (!connectingNode.current) return;
 
-      const targetIsHandle = (event.target as HTMLElement).closest('.react-flow__handle');
-      if (targetIsHandle) {
+      if (wasConnectionSuccessful.current) {
         connectingNode.current = null;
+        wasConnectionSuccessful.current = false;
         return;
       }
 
@@ -180,7 +190,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         });
       }
     },
-    [nodes, screenToFlowPosition, addNode, onConnect],
+    [nodes, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
   const nodesWithInvalidClass = useMemo(
@@ -233,6 +243,27 @@ const FlowManager: FC = () => {
   const { nodes, edges, loadFlow, getFlowData } = useFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced auto-save effect
+  useEffect(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      const currentFlowData = getFlowData();
+      settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
+      settingsManager.saveSettings();
+      flowRunner.reinitialize();
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [nodes, edges, settings.activeFlow, getFlowData]);
 
   const { isValid, errors, invalidNodeIds, invalidEdgeIds } = useMemo(
     () => validateFlow({ nodes, edges }),
@@ -243,14 +274,6 @@ const FlowManager: FC = () => {
     () => Object.keys(settings.flows).map((key) => ({ value: key, label: key })),
     [settings.flows],
   );
-
-  const handleSave = () => {
-    const currentFlowData = getFlowData();
-    settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
-    settingsManager.saveSettings();
-    flowRunner.reinitialize();
-    st_echo('info', `Flow "${settings.activeFlow}" saved.`);
-  };
 
   const handleSelectChange = (newValue?: string) => {
     if (newValue && settings.flows[newValue]) {
@@ -281,7 +304,6 @@ const FlowManager: FC = () => {
       }
     }
     forceUpdate();
-    flowRunner.reinitialize();
   };
 
   const handleCreate = (newValue: string) => {
@@ -302,7 +324,6 @@ const FlowManager: FC = () => {
     if (settings.activeFlow === oldValue) {
       settings.activeFlow = newValue;
     }
-    flowRunner.reinitialize();
     forceUpdate();
     return { confirmed: true };
   };
@@ -328,7 +349,6 @@ const FlowManager: FC = () => {
           enableRename
           enableDelete
         />
-        <STButton onClick={handleSave}>Save Flow</STButton>
       </div>
       {!isValid && (
         <div className="flowchart-errors">
