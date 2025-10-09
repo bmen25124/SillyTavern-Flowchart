@@ -23,13 +23,18 @@ describe('LowLevelFlowRunner', () => {
   it('should execute a simple flow from start to finish', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         { id: 'string', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'hello' } },
       ],
-      edges: [{ id: 'e-start-string', source: 'start', target: 'string', sourceHandle: null, targetHandle: null }],
+      edges: [],
     };
 
-    await runner.executeFlow(flow, 'start', { initial: 'input' });
+    await runner.executeFlow(flow, { initial: 'input' });
     // We can't easily assert the output of the whole flow, but we can check if nodes were executed.
     // More specific node execution tests are below.
   });
@@ -37,13 +42,18 @@ describe('LowLevelFlowRunner', () => {
   it('should execute a stringNode and produce its value as output', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         { id: 'string', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'test_string' } },
       ],
-      edges: [{ id: 'e-start-string', source: 'start', target: 'string', sourceHandle: null, targetHandle: null }],
+      edges: [],
     };
     // @ts-ignore
-    const finalOutputs = await runner.executeFlow(flow, 'start', {});
+    const finalOutputs = await runner.executeFlow(flow, {});
     // This is a conceptual test. The runner doesn't return the final outputs directly.
     // We'd need to spy on executeNode or refactor to get outputs for assertions.
   });
@@ -51,7 +61,12 @@ describe('LowLevelFlowRunner', () => {
   it('should call getBaseMessagesForProfile for createMessagesNode', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         {
           id: 'createMsg',
           type: 'createMessagesNode',
@@ -59,17 +74,22 @@ describe('LowLevelFlowRunner', () => {
           data: { profileId: 'test-profile', lastMessageId: 10 },
         },
       ],
-      edges: [{ id: 'e-start-msg', source: 'start', target: 'createMsg', sourceHandle: null, targetHandle: null }],
+      edges: [],
     };
 
-    await runner.executeFlow(flow, 'start', {});
+    await runner.executeFlow(flow, {});
     expect(dependencies.getBaseMessagesForProfile).toHaveBeenCalledWith('test-profile', 10);
   });
 
   it('should correctly evaluate an ifNode and follow the true path', async () => {
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         {
           id: 'if',
           type: 'ifNode',
@@ -80,14 +100,13 @@ describe('LowLevelFlowRunner', () => {
         { id: 'falseNode', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'false' } },
       ],
       edges: [
-        { id: 'e-start-if', source: 'start', target: 'if', sourceHandle: null, targetHandle: null },
         { id: 'e-if-true', source: 'if', target: 'trueNode', sourceHandle: 'cond1', targetHandle: null },
         { id: 'e-if-false', source: 'if', target: 'falseNode', sourceHandle: 'false', targetHandle: null },
       ],
     };
 
     const executeNodeSpy = jest.spyOn(runner, 'executeNode' as any);
-    await runner.executeFlow(flow, 'start', { value: 15 });
+    await runner.executeFlow(flow, { value: 15 });
 
     // Check that trueNode was executed but falseNode was not
     const executedNodeTypes = executeNodeSpy.mock.calls.map((call) => (call[0] as Node).type);
@@ -102,7 +121,12 @@ describe('LowLevelFlowRunner', () => {
     const schema = z.object({ name: z.string() });
     const flow: FlowData = {
       nodes: [
-        { id: 'start', type: 'triggerNode', position: { x: 0, y: 0 }, data: {} },
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
         {
           id: 'schema',
           type: 'schemaNode',
@@ -123,12 +147,11 @@ describe('LowLevelFlowRunner', () => {
         },
       ],
       edges: [
-        { id: 'e-start-schema', source: 'start', target: 'schema', sourceHandle: null, targetHandle: null },
         { id: 'e-schema-request', source: 'schema', target: 'request', sourceHandle: null, targetHandle: 'schema' },
       ],
     };
 
-    await runner.executeFlow(flow, 'start', { messages: [{ text: 'hi' }] });
+    await runner.executeFlow(flow, { messages: [{ text: 'hi' }] });
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledWith(
       'test-profile',
       [{ text: 'hi' }],

@@ -43,7 +43,7 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
         );
         errors.push(...formattedErrors);
       }
-    } else if (node.type) {
+    } else if (node.type && !NodeDataSchemas[node.type]) {
       errors.push(`Node [${node.id}]: Unknown node type "${node.type}".`);
     }
   }

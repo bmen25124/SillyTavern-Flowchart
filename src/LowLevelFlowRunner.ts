@@ -27,19 +27,16 @@ export interface FlowRunnerDependencies {
 }
 
 export class LowLevelFlowRunner {
-  constructor(private dependencies: FlowRunnerDependencies) { }
+  constructor(private dependencies: FlowRunnerDependencies) {}
 
-  public async executeFlow(flow: FlowData, startNodeId: string, initialInput: Record<string, any>) {
+  public async executeFlow(flow: FlowData, initialInput: Record<string, any>) {
     const { isValid, errors } = validateFlow(flow);
 
     if (!isValid) {
       throw new Error(errors.join('\n'));
     }
 
-    console.log(`[FlowChart] Executing flow from node ${startNodeId} with args`, initialInput);
-
-    const startNode = flow.nodes.find((n) => n.id === startNodeId);
-    if (!startNode) return;
+    console.log(`[FlowChart] Executing flow with args`, initialInput);
 
     const executionOrder = this.getExecutionOrder(flow);
     const nodeOutputs: Record<string, any> = {};
