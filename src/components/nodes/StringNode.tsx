@@ -22,7 +22,7 @@ export const StringNode: FC<StringNodeProps> = ({ id, data }) => {
       <Handle type="target" position={Position.Left} />
       <div style={{ width: 200 }}>
         <label>Value</label>
-        <STInput value={data.value} onChange={handleValueChange} />
+        <STInput className="nodrag" value={data.value} onChange={handleValueChange} />
       </div>
       <Handle type="source" position={Position.Right} />
     </BaseNode>

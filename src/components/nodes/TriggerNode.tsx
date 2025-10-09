@@ -27,6 +27,7 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, isConnectable, data }) =
       <hr />
       <label>Event</label>
       <ComboBoxInput
+        className="nodrag"
         value={data.selectedEventType}
         onChange={handleChange}
         options={Object.values(EventNames)}

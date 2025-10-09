@@ -23,7 +23,7 @@ export const NumberNode: FC<NumberNodeProps> = ({ id, data }) => {
       <Handle type="target" position={Position.Left} />
       <div style={{ width: 200 }}>
         <label>Value</label>
-        <STInput type="number" value={data.value} onChange={handleValueChange} />
+        <STInput className="nodrag" type="number" value={data.value} onChange={handleValueChange} />
       </div>
       <Handle type="source" position={Position.Right} />
     </BaseNode>

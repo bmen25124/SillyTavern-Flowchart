@@ -35,10 +35,12 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
         {(data.fields || []).map((field) => (
           <div key={field.id} style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
             <STInput
+              className="nodrag"
               value={field.name}
               onChange={(e) => handleFieldChange(field.id, { name: e.target.value, type: field.type })}
             />
             <STSelect
+              className="nodrag"
               value={field.type}
               onChange={(e) =>
                 handleFieldChange(field.id, {
@@ -54,7 +56,7 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
             <STButton onClick={() => removeField(field.id)}>Remove</STButton>
           </div>
         ))}
-        <STButton onClick={addField} style={{ marginTop: '10px' }}>
+        <STButton className="nodrag" onClick={addField} style={{ marginTop: '10px' }}>
           Add Field
         </STButton>
       </div>

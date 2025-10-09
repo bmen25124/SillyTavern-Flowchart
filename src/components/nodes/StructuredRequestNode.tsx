@@ -52,7 +52,11 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           />
           <label style={{ marginLeft: '10px' }}>Schema Name</label>
           {!isSchemaConnected && (
-            <STInput value={data.schemaName} onChange={(e) => updateNodeData(id, { schemaName: e.target.value })} />
+            <STInput
+              className="nodrag"
+              value={data.schemaName}
+              onChange={(e) => updateNodeData(id, { schemaName: e.target.value })}
+            />
           )}
         </div>
 
@@ -66,6 +70,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           <label style={{ marginLeft: '10px' }}>Message ID</label>
           {!isMessageIdConnected && (
             <STInput
+              className="nodrag"
               type="number"
               value={data.messageId}
               onChange={(e) => updateNodeData(id, { messageId: Number(e.target.value) })}
@@ -76,6 +81,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
         <div>
           <label style={{ marginLeft: '10px' }}>Prompt Engineering Mode</label>
           <STSelect
+            className="nodrag"
             value={data.promptEngineeringMode}
             onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value })}
           >
@@ -97,6 +103,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           <label style={{ marginLeft: '10px' }}>Max Response Token</label>
           {!isMaxResponseTokenConnected && (
             <STInput
+              className="nodrag"
               type="number"
               value={data.maxResponseToken}
               onChange={(e) => updateNodeData(id, { maxResponseToken: Number(e.target.value) })}
