@@ -12,6 +12,15 @@ import { z } from 'zod';
 import { FlowData } from './constants.js';
 import { validateFlow } from './validator.js';
 
+export interface ExecutionReport {
+  executedNodes: {
+    nodeId: string;
+    type: string | undefined;
+    input: Record<string, any>;
+    output: any;
+  }[];
+}
+
 export interface FlowRunnerDependencies {
   getBaseMessagesForProfile: (profileId: string, lastMessageId?: number) => Promise<any[]>;
   makeStructuredRequest: (
@@ -29,7 +38,7 @@ export interface FlowRunnerDependencies {
 export class LowLevelFlowRunner {
   constructor(private dependencies: FlowRunnerDependencies) {}
 
-  public async executeFlow(flow: FlowData, initialInput: Record<string, any>) {
+  public async executeFlow(flow: FlowData, initialInput: Record<string, any>): Promise<ExecutionReport> {
     const { isValid, errors } = validateFlow(flow);
 
     if (!isValid) {
@@ -41,6 +50,7 @@ export class LowLevelFlowRunner {
     const executionOrder = this.getExecutionOrder(flow);
     const nodeOutputs: Record<string, any> = {};
     const executedNodes = new Set<string>();
+    const report: ExecutionReport = { executedNodes: [] };
 
     for (const nodeId of executionOrder) {
       const node = flow.nodes.find((n) => n.id === nodeId);
@@ -55,6 +65,7 @@ export class LowLevelFlowRunner {
 
       nodeOutputs[nodeId] = output;
       executedNodes.add(nodeId);
+      report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: output });
 
       if (node.type === 'ifNode' && output.nextNodeId) {
         const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
@@ -66,6 +77,7 @@ export class LowLevelFlowRunner {
       }
     }
     console.log('[FlowChart] Flow execution finished.');
+    return report;
   }
 
   private markBranchAsExecuted(startNodeId: string, flow: FlowData, executedNodes: Set<string>) {
@@ -130,13 +142,16 @@ export class LowLevelFlowRunner {
       const targetHandle = edge.targetHandle;
 
       if (sourceOutput && targetHandle) {
-        if (typeof sourceOutput === 'object' && sourceOutput !== null && sourceOutput[edge.sourceHandle || 'default']) {
-          inputs[targetHandle] = sourceOutput[edge.sourceHandle || 'default'];
+        const handle = edge.sourceHandle;
+        if (handle && typeof sourceOutput === 'object' && sourceOutput !== null && sourceOutput[handle] !== undefined) {
+          inputs[targetHandle] = sourceOutput[handle];
         } else {
           inputs[targetHandle] = sourceOutput;
         }
       } else if (sourceOutput) {
-        Object.assign(inputs, sourceOutput);
+        if (typeof sourceOutput === 'object' && sourceOutput !== null) {
+          Object.assign(inputs, sourceOutput);
+        }
       }
     }
     return inputs;

@@ -34,9 +34,14 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, { initial: 'input' });
-    // We can't easily assert the output of the whole flow, but we can check if nodes were executed.
-    // More specific node execution tests are below.
+    const report = await runner.executeFlow(flow, { initial: 'input' });
+    expect(report.executedNodes).toHaveLength(2);
+    expect(report.executedNodes[0].nodeId).toBe('start');
+    expect(report.executedNodes[0].input).toEqual({ initial: 'input' });
+    expect(report.executedNodes[0].output).toEqual({ initial: 'input' });
+    expect(report.executedNodes[1].nodeId).toBe('string');
+    expect(report.executedNodes[1].input).toEqual({ initial: 'input' });
+    expect(report.executedNodes[1].output).toBe('hello');
   });
 
   it('should execute a stringNode and produce its value as output', async () => {
@@ -52,10 +57,8 @@ describe('LowLevelFlowRunner', () => {
       ],
       edges: [],
     };
-    // @ts-ignore
-    const finalOutputs = await runner.executeFlow(flow, {});
-    // This is a conceptual test. The runner doesn't return the final outputs directly.
-    // We'd need to spy on executeNode or refactor to get outputs for assertions.
+    const report = await runner.executeFlow(flow, {});
+    expect(report.executedNodes[1].output).toBe('test_string');
   });
 
   it('should call getBaseMessagesForProfile for createMessagesNode', async () => {
@@ -77,8 +80,9 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, {});
+    const report = await runner.executeFlow(flow, {});
     expect(dependencies.getBaseMessagesForProfile).toHaveBeenCalledWith('test-profile', 10);
+    expect(report.executedNodes[1].output).toEqual({ messages: [{ text: 'message' }] });
   });
 
   it('should correctly evaluate an ifNode and follow the true path', async () => {
@@ -105,20 +109,13 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const executeNodeSpy = jest.spyOn(runner, 'executeNode' as any);
-    await runner.executeFlow(flow, { value: 15 });
-
-    // Check that trueNode was executed but falseNode was not
-    const executedNodeTypes = executeNodeSpy.mock.calls.map((call) => (call[0] as Node).type);
-    expect(executedNodeTypes).toContain('stringNode'); // A string node was executed
-    const stringNodeCall = executeNodeSpy.mock.calls.find((call) => (call[0] as Node).type === 'stringNode');
-    expect(stringNodeCall).toBeDefined();
-    expect((stringNodeCall![0] as Node).id).toBe('trueNode');
-    expect(executedNodeTypes.filter((type) => type === 'stringNode')).toHaveLength(1);
+    const report = await runner.executeFlow(flow, { value: 15 });
+    expect(report.executedNodes.map((n) => n.nodeId)).toEqual(['start', 'if', 'trueNode']);
+    expect(report.executedNodes[1].output).toHaveProperty('nextNodeId', 'trueNode');
+    expect(report.executedNodes[2].output).toBe('true');
   });
 
   it('should call makeStructuredRequest for structuredRequestNode', async () => {
-    const schema = z.object({ name: z.string() });
     const flow: FlowData = {
       nodes: [
         {
@@ -151,15 +148,22 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    await runner.executeFlow(flow, { messages: [{ text: 'hi' }] });
-    expect(dependencies.makeStructuredRequest).toHaveBeenCalledWith(
-      'test-profile',
-      [{ text: 'hi' }],
-      expect.any(Function),
-      'test-schema',
-      1,
-      'native',
-      100,
-    );
+    const report = await runner.executeFlow(flow, { messages: [{ text: 'hi' }] });
+    const schemaNodeReport = report.executedNodes.find((n) => n.nodeId === 'schema');
+    expect(schemaNodeReport).toBeDefined();
+    expect(schemaNodeReport?.output).toBeInstanceOf(z.ZodObject);
+
+    expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
+    const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
+    expect(mockCallArgs[0]).toBe('test-profile');
+    expect(mockCallArgs[1]).toEqual([{ text: 'hi' }]);
+    expect(mockCallArgs[2]).toBe(schemaNodeReport?.output); // Check for instance equality
+    expect(mockCallArgs[3]).toBe('test-schema');
+    expect(mockCallArgs[4]).toBe(1);
+    expect(mockCallArgs[5]).toBe('native');
+    expect(mockCallArgs[6]).toBe(100);
+
+    expect(report.executedNodes.map((n) => n.nodeId)).toEqual(['start', 'schema', 'request']);
+    expect(report.executedNodes[2].output).toEqual({ structuredResult: { structured: 'data' } });
   });
 });

@@ -89,7 +89,7 @@ class FlowRunner {
       initialInput[name] = eventArgs[index];
     });
 
-    await this.lowLevelRunner.executeFlow(flow, initialInput);
+    return await this.lowLevelRunner.executeFlow(flow, initialInput);
   }
 }
 
