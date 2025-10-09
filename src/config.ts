@@ -42,9 +42,9 @@ const DEFAULT_FLOW_NODES: Node[] = [
   },
   {
     id: 'n2',
-    type: 'ifElseNode',
+    type: 'ifNode',
     position: { x: 250, y: 0 },
-    data: { code: 'input.messageId > 10' },
+    data: { conditions: [{ id: crypto.randomUUID(), code: 'input.messageId > 10' }] },
   },
 ];
 const DEFAULT_FLOW_EDGES: Edge[] = [{ id: 'n1-n2', source: 'n1', target: 'n2' }];

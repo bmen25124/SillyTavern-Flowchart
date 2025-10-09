@@ -22,6 +22,7 @@ type FlowContextType = {
   loadFlow: (flowData: FlowData) => void;
   getFlowData: () => FlowData;
   addNode: (node: Omit<Node, 'id'>) => void;
+  duplicateNode: (nodeId: string) => void;
 };
 
 export const FlowContext = createContext<FlowContextType | null>(null);
@@ -62,6 +63,24 @@ export const FlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setNodes((nds) => [...nds, newNode]);
   }, []);
 
+  const duplicateNode = useCallback(
+    (nodeId: string) => {
+      const nodeToDuplicate = nodes.find((n) => n.id === nodeId);
+      if (!nodeToDuplicate) return;
+
+      const newNode: Node = {
+        ...structuredClone(nodeToDuplicate),
+        id: crypto.randomUUID(),
+        position: {
+          x: nodeToDuplicate.position.x + 20,
+          y: nodeToDuplicate.position.y + 20,
+        },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [nodes],
+  );
+
   const value = {
     nodes,
     edges,
@@ -72,6 +91,7 @@ export const FlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
     loadFlow,
     getFlowData,
     addNode,
+    duplicateNode,
   };
 
   return <FlowContext.Provider value={value}>{children}</FlowContext.Provider>;

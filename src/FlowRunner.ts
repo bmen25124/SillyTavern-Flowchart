@@ -1,9 +1,19 @@
 import { settingsManager } from './components/Settings.js';
 import { Node, Edge } from '@xyflow/react';
-import { EventNameParameters } from './flow-types.js';
+import {
+  CreateMessagesNodeDataSchema,
+  EventNameParameters,
+  IfNodeDataSchema,
+  NumberNodeDataSchema,
+  SchemaNodeDataSchema,
+  StringNodeDataSchema,
+  StructuredRequestNodeDataSchema,
+} from './flow-types.js';
+import { z } from 'zod';
 import { FlowData } from './config.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
+import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
@@ -83,7 +93,7 @@ class FlowRunner {
     this.executeFromNode(startNodeId, flow, input);
   }
 
-  executeFromNode(nodeId: string, flow: FlowData, input: Record<string, any>) {
+  async executeFromNode(nodeId: string, flow: FlowData, input: Record<string, any>) {
     const currentNode = flow.nodes.find((n) => n.id === nodeId);
     if (!currentNode) {
       console.error(`[FlowChart] Node with id ${nodeId} not found in flow.`);
@@ -93,6 +103,7 @@ class FlowRunner {
     console.log(`[FlowChart] Executing node ${currentNode.id} (${currentNode.type})`);
 
     let nextNodeId: string | null = null;
+    let nextInput = input;
 
     switch (currentNode.type) {
       case 'starterNode': {
@@ -102,28 +113,176 @@ class FlowRunner {
         }
         break;
       }
-      case 'ifElseNode': {
-        const code = currentNode.data.code as string;
-        let result = false;
-        try {
-          const func = new Function('input', code);
-          result = func(input);
-        } catch (error) {
-          console.error(`[FlowChart] Error executing code in ifElseNode ${currentNode.id}:`, error);
+
+      case 'createMessagesNode': {
+        const parseResult = CreateMessagesNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { profileId, lastMessageId } = parseResult.data;
+          try {
+            const messages = await getBaseMessagesForProfile(profileId, lastMessageId);
+            nextInput = { ...input, messages };
+          } catch (error) {
+            console.error(`[FlowChart] Error in createMessagesNode ${currentNode.id}:`, error);
+          }
+        } else {
+          console.error(`[FlowChart] Invalid data for createMessagesNode ${currentNode.id}:`, parseResult.error.issues);
         }
 
-        const handle = result ? 'true' : 'false';
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id && e.sourceHandle === handle);
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+        if (outgoingEdge) {
+          nextNodeId = outgoingEdge.target;
+        }
+        break;
+      }
+      case 'ifNode': {
+        const parseResult = IfNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { conditions } = parseResult.data;
+          let finalTargetNodeId: string | null = null;
+
+          for (const condition of conditions) {
+            let result = false;
+            try {
+              const stContext = SillyTavern.getContext();
+              const func = new Function('input', 'stContext', condition.code);
+              result = func(input, stContext);
+            } catch (error) {
+              console.error(`[FlowChart] Error executing code in ifNode ${currentNode.id}:`, error);
+            }
+
+            if (result) {
+              const outgoingEdge = flow.edges.find(
+                (e) => e.source === currentNode.id && e.sourceHandle === condition.id,
+              );
+              if (outgoingEdge) {
+                finalTargetNodeId = outgoingEdge.target;
+                break; // Exit loop on first true condition
+              }
+            }
+          }
+
+          // If no condition was true, check for the 'false' (else) handle
+          if (finalTargetNodeId === null) {
+            const elseEdge = flow.edges.find((e) => e.source === currentNode.id && e.sourceHandle === 'false');
+            if (elseEdge) {
+              finalTargetNodeId = elseEdge.target;
+            }
+          }
+
+          if (finalTargetNodeId) {
+            nextNodeId = finalTargetNodeId;
+          }
+        } else {
+          console.error(`[FlowChart] Invalid data for ifNode ${currentNode.id}:`, parseResult.error.issues);
+        }
+        break;
+      }
+      case 'stringNode': {
+        const parseResult = StringNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { name, value } = parseResult.data;
+          nextInput = { ...input, [name]: value };
+        } else {
+          console.error(`[FlowChart] Invalid data for stringNode ${currentNode.id}:`, parseResult.error.issues);
+        }
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+        if (outgoingEdge) {
+          nextNodeId = outgoingEdge.target;
+        }
+        break;
+      }
+      case 'numberNode': {
+        const parseResult = NumberNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { name, value } = parseResult.data;
+          nextInput = { ...input, [name]: value };
+        } else {
+          console.error(`[FlowChart] Invalid data for numberNode ${currentNode.id}:`, parseResult.error.issues);
+        }
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
         if (outgoingEdge) {
           nextNodeId = outgoingEdge.target;
         }
         break;
       }
       // Add other node types here
+      case 'structuredRequestNode': {
+        const parseResult = StructuredRequestNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { profileId, schemaName, messageId, promptEngineeringMode, maxResponseToken } = parseResult.data;
+          const schema = input[schemaName];
+          const messages = input['messages'];
+          if (schema && messages) {
+            try {
+              const result = await makeStructuredRequest(
+                profileId,
+                messages,
+                schema,
+                schemaName,
+                messageId,
+                promptEngineeringMode as any,
+                maxResponseToken,
+              );
+              nextInput = { ...input, [schemaName]: result };
+            } catch (error) {
+              console.error(`[FlowChart] Error in structuredRequestNode ${currentNode.id}:`, error);
+            }
+          } else {
+            console.error(
+              `[FlowChart] Schema or messages not found for structuredRequestNode ${currentNode.id}. Make sure a schema node and a create messages node are connected.`,
+            );
+          }
+        } else {
+          console.error(
+            `[FlowChart] Invalid data for structuredRequestNode ${currentNode.id}:`,
+            parseResult.error.issues,
+          );
+        }
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+        if (outgoingEdge) {
+          nextNodeId = outgoingEdge.target;
+        }
+        break;
+      }
+      case 'schemaNode': {
+        const parseResult = SchemaNodeDataSchema.safeParse(currentNode.data);
+        if (parseResult.success) {
+          const { name, fields } = parseResult.data;
+          const schema = z.object(
+            fields.reduce(
+              (acc, field) => {
+                let zodType;
+                switch (field.type) {
+                  case 'string':
+                    zodType = z.string();
+                    break;
+                  case 'number':
+                    zodType = z.number();
+                    break;
+                  case 'boolean':
+                    zodType = z.boolean();
+                    break;
+                }
+                acc[field.name] = zodType;
+                return acc;
+              },
+              {} as Record<string, z.ZodType<any, any>>,
+            ),
+          );
+          nextInput = { ...input, [name]: schema };
+        } else {
+          console.error(`[FlowChart] Invalid data for schemaNode ${currentNode.id}:`, parseResult.error.issues);
+        }
+        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
+        if (outgoingEdge) {
+          nextNodeId = outgoingEdge.target;
+        }
+        break;
+      }
     }
 
     if (nextNodeId) {
-      this.executeFromNode(nextNodeId, flow, input);
+      this.executeFromNode(nextNodeId, flow, nextInput);
     } else {
       console.log(`[FlowChart] Flow execution finished.`);
     }

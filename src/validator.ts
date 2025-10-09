@@ -1,10 +1,23 @@
 import { z } from 'zod';
 import { FlowData } from './config.js';
-import { StarterNodeDataSchema, IfElseNodeDataSchema } from './flow-types.js';
+import {
+  StarterNodeDataSchema,
+  IfNodeDataSchema,
+  CreateMessagesNodeDataSchema,
+  StringNodeDataSchema,
+  NumberNodeDataSchema,
+  StructuredRequestNodeDataSchema,
+  SchemaNodeDataSchema,
+} from './flow-types.js';
 
 const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   starterNode: StarterNodeDataSchema,
-  ifElseNode: IfElseNodeDataSchema,
+  ifNode: IfNodeDataSchema,
+  createMessagesNode: CreateMessagesNodeDataSchema,
+  stringNode: StringNodeDataSchema,
+  numberNode: NumberNodeDataSchema,
+  structuredRequestNode: StructuredRequestNodeDataSchema,
+  schemaNode: SchemaNodeDataSchema,
 };
 
 export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string[] } => {

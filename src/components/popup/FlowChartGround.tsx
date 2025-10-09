@@ -2,7 +2,12 @@ import { FC, useMemo } from 'react';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
 import { StarterNode } from '../nodes/StarterNode.js';
-import { IfElseNode } from '../nodes/IfElseNode.js';
+import { IfNode } from '../nodes/IfNode.js';
+import { CreateMessagesNode } from '../nodes/CreateMessagesNode.js';
+import { StringNode } from '../nodes/StringNode.js';
+import { NumberNode } from '../nodes/NumberNode.js';
+import { StructuredRequestNode } from '../nodes/StructuredRequestNode.js';
+import { SchemaNode } from '../nodes/SchemaNode.js';
 import { settingsManager } from '../Settings.js';
 import { STPresetSelect, STButton } from 'sillytavern-utils-lib/components';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
@@ -17,7 +22,12 @@ const FlowCanvas: FC = () => {
   const nodeTypes = useMemo(
     () => ({
       starterNode: StarterNode,
-      ifElseNode: IfElseNode,
+      ifNode: IfNode,
+      createMessagesNode: CreateMessagesNode,
+      stringNode: StringNode,
+      numberNode: NumberNode,
+      structuredRequestNode: StructuredRequestNode,
+      schemaNode: SchemaNode,
     }),
     [],
   );

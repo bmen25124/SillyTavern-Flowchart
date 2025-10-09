@@ -3,6 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { ComboBoxInput } from '../popup/ComboBoxInput.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { useFlow } from '../popup/FlowContext.js';
+import { BaseNode } from './BaseNode.js';
 
 export type StarterNodeData = {
   selectedEventType: string;
@@ -22,8 +23,7 @@ export const StarterNode: FC<StarterNodeProps> = ({ id, isConnectable, data }) =
   };
 
   return (
-    <>
-      <div>Trigger via:</div>
+    <BaseNode id={id} title="Trigger via:">
       <hr />
       <label>Event</label>
       <ComboBoxInput
@@ -33,6 +33,6 @@ export const StarterNode: FC<StarterNodeProps> = ({ id, isConnectable, data }) =
         listId={id}
       />
       <Handle type="source" position={Position.Right} isConnectable={isConnectable} />
-    </>
+    </BaseNode>
   );
 };

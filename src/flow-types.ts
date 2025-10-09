@@ -16,7 +16,42 @@ export const StarterNodeDataSchema = z.object({
 });
 export type StarterNodeData = z.infer<typeof StarterNodeDataSchema>;
 
-export const IfElseNodeDataSchema = z.object({
-  code: z.string().min(1, 'Code cannot be empty'),
+export const IfNodeDataSchema = z.object({
+  conditions: z
+    .array(z.object({ id: z.string(), code: z.string() }))
+    .default([{ id: crypto.randomUUID(), code: 'return true;' }]),
 });
-export type IfElseNodeData = z.infer<typeof IfElseNodeDataSchema>;
+export type IfNodeData = z.infer<typeof IfNodeDataSchema>;
+
+export const CreateMessagesNodeDataSchema = z.object({
+  profileId: z.string().min(1, 'Profile ID cannot be empty'),
+  lastMessageId: z.number().optional(),
+});
+export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema>;
+
+export const StringNodeDataSchema = z.object({
+  name: z.string().min(1, 'Name cannot be empty'),
+  value: z.string(),
+});
+export type StringNodeData = z.infer<typeof StringNodeDataSchema>;
+
+export const NumberNodeDataSchema = z.object({
+  name: z.string().min(1, 'Name cannot be empty'),
+  value: z.number(),
+});
+export type NumberNodeData = z.infer<typeof NumberNodeDataSchema>;
+
+export const StructuredRequestNodeDataSchema = z.object({
+  profileId: z.string().min(1, 'Profile ID cannot be empty'),
+  schemaName: z.string().min(1, 'Schema Name cannot be empty'),
+  messageId: z.number(),
+  promptEngineeringMode: z.enum(['native', 'json', 'xml']),
+  maxResponseToken: z.number(),
+});
+export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
+
+export const SchemaNodeDataSchema = z.object({
+  name: z.string().min(1, 'Name cannot be empty'),
+  fields: z.array(z.object({ id: z.string(), name: z.string(), type: z.enum(['string', 'number', 'boolean']) })),
+});
+export type SchemaNodeData = z.infer<typeof SchemaNodeDataSchema>;
