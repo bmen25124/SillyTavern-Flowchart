@@ -10,13 +10,13 @@ import { StructuredRequestNode } from '../nodes/StructuredRequestNode.js';
 import { SchemaNode } from '../nodes/SchemaNode.js';
 import { ProfileIdNode } from '../nodes/ProfileIdNode.js';
 import { settingsManager } from '../Settings.js';
-import { STPresetSelect, STButton } from 'sillytavern-utils-lib/components';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import type { PresetItem } from 'sillytavern-utils-lib/components';
+import { STButton, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
+import { createDefaultFlow } from '../../config.js';
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useFlow();
@@ -99,7 +99,7 @@ const FlowManager: FC = () => {
     let activeFlowExists = false;
 
     for (const item of newItems) {
-      newFlows[item.value] = settings.flows[item.value] || { nodes: [], edges: [] };
+      newFlows[item.value] = settings.flows[item.value] || createDefaultFlow();
       if (item.value === settings.activeFlow) {
         activeFlowExists = true;
       }

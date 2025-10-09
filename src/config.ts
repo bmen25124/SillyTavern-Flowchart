@@ -28,22 +28,35 @@ export const EXTENSION_KEY = 'flowchart';
 const VERSION = '0.1.0';
 const FORMAT_VERSION = 'F_1.0';
 
-const DEFAULT_FLOW_NODES: Node[] = [
-  {
-    id: 'n1',
-    type: 'triggerNode',
-    position: { x: 0, y: 0 },
-    data: { selectedEventType: 'user_message_rendered' },
-    width: 200,
-  },
-  {
-    id: 'n2',
-    type: 'ifNode',
-    position: { x: 250, y: 0 },
-    data: { conditions: [{ id: crypto.randomUUID(), code: 'input.messageId > 10' }] },
-  },
-];
-const DEFAULT_FLOW_EDGES: Edge[] = [{ id: 'n1-n2', source: 'n1', target: 'n2' }];
+/**
+ * Generates a valid default flow with unique IDs.
+ * This prevents state conflicts and ensures the initial state is always valid.
+ */
+export function createDefaultFlow(): FlowData {
+  const triggerNodeId = crypto.randomUUID();
+  const ifNodeId = crypto.randomUUID();
+
+  const nodes: Node[] = [
+    {
+      id: triggerNodeId,
+      type: 'triggerNode',
+      position: { x: 50, y: 100 },
+      data: { selectedEventType: 'user_message_rendered' },
+    },
+    {
+      id: ifNodeId,
+      type: 'ifNode',
+      position: { x: 300, y: 100 },
+      data: { conditions: [{ id: crypto.randomUUID(), code: 'return input.messageId > 10;' }] },
+    },
+  ];
+
+  // The default flow starts with no edges to ensure it is always valid.
+  // A trigger node cannot have outgoing connections.
+  const edges: Edge[] = [];
+
+  return { nodes, edges };
+}
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   version: VERSION,
@@ -55,10 +68,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   },
   activeFlow: 'Default',
   flows: {
-    Default: {
-      nodes: DEFAULT_FLOW_NODES,
-      edges: DEFAULT_FLOW_EDGES,
-    },
+    Default: createDefaultFlow(),
   },
 };
 

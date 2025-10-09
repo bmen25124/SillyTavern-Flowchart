@@ -14,7 +14,7 @@ describe('LowLevelFlowRunner', () => {
       makeStructuredRequest: jest.fn(),
       getSillyTavernContext: jest.fn(),
     };
-    dependencies.getBaseMessagesForProfile.mockResolvedValue([{ text: 'message' }]);
+    dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
     dependencies.getSillyTavernContext.mockReturnValue({});
     runner = new LowLevelFlowRunner(dependencies);
@@ -82,7 +82,7 @@ describe('LowLevelFlowRunner', () => {
 
     const report = await runner.executeFlow(flow, {});
     expect(dependencies.getBaseMessagesForProfile).toHaveBeenCalledWith('test-profile', 10);
-    expect(report.executedNodes[1].output).toEqual({ messages: [{ text: 'message' }] });
+    expect(report.executedNodes[1].output).toEqual({ messages: [{ role: 'user', content: 'message' }] });
   });
 
   it('should correctly evaluate an ifNode and follow the true path', async () => {
@@ -125,6 +125,12 @@ describe('LowLevelFlowRunner', () => {
           data: { selectedEventType: 'user_message_rendered' },
         },
         {
+          id: 'createMsg',
+          type: 'createMessagesNode',
+          position: { x: 0, y: 0 },
+          data: { profileId: 'test-profile' },
+        },
+        {
           id: 'schema',
           type: 'schemaNode',
           position: { x: 0, y: 0 },
@@ -144,11 +150,12 @@ describe('LowLevelFlowRunner', () => {
         },
       ],
       edges: [
+        { id: 'e-msg-request', source: 'createMsg', target: 'request', sourceHandle: null, targetHandle: 'messages' },
         { id: 'e-schema-request', source: 'schema', target: 'request', sourceHandle: null, targetHandle: 'schema' },
       ],
     };
 
-    const report = await runner.executeFlow(flow, { messages: [{ text: 'hi' }] });
+    const report = await runner.executeFlow(flow, {});
     const schemaNodeReport = report.executedNodes.find((n) => n.nodeId === 'schema');
     expect(schemaNodeReport).toBeDefined();
     expect(schemaNodeReport?.output).toBeInstanceOf(z.ZodObject);
@@ -156,14 +163,16 @@ describe('LowLevelFlowRunner', () => {
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
     const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
     expect(mockCallArgs[0]).toBe('test-profile');
-    expect(mockCallArgs[1]).toEqual([{ text: 'hi' }]);
+    expect(mockCallArgs[1]).toEqual({ messages: [{ role: 'user', content: 'message' }] });
     expect(mockCallArgs[2]).toBe(schemaNodeReport?.output); // Check for instance equality
     expect(mockCallArgs[3]).toBe('test-schema');
     expect(mockCallArgs[4]).toBe(1);
     expect(mockCallArgs[5]).toBe('native');
     expect(mockCallArgs[6]).toBe(100);
 
-    expect(report.executedNodes.map((n) => n.nodeId)).toEqual(['start', 'schema', 'request']);
-    expect(report.executedNodes[2].output).toEqual({ structuredResult: { structured: 'data' } });
+    const executedOrder = report.executedNodes.map((n) => n.nodeId).sort();
+    expect(executedOrder).toEqual(['createMsg', 'request', 'schema', 'start'].sort());
+    const requestNodeReport = report.executedNodes.find((n) => n.nodeId === 'request');
+    expect(requestNodeReport?.output).toEqual({ structuredResult: { structured: 'data' } });
   });
 });

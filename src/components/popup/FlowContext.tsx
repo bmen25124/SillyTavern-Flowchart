@@ -10,7 +10,7 @@ import {
   Connection,
 } from '@xyflow/react';
 import { settingsManager } from '../Settings.js';
-import { FlowData } from '../../config.js';
+import { FlowData } from '../../constants.js';
 
 type FlowContextType = {
   nodes: Node[];
@@ -72,8 +72,8 @@ export const FlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
         ...structuredClone(nodeToDuplicate),
         id: crypto.randomUUID(),
         position: {
-          x: nodeToDuplicate.position.x + 20,
-          y: nodeToDuplicate.position.y + 20,
+          x: nodeToDuplicate.position.x + 50,
+          y: nodeToDuplicate.position.y + 50,
         },
       };
       setNodes((nds) => [...nds, newNode]);

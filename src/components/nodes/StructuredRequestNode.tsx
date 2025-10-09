@@ -17,6 +17,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
   const edges = useEdges();
 
   const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
+  const isMessagesConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messages');
   const isMessageIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messageId');
   const isMaxResponseTokenConnected = edges.some(
     (edge) => edge.target === id && edge.targetHandle === 'maxResponseToken',
@@ -41,6 +42,17 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           {!isProfileIdConnected && (
             <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
           )}
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="messages"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Messages</label>
+          {!isMessagesConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
         </div>
 
         <div style={{ position: 'relative' }}>
