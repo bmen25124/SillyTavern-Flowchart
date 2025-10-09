@@ -21,6 +21,7 @@ type FlowContextType = {
   updateNodeData: (nodeId: string, data: object) => void;
   loadFlow: (flowData: FlowData) => void;
   getFlowData: () => FlowData;
+  addNode: (node: Omit<Node, 'id'>) => void;
 };
 
 export const FlowContext = createContext<FlowContextType | null>(null);
@@ -56,7 +57,22 @@ export const FlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return { nodes, edges };
   }, [nodes, edges]);
 
-  const value = { nodes, edges, onNodesChange, onEdgesChange, onConnect, updateNodeData, loadFlow, getFlowData };
+  const addNode = useCallback((node: Omit<Node, 'id'>) => {
+    const newNode: Node = { ...node, id: crypto.randomUUID() };
+    setNodes((nds) => [...nds, newNode]);
+  }, []);
+
+  const value = {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    updateNodeData,
+    loadFlow,
+    getFlowData,
+    addNode,
+  };
 
   return <FlowContext.Provider value={value}>{children}</FlowContext.Provider>;
 };

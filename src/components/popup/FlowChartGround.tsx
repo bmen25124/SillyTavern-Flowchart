@@ -8,6 +8,7 @@ import { STPresetSelect, STButton } from 'sillytavern-utils-lib/components';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import type { PresetItem } from 'sillytavern-utils-lib/components';
+import { NodePalette } from './NodePalette.js';
 
 const FlowCanvas: FC = () => {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useFlow();
@@ -122,7 +123,10 @@ const FlowManager: FC = () => {
         />
         <STButton onClick={handleSave}>Save Flow</STButton>
       </div>
-      <FlowCanvas />
+      <div className="flowchart-editor-area">
+        <NodePalette />
+        <FlowCanvas />
+      </div>
     </div>
   );
 };

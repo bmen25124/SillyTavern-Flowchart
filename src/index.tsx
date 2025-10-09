@@ -11,6 +11,7 @@ import { ExtractedData, StreamResponse } from 'sillytavern-utils-lib/types';
 import { selected_group, st_echo, this_chid } from 'sillytavern-utils-lib/config';
 import { PromptEngineeringMode } from './config.js';
 import * as Handlebars from 'handlebars';
+import { flowRunner } from './FlowRunner.js';
 
 import './styles/main.scss';
 import '@xyflow/react/dist/style.css';
@@ -179,6 +180,7 @@ function renderReactSettings() {
 function main() {
   renderReactSettings();
   initializeGlobalUI();
+  flowRunner.initialize();
 }
 
 settingsManager
