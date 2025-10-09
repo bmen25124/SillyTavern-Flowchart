@@ -71,6 +71,12 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
     (event: MouseEvent) => {
       if (!connectingNode.current) return;
 
+      const targetIsHandle = (event.target as HTMLElement).closest('.react-flow__handle');
+      if (targetIsHandle) {
+        connectingNode.current = null;
+        return;
+      }
+
       const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
       if (!startNodeId || !handleType) {
         connectingNode.current = null;

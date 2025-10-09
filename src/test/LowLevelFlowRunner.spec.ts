@@ -82,7 +82,7 @@ describe('LowLevelFlowRunner', () => {
 
     const report = await runner.executeFlow(flow, {});
     expect(dependencies.getBaseMessagesForProfile).toHaveBeenCalledWith('test-profile', 10);
-    expect(report.executedNodes[1].output).toEqual({ messages: [{ role: 'user', content: 'message' }] });
+    expect(report.executedNodes[1].output).toEqual([{ role: 'user', content: 'message' }]);
   });
 
   it('should correctly evaluate an ifNode and follow the true path', async () => {
@@ -163,7 +163,7 @@ describe('LowLevelFlowRunner', () => {
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
     const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
     expect(mockCallArgs[0]).toBe('test-profile');
-    expect(mockCallArgs[1]).toEqual({ messages: [{ role: 'user', content: 'message' }] });
+    expect(mockCallArgs[1]).toEqual([{ role: 'user', content: 'message' }]);
     expect(mockCallArgs[2]).toBe(schemaNodeReport?.output); // Check for instance equality
     expect(mockCallArgs[3]).toBe('test-schema');
     expect(mockCallArgs[4]).toBe(1);
@@ -173,6 +173,6 @@ describe('LowLevelFlowRunner', () => {
     const executedOrder = report.executedNodes.map((n) => n.nodeId).sort();
     expect(executedOrder).toEqual(['createMsg', 'request', 'schema', 'start'].sort());
     const requestNodeReport = report.executedNodes.find((n) => n.nodeId === 'request');
-    expect(requestNodeReport?.output).toEqual({ structuredResult: { structured: 'data' } });
+    expect(requestNodeReport?.output).toEqual({ structured: 'data' });
   });
 });

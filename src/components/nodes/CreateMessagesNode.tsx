@@ -48,7 +48,12 @@ export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, data, sele
           />
           <label style={{ marginLeft: '10px' }}>Last Message ID (Optional)</label>
           {!isLastMessageIdConnected && (
-            <STInput className="nodrag" type="number" value={data.lastMessageId} onChange={handleLastMessageIdChange} />
+            <STInput
+              className="nodrag"
+              type="number"
+              value={data.lastMessageId ?? ''}
+              onChange={handleLastMessageIdChange}
+            />
           )}
         </div>
       </div>

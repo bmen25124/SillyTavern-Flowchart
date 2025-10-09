@@ -14,7 +14,6 @@ export const availableNodes = [
     data: {
       profileId: '',
       schemaName: 'mySchema',
-      messageId: 0,
       promptEngineeringMode: 'native',
       maxResponseToken: 1000,
     },

@@ -25,6 +25,11 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
     updateNodeData(id, { profileId: profile?.id || '' });
   };
 
+  const handleMessageIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    updateNodeData(id, { messageId: value === '' ? undefined : Number(value) });
+  };
+
   return (
     <BaseNode id={id} title="Structured Request" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -78,12 +83,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           />
           <label style={{ marginLeft: '10px' }}>Message ID</label>
           {!isMessageIdConnected && (
-            <STInput
-              className="nodrag"
-              type="number"
-              value={data.messageId}
-              onChange={(e) => updateNodeData(id, { messageId: Number(e.target.value) })}
-            />
+            <STInput className="nodrag" type="number" value={data.messageId ?? ''} onChange={handleMessageIdChange} />
           )}
         </div>
 

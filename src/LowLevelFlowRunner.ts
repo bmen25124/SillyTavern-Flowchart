@@ -177,7 +177,7 @@ export class LowLevelFlowRunner {
           if (profileId) {
             try {
               const messages = await this.dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
-              output = { messages };
+              output = messages;
             } catch (error) {
               console.error(`[FlowChart] Error in createMessagesNode ${node.id}:`, error);
             }
@@ -273,7 +273,7 @@ export class LowLevelFlowRunner {
                 promptEngineeringMode as any,
                 maxResponseToken,
               );
-              output = { structuredResult: result };
+              output = result;
             } catch (error) {
               console.error(`[FlowChart] Error in structuredRequestNode ${node.id}:`, error);
             }
