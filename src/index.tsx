@@ -180,7 +180,7 @@ function renderReactSettings() {
 function main() {
   renderReactSettings();
   initializeGlobalUI();
-  flowRunner.initialize();
+  flowRunner.reinitialize();
 }
 
 settingsManager

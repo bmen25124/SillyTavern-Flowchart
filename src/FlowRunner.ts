@@ -6,13 +6,18 @@ import { st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 
 class FlowRunner {
-  private isInitialized = false;
+  private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
 
-  initialize() {
-    if (this.isInitialized) {
-      // To prevent duplicate listeners, especially during hot-reloading
-      return;
+  reinitialize() {
+    const { eventSource } = SillyTavern.getContext();
+
+    // Unregister old listeners
+    for (const [eventType, listener] of this.registeredListeners.entries()) {
+      // @ts-ignore
+      eventSource.removeListener(eventType, listener);
     }
+    this.registeredListeners.clear();
+
     const settings = settingsManager.getSettings();
     const allFlows = settings.flows;
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
@@ -41,19 +46,19 @@ class FlowRunner {
       }
     }
 
-    // Register event listeners
-    const { eventSource } = SillyTavern.getContext();
+    // Register new event listeners
     for (const eventType in eventTriggers) {
-      // @ts-ignore
-      eventSource.on(eventType, (...args: any[]) => {
+      const listener = (...args: any[]) => {
         st_echo('info', `FlowChart: Event "${eventType}" triggered.`);
         const triggers = eventTriggers[eventType];
         for (const trigger of triggers) {
           this.executeFlow(trigger.flowId, trigger.nodeId, args);
         }
-      });
+      };
+      // @ts-ignore
+      eventSource.on(eventType, listener);
+      this.registeredListeners.set(eventType, listener);
     }
-    this.isInitialized = true;
   }
 
   executeFlow(flowId: string, startNodeId: string, eventArgs: any[]) {

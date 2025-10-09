@@ -1,4 +1,4 @@
-import { FC, useMemo, useCallback } from 'react';
+import { FC, useMemo } from 'react';
 import { ReactFlow, Background, Controls } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
 import { StarterNode } from '../nodes/StarterNode.js';
@@ -9,6 +9,7 @@ import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import type { PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
+import { flowRunner } from '../../FlowRunner.js';
 
 const FlowCanvas: FC = () => {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useFlow();
@@ -55,7 +56,7 @@ const FlowManager: FC = () => {
     const currentFlowData = getFlowData();
     settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
     settingsManager.saveSettings();
-    st_echo('info', `Flow "${settings.activeFlow}" saved.`);
+    flowRunner.reinitialize();
   };
 
   const handleSelectChange = (newValue?: string) => {
@@ -87,6 +88,7 @@ const FlowManager: FC = () => {
       }
     }
     forceUpdate();
+    flowRunner.reinitialize();
   };
 
   const handleCreate = (newValue: string) => {
@@ -103,6 +105,12 @@ const FlowManager: FC = () => {
       return { confirmed: false };
     }
     settings.flows[newValue] = settings.flows[oldValue];
+    delete settings.flows[oldValue];
+    if (settings.activeFlow === oldValue) {
+      settings.activeFlow = newValue;
+    }
+    flowRunner.reinitialize();
+    forceUpdate();
     return { confirmed: true };
   };
 
