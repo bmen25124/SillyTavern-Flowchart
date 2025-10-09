@@ -22,12 +22,20 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   profileIdNode: ProfileIdNodeDataSchema,
 };
 
-export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string[] } => {
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  invalidNodeIds: Set<string>;
+  invalidEdgeIds: Set<string>;
+}
+
+export const validateFlow = (flow: FlowData): ValidationResult => {
   const errors: string[] = [];
+  const invalidNodeIds = new Set<string>();
+  const invalidEdgeIds = new Set<string>();
 
   if (!flow.nodes || flow.nodes.length === 0) {
-    // Not an error, just an empty flow.
-    return { isValid: true, errors: [] };
+    return { isValid: true, errors: [], invalidNodeIds, invalidEdgeIds };
   }
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
@@ -42,9 +50,11 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
           (issue) => `Node [${node.id} (${node.type})]: ${issue.path.join('.')} - ${issue.message}`,
         );
         errors.push(...formattedErrors);
+        invalidNodeIds.add(node.id);
       }
     } else if (node.type && !NodeDataSchemas[node.type]) {
       errors.push(`Node [${node.id}]: Unknown node type "${node.type}".`);
+      invalidNodeIds.add(node.id);
     }
   }
 
@@ -52,9 +62,11 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
   for (const edge of flow.edges) {
     if (!nodeIds.has(edge.source)) {
       errors.push(`Edge [${edge.id}]: Source node "${edge.source}" not found.`);
+      invalidEdgeIds.add(edge.id);
     }
     if (!nodeIds.has(edge.target)) {
       errors.push(`Edge [${edge.id}]: Target node "${edge.target}" not found.`);
+      invalidEdgeIds.add(edge.id);
     }
   }
 
@@ -109,16 +121,20 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
     const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
     if (hasIncomingEdge) {
       errors.push(`Trigger Node [${triggerNode.id}] cannot have incoming connections.`);
+      invalidNodeIds.add(triggerNode.id);
     }
 
     const hasOutgoingEdge = flow.edges.some((e) => e.source === triggerNode.id);
     if (hasOutgoingEdge) {
       errors.push(`Trigger Node [${triggerNode.id}] cannot have outgoing connections.`);
+      invalidNodeIds.add(triggerNode.id);
     }
   }
 
   return {
     isValid: errors.length === 0,
     errors,
+    invalidNodeIds,
+    invalidEdgeIds,
   };
 };

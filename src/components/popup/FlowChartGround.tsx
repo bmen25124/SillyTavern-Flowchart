@@ -16,8 +16,9 @@ import { st_echo } from 'sillytavern-utils-lib/config';
 import type { PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
+import { validateFlow } from '../../validator.js';
 
-const FlowCanvas: FC = () => {
+const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useFlow();
 
   const nodeTypes = useMemo(
@@ -34,10 +35,19 @@ const FlowCanvas: FC = () => {
     [],
   );
 
+  const nodesWithInvalidClass = useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        className: invalidNodeIds.has(node.id) ? 'flow-node-invalid' : '',
+      })),
+    [nodes, invalidNodeIds],
+  );
+
   return (
     <div className="flowchart-popup-ground">
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithInvalidClass}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -54,10 +64,14 @@ const FlowCanvas: FC = () => {
 };
 
 const FlowManager: FC = () => {
-  const { loadFlow, getFlowData } = useFlow();
+  const { nodes, edges, loadFlow, getFlowData } = useFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
-  const { Popup } = SillyTavern.getContext();
+
+  const { isValid, errors, invalidNodeIds, invalidEdgeIds } = useMemo(
+    () => validateFlow({ nodes, edges }),
+    [nodes, edges],
+  );
 
   const presetItems = useMemo(
     () => Object.keys(settings.flows).map((key) => ({ value: key, label: key })),
@@ -69,6 +83,7 @@ const FlowManager: FC = () => {
     settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
     settingsManager.saveSettings();
     flowRunner.reinitialize();
+    st_echo('info', `Flow "${settings.activeFlow}" saved.`);
   };
 
   const handleSelectChange = (newValue?: string) => {
@@ -126,6 +141,12 @@ const FlowManager: FC = () => {
     return { confirmed: true };
   };
 
+  const handleClearInvalid = () => {
+    const newNodes = nodes.filter((node) => !invalidNodeIds.has(node.id));
+    const newEdges = edges.filter((edge) => !invalidEdgeIds.has(edge.id));
+    loadFlow({ nodes: newNodes, edges: newEdges });
+  };
+
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector">
@@ -143,9 +164,24 @@ const FlowManager: FC = () => {
         />
         <STButton onClick={handleSave}>Save Flow</STButton>
       </div>
+      {!isValid && (
+        <div className="flowchart-errors">
+          <div className="flowchart-errors-header">
+            <strong>Flow is invalid:</strong>
+            <STButton color="danger" onClick={handleClearInvalid}>
+              Clear Invalid Items
+            </STButton>
+          </div>
+          <ul>
+            {errors.map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flowchart-editor-area">
         <NodePalette />
-        <FlowCanvas />
+        <FlowCanvas invalidNodeIds={invalidNodeIds} />
       </div>
     </div>
   );

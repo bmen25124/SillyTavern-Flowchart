@@ -38,10 +38,32 @@
 // Utility classes for popups
 .flowchart-errors {
   color: var(--warning);
-  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--warning);
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+
+  .flowchart-errors-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+
+    button {
+      padding: 2px 8px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+  }
 
   ul {
     margin-top: 5px;
+    padding-left: 20px;
+    margin-bottom: 0;
   }
 }
 
@@ -163,4 +185,39 @@
   min-height: 300px;
   height: 100%;
   width: 100%;
+}
+
+// Styles for invalid nodes
+.react-flow__node.flow-node-invalid > div {
+  border: 2px solid var(--danger) !important;
+  box-shadow: 0 0 5px var(--danger);
+}
+
+// Styles for history tab
+.flowchart-history-list {
+  list-style: none;
+  padding: 0;
+
+  li {
+    margin-bottom: 10px;
+
+    details {
+      padding: 8px;
+
+      summary {
+        margin-bottom: 0;
+      }
+
+      pre {
+        background-color: var(--black);
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        max-height: 300px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+    }
+  }
 }

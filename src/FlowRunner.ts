@@ -3,7 +3,9 @@ import { EventNameParameters } from './flow-types.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
-import { LowLevelFlowRunner } from './LowLevelFlowRunner.js';
+import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
+
+export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
@@ -89,7 +91,16 @@ class FlowRunner {
       initialInput[name] = eventArgs[index];
     });
 
-    return await this.lowLevelRunner.executeFlow(flow, initialInput);
+    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+
+    if (report) {
+      executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
+      if (executionHistory.length > 50) {
+        executionHistory.pop();
+      }
+    }
+
+    return report;
   }
 }
 
