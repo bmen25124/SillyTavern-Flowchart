@@ -1,17 +1,14 @@
 import React, { FC } from 'react';
-import { Handle, Position, useEdges } from '@xyflow/react';
+import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { CreateMessagesNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 
-export type CreateMessagesNodeProps = {
-  id: string;
-  data: CreateMessagesNodeData;
-};
+export type CreateMessagesNodeProps = NodeProps<Node<CreateMessagesNodeData>>;
 
-export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, data }) => {
+export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, data, selected }) => {
   const { updateNodeData } = useFlow();
   const edges = useEdges();
 
@@ -28,8 +25,8 @@ export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, data }) =>
   };
 
   return (
-    <BaseNode id={id} title="Create Messages">
-      <div style={{ width: 200, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <BaseNode id={id} title="Create Messages" selected={selected}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ position: 'relative' }}>
           <Handle
             type="target"

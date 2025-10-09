@@ -1,16 +1,13 @@
 import React, { FC } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { SchemaNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
 
-export type SchemaNodeProps = {
-  id: string;
-  data: SchemaNodeData;
-};
+export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
-export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
+export const SchemaNode: FC<SchemaNodeProps> = ({ id, data, selected }) => {
   const { updateNodeData } = useFlow();
 
   const handleFieldChange = (fieldId: string, field: { name: string; type: 'string' | 'number' | 'boolean' }) => {
@@ -29,8 +26,8 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, data }) => {
   };
 
   return (
-    <BaseNode id={id} title="Schema">
-      <div style={{ width: 300 }}>
+    <BaseNode id={id} title="Schema" selected={selected}>
+      <div>
         <label>Fields</label>
         {(data.fields || []).map((field) => (
           <div key={field.id} style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>

@@ -1,16 +1,13 @@
 import React, { FC } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { StringNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 
-export type StringNodeProps = {
-  id: string;
-  data: StringNodeData;
-};
+export type StringNodeProps = NodeProps<Node<StringNodeData>>;
 
-export const StringNode: FC<StringNodeProps> = ({ id, data }) => {
+export const StringNode: FC<StringNodeProps> = ({ id, data, selected }) => {
   const { updateNodeData } = useFlow();
 
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,9 +15,9 @@ export const StringNode: FC<StringNodeProps> = ({ id, data }) => {
   };
 
   return (
-    <BaseNode id={id} title="String">
+    <BaseNode id={id} title="String" selected={selected}>
       <Handle type="target" position={Position.Left} />
-      <div style={{ width: 200 }}>
+      <div>
         <label>Value</label>
         <STInput className="nodrag" value={data.value} onChange={handleValueChange} />
       </div>

@@ -40,7 +40,7 @@ export const NodePalette: FC = () => {
       <div style={{ display: 'flex' }}>
         {availableNodes.map((node) => (
           <STButton key={node.type} onClick={() => onNodeClick(node.type, node.data)}>
-            {node.label}
+            {node.label.split(' Node')[0]}
           </STButton>
         ))}
       </div>

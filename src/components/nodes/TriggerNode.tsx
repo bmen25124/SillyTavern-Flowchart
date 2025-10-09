@@ -1,21 +1,14 @@
 import React, { FC } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { ComboBoxInput } from '../popup/ComboBoxInput.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { useFlow } from '../popup/FlowContext.js';
 import { BaseNode } from './BaseNode.js';
+import { TriggerNodeData } from '../../flow-types.js';
 
-export type TriggerNodeData = {
-  selectedEventType: string;
-};
+export type TriggerNodeProps = NodeProps<Node<TriggerNodeData>>;
 
-export type TriggerNodeProps = {
-  id: string;
-  isConnectable: boolean;
-  data: TriggerNodeData;
-};
-
-export const TriggerNode: FC<TriggerNodeProps> = ({ id, isConnectable, data }) => {
+export const TriggerNode: FC<TriggerNodeProps> = ({ id, data, selected }) => {
   const { updateNodeData } = useFlow();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +16,7 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, isConnectable, data }) =
   };
 
   return (
-    <BaseNode id={id} title="Trigger via:">
+    <BaseNode id={id} title="Trigger via:" selected={selected}>
       <hr />
       <label>Event</label>
       <ComboBoxInput

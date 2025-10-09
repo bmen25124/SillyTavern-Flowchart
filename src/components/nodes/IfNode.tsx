@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Handle, Position, Node } from '@xyflow/react';
+import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlow } from '../popup/FlowContext.js';
@@ -22,12 +22,9 @@ function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
   return `const input: ${interfaceString}`;
 }
 
-export type IfNodeProps = {
-  id: string;
-  data: IfNodeData;
-};
+export type IfNodeProps = NodeProps<Node<IfNodeData>>;
 
-export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
+export const IfNode: React.FC<IfNodeProps> = ({ id, data, selected }) => {
   const { nodes, edges, updateNodeData } = useFlow();
 
   const typeDeclarations = useMemo(() => {
@@ -79,8 +76,8 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
   };
 
   return (
-    <BaseNode id={id} title="If Conditions">
-      <div style={{ width: 300 }}>
+    <BaseNode id={id} title="If Conditions" selected={selected}>
+      <div>
         {data.conditions.map((condition, index) => (
           <div key={condition.id} style={{ marginBottom: '10px' }}>
             <div

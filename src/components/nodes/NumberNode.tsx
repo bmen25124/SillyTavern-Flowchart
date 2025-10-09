@@ -1,16 +1,13 @@
 import React, { FC } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { NumberNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 
-export type NumberNodeProps = {
-  id: string;
-  data: NumberNodeData;
-};
+export type NumberNodeProps = NodeProps<Node<NumberNodeData>>;
 
-export const NumberNode: FC<NumberNodeProps> = ({ id, data }) => {
+export const NumberNode: FC<NumberNodeProps> = ({ id, data, selected }) => {
   const { updateNodeData } = useFlow();
 
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,9 +16,9 @@ export const NumberNode: FC<NumberNodeProps> = ({ id, data }) => {
   };
 
   return (
-    <BaseNode id={id} title="Number">
+    <BaseNode id={id} title="Number" selected={selected}>
       <Handle type="target" position={Position.Left} />
-      <div style={{ width: 200 }}>
+      <div>
         <label>Value</label>
         <STInput className="nodrag" type="number" value={data.value} onChange={handleValueChange} />
       </div>
