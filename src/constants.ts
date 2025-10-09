@@ -1,20 +1,9 @@
-import { z } from 'zod';
+import { Node, Edge } from '@xyflow/react';
 
-export const mythicOddsEnum = z.enum([
-  'Impossible',
-  'No way',
-  'Very unlikely',
-  'Unlikely',
-  '50/50',
-  'Somewhat likely',
-  'Likely',
-  'Very likely',
-  'Near sure thing',
-  'A sure thing',
-  'Has to be',
-]);
-
-export type MythicOdds = z.infer<typeof mythicOddsEnum>;
+export interface FlowData {
+  nodes: Node[];
+  edges: Edge[];
+}
 
 export const DEFAULT_PROMPT_JSON = `You are a highly specialized AI assistant. Your SOLE purpose is to generate a single, valid JSON object that strictly adheres to the provided JSON schema.
 

@@ -72,7 +72,7 @@ class FlowRunner {
     }
   }
 
-  executeFlow(flowId: string, startNodeId: string, eventArgs: any[]) {
+  async executeFlow(flowId: string, startNodeId: string, eventArgs: any[]) {
     console.log(`[FlowChart] Executing flow ${flowId} from node ${startNodeId} with args`, eventArgs);
     const settings = settingsManager.getSettings();
     const flow = settings.flows[flowId];
@@ -81,42 +81,140 @@ class FlowRunner {
       return;
     }
 
-    // Create input from event args
     const startNode = flow.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
+
+    // Create initial input from event args
     const eventType = startNode.data.selectedEventType as string;
     const paramNames = Object.keys(EventNameParameters[eventType] || {});
-    const input: Record<string, any> = {};
+    const initialInput: Record<string, any> = {};
     paramNames.forEach((name, index) => {
-      input[name] = eventArgs[index];
+      initialInput[name] = eventArgs[index];
     });
 
-    this.executeFromNode(startNodeId, flow, input);
+    // Topological sort to get execution order
+    const executionOrder = this.getExecutionOrder(flow);
+    const nodeOutputs: Record<string, any> = {};
+    const executedNodes = new Set<string>();
+
+    for (const nodeId of executionOrder) {
+      const node = flow.nodes.find((n) => n.id === nodeId);
+      if (!node) continue;
+
+      // For 'if' nodes, we might skip execution based on previous branches
+      if (node.type === 'ifNode' && executedNodes.has(nodeId)) {
+        continue;
+      }
+
+      const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, initialInput);
+      const output = await this.executeNode(node, inputs, flow);
+
+      nodeOutputs[nodeId] = output;
+      executedNodes.add(nodeId);
+
+      // Handle control flow for 'if' nodes
+      if (node.type === 'ifNode' && output.nextNodeId) {
+        // Mark all other branches as "executed" to prevent them from running
+        const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
+        for (const edge of allIfEdges) {
+          if (edge.target !== output.nextNodeId) {
+            this.markBranchAsExecuted(edge.target, flow, executedNodes);
+          }
+        }
+      }
+    }
+    console.log('[FlowChart] Flow execution finished.');
   }
 
-  async executeFromNode(nodeId: string, flow: FlowData, input: Record<string, any>) {
-    const currentNode = flow.nodes.find((n) => n.id === nodeId);
-    if (!currentNode) {
-      console.error(`[FlowChart] Node with id ${nodeId} not found in flow.`);
-      return;
+  private markBranchAsExecuted(startNodeId: string, flow: FlowData, executedNodes: Set<string>) {
+    const queue = [startNodeId];
+    while (queue.length > 0) {
+      const nodeId = queue.shift();
+      if (!nodeId || executedNodes.has(nodeId)) continue;
+
+      executedNodes.add(nodeId);
+      const outgoingEdges = flow.edges.filter((e) => e.source === nodeId);
+      for (const edge of outgoingEdges) {
+        queue.push(edge.target);
+      }
     }
+  }
 
-    console.log(`[FlowChart] Executing node ${currentNode.id} (${currentNode.type})`);
+  private getExecutionOrder(flow: FlowData): string[] {
+    const inDegree: Record<string, number> = {};
+    const adj: Record<string, string[]> = {};
+    flow.nodes.forEach((node) => {
+      inDegree[node.id] = 0;
+      adj[node.id] = [];
+    });
 
-    let nextNodeId: string | null = null;
-    let nextInput = input;
+    flow.edges.forEach((edge) => {
+      if (adj[edge.source] && inDegree[edge.target] !== undefined) {
+        adj[edge.source].push(edge.target);
+        inDegree[edge.target]++;
+      }
+    });
 
-    switch (currentNode.type) {
-      case 'starterNode': {
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+    const queue = flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id);
+    const result: string[] = [];
+
+    while (queue.length > 0) {
+      const u = queue.shift()!;
+      result.push(u);
+
+      (adj[u] || []).forEach((v) => {
+        if (inDegree[v] !== undefined) {
+          inDegree[v]--;
+          if (inDegree[v] === 0) {
+            queue.push(v);
+          }
         }
+      });
+    }
+    return result;
+  }
+
+  private getNodeInputs(
+    node: Node,
+    edges: Edge[],
+    nodeOutputs: Record<string, any>,
+    initialInput: Record<string, any>,
+  ): Record<string, any> {
+    const inputs: Record<string, any> = { ...initialInput };
+    const incomingEdges = edges.filter((edge) => edge.target === node.id);
+
+    for (const edge of incomingEdges) {
+      const sourceOutput = nodeOutputs[edge.source];
+      const targetHandle = edge.targetHandle;
+
+      if (sourceOutput && targetHandle) {
+        // If the source node produced a named output object
+        if (typeof sourceOutput === 'object' && sourceOutput !== null && sourceOutput[edge.sourceHandle || 'default']) {
+          inputs[targetHandle] = sourceOutput[edge.sourceHandle || 'default'];
+        } else {
+          // Otherwise, pass the whole output
+          inputs[targetHandle] = sourceOutput;
+        }
+      } else if (sourceOutput) {
+        // If no target handle, merge the output
+        Object.assign(inputs, sourceOutput);
+      }
+    }
+    return inputs;
+  }
+
+  private async executeNode(node: Node, input: Record<string, any>, flow: FlowData): Promise<any> {
+    console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
+    let output: any = {};
+
+    switch (node.type) {
+      case 'starterNode': {
+        output = { ...input };
         break;
       }
 
       case 'createMessagesNode': {
-        const parseResult = CreateMessagesNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = CreateMessagesNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
           const { profileId: staticProfileId, lastMessageId: staticLastMessageId } = parseResult.data;
           const profileId = input.profileId ?? staticProfileId;
@@ -125,25 +223,20 @@ class FlowRunner {
           if (profileId) {
             try {
               const messages = await getBaseMessagesForProfile(profileId, lastMessageId);
-              nextInput = { ...input, messages };
+              output = { messages };
             } catch (error) {
-              console.error(`[FlowChart] Error in createMessagesNode ${currentNode.id}:`, error);
+              console.error(`[FlowChart] Error in createMessagesNode ${node.id}:`, error);
             }
           } else {
-            console.error(`[FlowChart] Profile ID not found for createMessagesNode ${currentNode.id}.`);
+            console.error(`[FlowChart] Profile ID not found for createMessagesNode ${node.id}.`);
           }
         } else {
-          console.error(`[FlowChart] Invalid data for createMessagesNode ${currentNode.id}:`, parseResult.error.issues);
-        }
-
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for createMessagesNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
       case 'ifNode': {
-        const parseResult = IfNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = IfNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
           const { conditions } = parseResult.data;
           let finalTargetNodeId: string | null = null;
@@ -155,13 +248,11 @@ class FlowRunner {
               const func = new Function('input', 'stContext', condition.code);
               result = func(input, stContext);
             } catch (error) {
-              console.error(`[FlowChart] Error executing code in ifNode ${currentNode.id}:`, error);
+              console.error(`[FlowChart] Error executing code in ifNode ${node.id}:`, error);
             }
 
             if (result) {
-              const outgoingEdge = flow.edges.find(
-                (e) => e.source === currentNode.id && e.sourceHandle === condition.id,
-              );
+              const outgoingEdge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === condition.id);
               if (outgoingEdge) {
                 finalTargetNodeId = outgoingEdge.target;
                 break; // Exit loop on first true condition
@@ -171,57 +262,38 @@ class FlowRunner {
 
           // If no condition was true, check for the 'false' (else) handle
           if (finalTargetNodeId === null) {
-            const elseEdge = flow.edges.find((e) => e.source === currentNode.id && e.sourceHandle === 'false');
+            const elseEdge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === 'false');
             if (elseEdge) {
               finalTargetNodeId = elseEdge.target;
             }
           }
 
-          if (finalTargetNodeId) {
-            nextNodeId = finalTargetNodeId;
-          }
+          output = { nextNodeId: finalTargetNodeId };
         } else {
-          console.error(`[FlowChart] Invalid data for ifNode ${currentNode.id}:`, parseResult.error.issues);
+          console.error(`[FlowChart] Invalid data for ifNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
       case 'stringNode': {
-        const parseResult = StringNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = StringNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
-          const { value } = parseResult.data;
-          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-          if (outgoingEdge?.targetHandle) {
-            nextInput = { ...input, [outgoingEdge.targetHandle]: value };
-          }
+          output = parseResult.data.value;
         } else {
-          console.error(`[FlowChart] Invalid data for stringNode ${currentNode.id}:`, parseResult.error.issues);
-        }
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for stringNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
       case 'numberNode': {
-        const parseResult = NumberNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = NumberNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
-          const { value } = parseResult.data;
-          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-          if (outgoingEdge?.targetHandle) {
-            nextInput = { ...input, [outgoingEdge.targetHandle]: value };
-          }
+          output = parseResult.data.value;
         } else {
-          console.error(`[FlowChart] Invalid data for numberNode ${currentNode.id}:`, parseResult.error.issues);
-        }
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for numberNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
-      // Add other node types here
       case 'structuredRequestNode': {
-        const parseResult = StructuredRequestNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = StructuredRequestNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
           const {
             profileId: staticProfileId,
@@ -248,34 +320,22 @@ class FlowRunner {
                 promptEngineeringMode as any,
                 maxResponseToken,
               );
-              const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-              if (outgoingEdge?.targetHandle) {
-                nextInput = { ...input, [outgoingEdge.targetHandle]: result };
-              } else {
-                nextInput = { ...input, structuredResult: result };
-              }
+              output = { structuredResult: result };
             } catch (error) {
-              console.error(`[FlowChart] Error in structuredRequestNode ${currentNode.id}:`, error);
+              console.error(`[FlowChart] Error in structuredRequestNode ${node.id}:`, error);
             }
           } else {
             console.error(
-              `[FlowChart] Missing inputs for structuredRequestNode ${currentNode.id}. Check connections for schema, messages, messageId, and maxResponseToken.`,
+              `[FlowChart] Missing inputs for structuredRequestNode ${node.id}. Check connections for schema, messages, messageId, and maxResponseToken.`,
             );
           }
         } else {
-          console.error(
-            `[FlowChart] Invalid data for structuredRequestNode ${currentNode.id}:`,
-            parseResult.error.issues,
-          );
-        }
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for structuredRequestNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
       case 'schemaNode': {
-        const parseResult = SchemaNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = SchemaNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
           const { fields } = parseResult.data;
           const schema = z.object(
@@ -299,44 +359,23 @@ class FlowRunner {
               {} as Record<string, z.ZodType<any, any>>,
             ),
           );
-
-          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-          if (outgoingEdge?.targetHandle) {
-            nextInput = { ...input, [outgoingEdge.targetHandle]: schema };
-          }
+          output = schema;
         } else {
-          console.error(`[FlowChart] Invalid data for schemaNode ${currentNode.id}:`, parseResult.error.issues);
-        }
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for schemaNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
       case 'profileIdNode': {
-        const parseResult = ProfileIdNodeDataSchema.safeParse(currentNode.data);
+        const parseResult = ProfileIdNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
-          const { profileId } = parseResult.data;
-          const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-          if (outgoingEdge?.targetHandle) {
-            nextInput = { ...input, [outgoingEdge.targetHandle]: profileId };
-          }
+          output = parseResult.data.profileId;
         } else {
-          console.error(`[FlowChart] Invalid data for profileIdNode ${currentNode.id}:`, parseResult.error.issues);
-        }
-        const outgoingEdge = flow.edges.find((e) => e.source === currentNode.id);
-        if (outgoingEdge) {
-          nextNodeId = outgoingEdge.target;
+          console.error(`[FlowChart] Invalid data for profileIdNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }
     }
-
-    if (nextNodeId) {
-      this.executeFromNode(nextNodeId, flow, nextInput);
-    } else {
-      console.log(`[FlowChart] Flow execution finished.`);
-    }
+    return output;
   }
 }
 

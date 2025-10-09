@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, Node } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlow } from '../popup/FlowContext.js';
@@ -28,17 +28,40 @@ export type IfNodeProps = {
 };
 
 export const IfNode: React.FC<IfNodeProps> = ({ id, data }) => {
-  const { nodes, updateNodeData } = useFlow();
+  const { nodes, edges, updateNodeData } = useFlow();
 
   const typeDeclarations = useMemo(() => {
-    // Naively finds the first starter node. A real implementation would traverse the graph.
-    const starterNode = nodes.find((n) => n.type === 'starterNode');
+    const findStarterNode = (startNodeId: string): Node | undefined => {
+      const queue: string[] = [startNodeId];
+      const visited = new Set<string>();
+
+      while (queue.length > 0) {
+        const currentNodeId = queue.shift()!;
+        if (visited.has(currentNodeId)) {
+          continue;
+        }
+        visited.add(currentNodeId);
+
+        const currentNode = nodes.find((n) => n.id === currentNodeId);
+        if (currentNode?.type === 'starterNode') {
+          return currentNode;
+        }
+
+        const incomingEdges = edges.filter((e) => e.target === currentNodeId);
+        for (const edge of incomingEdges) {
+          queue.push(edge.source);
+        }
+      }
+      return undefined;
+    };
+
+    const starterNode = findStarterNode(id);
     if (!starterNode || !starterNode.data.selectedEventType) return '';
 
     const eventType = starterNode.data.selectedEventType as string;
     const eventSchema = EventNameParameters[eventType];
     return eventSchema ? zodSchemaToTypescript(eventSchema) : '';
-  }, [nodes]);
+  }, [id, nodes, edges]);
 
   const handleCodeChange = (conditionId: string, value: string) => {
     const newConditions = data.conditions.map((c) => (c.id === conditionId ? { ...c, code: value } : c));

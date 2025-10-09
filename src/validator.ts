@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { FlowData } from './config.js';
 import {
   StarterNodeDataSchema,
   IfNodeDataSchema,
@@ -10,6 +9,7 @@ import {
   SchemaNodeDataSchema,
   ProfileIdNodeDataSchema,
 } from './flow-types.js';
+import { FlowData } from './constants.js';
 
 const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   starterNode: StarterNodeDataSchema,
@@ -58,16 +58,57 @@ export const validateFlow = (flow: FlowData): { isValid: boolean; errors: string
     }
   }
 
-  // 3. Validate flow logic
-  const starterNodes = flow.nodes.filter((n) => n.type === 'starterNode');
-  if (starterNodes.length === 0) {
-    errors.push('Flow must have at least one Starter Node.');
+  // 3. Validate flow logic - Cycle Detection
+  const adj: Record<string, string[]> = {};
+  flow.nodes.forEach((node) => (adj[node.id] = []));
+  flow.edges.forEach((edge) => {
+    if (adj[edge.source]) {
+      adj[edge.source].push(edge.target);
+    }
+  });
+
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+  let hasCycle = false;
+
+  const detectCycle = (nodeId: string) => {
+    visited.add(nodeId);
+    recursionStack.add(nodeId);
+
+    const neighbors = adj[nodeId] || [];
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (detectCycle(neighbor)) {
+          return true;
+        }
+      } else if (recursionStack.has(neighbor)) {
+        return true;
+      }
+    }
+    recursionStack.delete(nodeId);
+    return false;
+  };
+
+  for (const node of flow.nodes) {
+    if (!visited.has(node.id)) {
+      if (detectCycle(node.id)) {
+        errors.push('Flow has a cycle (circular dependency).');
+        hasCycle = true;
+        break;
+      }
+    }
   }
 
+  if (hasCycle) {
+    // If a cycle is detected, further validation might be unreliable.
+  }
+
+  // 4. Validate starter nodes
+  const starterNodes = flow.nodes.filter((n) => n.type === 'starterNode');
   for (const starterNode of starterNodes) {
-    const hasOutgoingEdge = flow.edges.some((e) => e.source === starterNode.id);
-    if (!hasOutgoingEdge) {
-      errors.push(`Starter Node [${starterNode.id}] must have an outgoing connection.`);
+    const hasIncomingEdge = flow.edges.some((e) => e.target === starterNode.id);
+    if (hasIncomingEdge) {
+      errors.push(`Starter Node [${starterNode.id}] cannot have incoming connections.`);
     }
   }
 

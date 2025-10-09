@@ -1,7 +1,8 @@
 // @ts-ignore
 import { updateMessageBlock } from '../../../../../script.js';
-import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
+
 import { Node, Edge } from '@xyflow/react';
+import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML, FlowData } from './constants.js';
 
 export enum PromptEngineeringMode {
   NATIVE = 'native',
@@ -9,10 +10,7 @@ export enum PromptEngineeringMode {
   XML = 'xml',
 }
 
-export interface FlowData {
-  nodes: Node[];
-  edges: Edge[];
-}
+
 
 export interface ExtensionSettings {
   version: string;
