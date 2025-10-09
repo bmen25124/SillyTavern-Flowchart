@@ -56,6 +56,7 @@ export const IfElseNode: React.FC<IfElseNodeProps> = ({ id, data }) => {
         width="100%"
         onChange={handleCodeChange}
         theme={'dark'}
+        style={{ cursor: 'text' }}
       />
       {typeDeclarations && (
         <div style={{ marginTop: '5px', background: '#272822', padding: '5px', borderRadius: '3px' }}>
