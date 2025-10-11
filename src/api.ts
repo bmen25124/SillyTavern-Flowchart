@@ -115,7 +115,7 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
     if (format === 'json') {
       templateContext.schema = schemaString;
     }
-    const resolvedPrompt = Handlebars.compile(promptTemplate, { noEscape: true })(templateContext);
+    const resolvedPrompt = Handlebars.compile(promptTemplate, { noEscape: true, strict: true })(templateContext);
 
     // @ts-ignore
     response = await makeRequest(

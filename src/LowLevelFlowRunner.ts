@@ -24,7 +24,7 @@ import {
   JsonNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
-import { FullExportData, Character } from 'sillytavern-utils-lib/types';
+import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
 import Handlebars from 'handlebars';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
@@ -49,7 +49,7 @@ export interface FlowRunnerDependencies {
     promptEngineeringMode: any,
     maxResponseToken: number,
   ) => Promise<any>;
-  getSillyTavernContext: () => any;
+  getSillyTavernContext: () => SillyTavernContext;
   createCharacter: (data: FullExportData) => Promise<void>;
   saveCharacter: (data: Character) => Promise<void>;
   st_createNewWorldInfo: (worldName: string) => Promise<boolean>;
@@ -393,7 +393,7 @@ export class LowLevelFlowRunner {
           return item.value;
         case 'object':
           const obj: { [key: string]: any } = {};
-          for (const child of (item.value as JsonNodeItem[])) {
+          for (const child of item.value as JsonNodeItem[]) {
             obj[child.key] = buildValue(child);
           }
           return obj;
@@ -418,7 +418,7 @@ export class LowLevelFlowRunner {
     const template = input.template ?? parseResult.data.template;
     const data = input.data ?? {};
     try {
-      const compiled = Handlebars.compile(template, { noEscape: true });
+      const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
       return { result: compiled(data) };
     } catch (e: any) {
       throw new Error(`Error executing handlebar template: ${e.message}`);
