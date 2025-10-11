@@ -18,7 +18,7 @@ class FlowRunner {
       makeStructuredRequest,
       getSillyTavernContext: () => SillyTavern.getContext(),
       createCharacter,
-      saveCharacter,
+      saveCharacter: (character) => saveCharacter(character, true),
     });
   }
 
@@ -83,15 +83,21 @@ class FlowRunner {
       return;
     }
 
-    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+    try {
+      const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
 
-    if (report) {
-      executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
-      if (executionHistory.length > 50) {
-        executionHistory.pop();
+      if (report) {
+        executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
+        if (executionHistory.length > 50) {
+          executionHistory.pop();
+        }
       }
+      return report;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      st_echo('error', `Flow "${flowId}" failed: ${errorMessage}`);
+      return undefined;
     }
-    return report;
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {

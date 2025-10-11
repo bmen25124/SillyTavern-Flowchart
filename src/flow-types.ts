@@ -109,7 +109,6 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
       { id: 'profileId', type: FlowDataType.PROFILE_ID },
       { id: 'messages', type: FlowDataType.MESSAGES },
       { id: 'schema', type: FlowDataType.SCHEMA },
-      { id: 'messageId', type: FlowDataType.NUMBER },
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
     ],
     // Output for the full object. Dynamic handles for fields are validated separately.
@@ -310,7 +309,6 @@ export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 export const StructuredRequestNodeDataSchema = z.object({
   profileId: z.string().optional(),
   schemaName: z.string().optional(),
-  messageId: z.number().optional(),
   promptEngineeringMode: z.enum(['native', 'json', 'xml']),
   maxResponseToken: z.number().optional(),
 });

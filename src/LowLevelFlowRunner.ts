@@ -42,7 +42,6 @@ export interface FlowRunnerDependencies {
     messages: any[],
     schema: z.ZodObject<any>,
     schemaName: string,
-    messageId: number,
     promptEngineeringMode: any,
     maxResponseToken: number,
   ) => Promise<any>;
@@ -128,7 +127,7 @@ export class LowLevelFlowRunner {
   public async executeFlow(flow: FlowData, initialInput: Record<string, any>): Promise<ExecutionReport> {
     const { isValid, errors } = validateFlow(flow);
     if (!isValid) {
-      throw new Error(errors.join('\n'));
+      throw new Error(`Flow is invalid: ${errors.join(', ')}`);
     }
 
     console.log(`[FlowChart] Executing flow with args`, initialInput);
@@ -138,37 +137,43 @@ export class LowLevelFlowRunner {
     const executedNodes = new Set<string>();
     const report: ExecutionReport = { executedNodes: [] };
 
-    for (const nodeId of executionOrder) {
-      const node = flow.nodes.find((n) => n.id === nodeId);
-      if (!node) continue;
+    try {
+      for (const nodeId of executionOrder) {
+        const node = flow.nodes.find((n) => n.id === nodeId);
+        if (!node) continue;
 
-      if (executedNodes.has(nodeId)) {
-        continue;
-      }
+        if (executedNodes.has(nodeId)) {
+          continue;
+        }
 
-      const isRootNode = !flow.edges.some((e) => e.target === nodeId);
-      const baseInput = isRootNode ? initialInput : {};
-      const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
-      const output = await this.executeNode(node, inputs, flow);
+        const isRootNode = !flow.edges.some((e) => e.target === nodeId);
+        const baseInput = isRootNode ? initialInput : {};
+        const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
+        const output = await this.executeNode(node, inputs, flow);
 
-      nodeOutputs[nodeId] = output;
-      executedNodes.add(nodeId);
-      report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: output });
+        nodeOutputs[nodeId] = output;
+        executedNodes.add(nodeId);
+        report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: output });
 
-      if (node.type === 'ifNode' && output.nextNodeId) {
-        // An if-node is for control flow only. It provides no data itself.
-        // Its output is set to an empty object to prevent its input context
-        // from polluting the inputs of nodes within its branches.
-        nodeOutputs[nodeId] = {};
+        if (node.type === 'ifNode' && output.nextNodeId) {
+          // An if-node is for control flow only. It provides no data itself.
+          // Its output is set to an empty object to prevent its input context
+          // from polluting the inputs of nodes within its branches.
+          nodeOutputs[nodeId] = {};
 
-        const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
-        for (const edge of allIfEdges) {
-          if (edge.target !== output.nextNodeId) {
-            this.markBranchAsExecuted(edge.target, flow, executedNodes);
+          const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
+          for (const edge of allIfEdges) {
+            if (edge.target !== output.nextNodeId) {
+              this.markBranchAsExecuted(edge.target, flow, executedNodes);
+            }
           }
         }
       }
+    } catch (error) {
+      console.error('[FlowChart] Flow execution aborted due to an error.', error);
+      throw error;
     }
+
     console.log('[FlowChart] Flow execution finished.');
     return report;
   }
@@ -266,8 +271,8 @@ export class LowLevelFlowRunner {
       try {
         return await executor(node, input, flow);
       } catch (error) {
-        console.error(`[FlowChart] Error executing node ${node.id} (${node.type}):`, error);
-        return {};
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
       }
     }
     return {};
@@ -279,39 +284,36 @@ export class LowLevelFlowRunner {
 
   private async executeManualTriggerNode(node: Node): Promise<any> {
     const parseResult = ManualTriggerNodeDataSchema.safeParse(node.data);
-    if (parseResult.success) {
-      try {
-        return JSON.parse(parseResult.data.payload);
-      } catch (e) {
-        console.error(`[FlowChart] Invalid JSON payload for manualTriggerNode ${node.id}:`, e);
-      }
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    return {};
+    try {
+      return JSON.parse(parseResult.data.payload);
+    } catch (e: any) {
+      throw new Error(`Invalid JSON payload: ${e.message}`);
+    }
   }
 
   private async executeCreateMessagesNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = CreateMessagesNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for createMessagesNode ${node.id}:`, parseResult.error.issues);
-      return [];
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
 
     const { profileId: staticProfileId, lastMessageId: staticLastMessageId } = parseResult.data;
     const profileId = input.profileId ?? staticProfileId;
     const lastMessageId = input.lastMessageId ?? staticLastMessageId;
 
-    if (profileId) {
-      return this.dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
+    if (!profileId) {
+      throw new Error(`Profile ID not provided.`);
     }
-    console.error(`[FlowChart] Profile ID not found for createMessagesNode ${node.id}.`);
-    return [];
+    return this.dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
   }
 
   private async executeCustomMessageNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = CustomMessageNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for customMessageNode ${node.id}:`, parseResult.error.issues);
-      return [];
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
     return parseResult.data.messages.map(({ id, role, content }) => ({
       role,
@@ -322,8 +324,7 @@ export class LowLevelFlowRunner {
   private async executeMergeMessagesNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = MergeMessagesNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for mergeMessagesNode ${node.id}:`, parseResult.error.issues);
-      return [];
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
 
     return Object.keys(input)
@@ -335,8 +336,7 @@ export class LowLevelFlowRunner {
   private async executeMergeObjectsNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = MergeObjectsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for mergeObjectsNode ${node.id}:`, parseResult.error.issues);
-      return {};
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
 
     const objectsToMerge = Object.keys(input)
@@ -350,8 +350,7 @@ export class LowLevelFlowRunner {
   private async executeIfNode(node: Node, input: Record<string, any>, flow: FlowData): Promise<any> {
     const parseResult = IfNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for ifNode ${node.id}:`, parseResult.error.issues);
-      return {};
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
 
     for (const condition of parseResult.data.conditions) {
@@ -361,8 +360,8 @@ export class LowLevelFlowRunner {
           const edge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === condition.id);
           return { nextNodeId: edge?.target ?? null };
         }
-      } catch (error) {
-        console.error(`[FlowChart] Error executing code in ifNode ${node.id}:`, error);
+      } catch (error: any) {
+        throw new Error(`Error executing condition code: ${error.message}`);
       }
     }
 
@@ -373,8 +372,7 @@ export class LowLevelFlowRunner {
   private async executeStringNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = StringNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for stringNode ${node.id}:`, parseResult.error.issues);
-      return '';
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
     return input.value !== undefined ? String(input.value) : parseResult.data.value;
   }
@@ -382,8 +380,7 @@ export class LowLevelFlowRunner {
   private async executeNumberNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = NumberNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
-      console.error(`[FlowChart] Invalid data for numberNode ${node.id}:`, parseResult.error.issues);
-      return 0;
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
     return input.value !== undefined ? Number(input.value) : parseResult.data.value;
   }
@@ -417,7 +414,9 @@ export class LowLevelFlowRunner {
 
   private async executeHandlebarNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = HandlebarNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return { result: '' };
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
 
     const template = input.template ?? parseResult.data.template;
     const data = input.data ?? {};
@@ -425,87 +424,91 @@ export class LowLevelFlowRunner {
       const compiled = Handlebars.compile(template, { noEscape: true });
       return { result: compiled(data) };
     } catch (e: any) {
-      console.error(`[FlowChart] Error executing handlebar template in ${node.id}:`, e);
-      return { result: '' };
+      throw new Error(`Error executing handlebar template: ${e.message}`);
     }
   }
 
   private async executeGetCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = GetCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return {};
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
 
     const characterAvatar = input.characterAvatar ?? parseResult.data.characterAvatar;
-    if (characterAvatar) {
-      const stContext = this.dependencies.getSillyTavernContext();
-      const character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
-      if (character) {
-        return { ...character, result: character };
-      }
-      console.error(`[FlowChart] Character with avatar ${characterAvatar} not found.`);
-    } else {
-      console.error(`[FlowChart] No character avatar provided to getCharacterNode ${node.id}.`);
+    if (!characterAvatar) {
+      throw new Error('No character avatar provided.');
     }
-    return {};
+
+    const stContext = this.dependencies.getSillyTavernContext();
+    const character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+    if (!character) {
+      throw new Error(`Character with avatar ${characterAvatar} not found.`);
+    }
+    return { ...character, result: character };
   }
 
   private async executeStructuredRequestNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = StructuredRequestNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return {};
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
 
     const {
       profileId: staticProfileId,
       schemaName,
-      messageId: staticMessageId,
       promptEngineeringMode,
       maxResponseToken: staticMaxResponseToken,
     } = parseResult.data;
 
     const profileId = input.profileId ?? staticProfileId;
     const schema = input.schema;
-    const messageId = input.messageId ?? staticMessageId;
     const maxResponseToken = input.maxResponseToken ?? staticMaxResponseToken;
     const messages = input.messages;
 
-    if (profileId && schema && messages && messageId !== undefined && maxResponseToken !== undefined) {
+    if (profileId && schema && messages && maxResponseToken !== undefined) {
       const result = await this.dependencies.makeStructuredRequest(
         profileId,
         messages,
         schema,
         schemaName || 'response',
-        messageId,
         promptEngineeringMode as any,
         maxResponseToken,
       );
       return { ...result, result };
     } else {
-      console.error(
-        `[FlowChart] Missing inputs for structuredRequestNode ${node.id}. Check connections for schema, messages, messageId, and maxResponseToken.`,
+      throw new Error(
+        `Missing required inputs. Check connections for profileId, schema, messages, and maxResponseToken.`,
       );
-      return {};
     }
   }
 
   private async executeSchemaNode(node: Node): Promise<any> {
     const parseResult = SchemaNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return {};
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
     const topLevelObjectDefinition: SchemaTypeDefinition = { type: 'object', fields: parseResult.data.fields };
     return buildZodSchema(topLevelObjectDefinition);
   }
 
   private async executeProfileIdNode(node: Node): Promise<any> {
     const parseResult = ProfileIdNodeDataSchema.safeParse(node.data);
-    return parseResult.success ? parseResult.data.profileId : '';
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
+    return parseResult.data.profileId;
   }
 
   private async executeCreateCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = CreateCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return '';
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
     const staticData = parseResult.data;
 
     const name = input.name ?? staticData.name;
     if (!name) {
-      console.error(`[FlowChart] Character name is required for createCharacterNode ${node.id}.`);
-      return '';
+      throw new Error(`Character name is required.`);
     }
 
     const tagsStr = input.tags ?? staticData.tags ?? '';
@@ -541,20 +544,20 @@ export class LowLevelFlowRunner {
 
   private async executeEditCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
     const parseResult = EditCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) return '';
+    if (!parseResult.success) {
+      throw new Error(`Invalid data: ${parseResult.error.message}`);
+    }
     const staticData = parseResult.data;
 
     const characterAvatar = input.characterAvatar ?? staticData.characterAvatar;
     if (!characterAvatar) {
-      console.error(`[FlowChart] Character avatar is required for editCharacterNode ${node.id}.`);
-      return '';
+      throw new Error(`Character avatar is required.`);
     }
 
     const stContext = this.dependencies.getSillyTavernContext();
     const existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
     if (!existingChar) {
-      console.error(`[FlowChart] Character with avatar "${characterAvatar}" not found.`);
-      return '';
+      throw new Error(`Character with avatar "${characterAvatar}" not found.`);
     }
 
     const updatedChar: Character = { ...existingChar };
@@ -569,14 +572,14 @@ export class LowLevelFlowRunner {
 
     fields.forEach((field) => {
       const value = input[field] ?? staticData[field];
-      if (value !== undefined) {
+      if (value) {
         // @ts-ignore
         updatedChar[field] = value;
       }
     });
 
     const tagsStr = input.tags ?? staticData.tags;
-    if (tagsStr !== undefined) {
+    if (tagsStr) {
       updatedChar.tags = tagsStr
         .split(',')
         .map((t: string) => t.trim())

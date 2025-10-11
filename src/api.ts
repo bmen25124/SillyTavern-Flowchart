@@ -34,7 +34,6 @@ async function makeRequest(
   profileId: string,
   prompt: Message[],
   maxTokens: number,
-  messageId: number,
   overridePayload: any,
   streamCallbacks?: {
     onStream: (chunk: string) => void;
@@ -86,7 +85,6 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
   baseMessages: Message[],
   schema: T,
   schemaName: string,
-  messageId: number,
   promptEngineeringMode: PromptEngineeringMode,
   maxResponseToken: number,
 ): Promise<z.infer<T>> {
@@ -97,7 +95,7 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
 
   if (promptEngineeringMode === PromptEngineeringMode.NATIVE) {
     // @ts-ignore
-    response = await makeRequest(profileId, baseMessages, maxResponseToken, messageId, {
+    response = await makeRequest(profileId, baseMessages, maxResponseToken, {
       json_schema: { name: schemaName, strict: true, value: z.toJSONSchema(schema) },
     });
     if (!response?.content) {
@@ -124,7 +122,6 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
       profileId,
       [...baseMessages, { role: 'user', content: resolvedPrompt }],
       maxResponseToken,
-      messageId,
       {},
     );
 

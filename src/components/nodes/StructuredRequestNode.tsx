@@ -28,7 +28,6 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
 
   const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
   const isMessagesConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messages');
-  const isMessageIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messageId');
   const isMaxResponseTokenConnected = edges.some(
     (edge) => edge.target === id && edge.targetHandle === 'maxResponseToken',
   );
@@ -36,11 +35,6 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
 
   const handleProfileChange = (profile?: ConnectionProfile) => {
     updateNodeData(id, { profileId: profile?.id || '' });
-  };
-
-  const handleMessageIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    updateNodeData(id, { messageId: value === '' ? undefined : Number(value) });
   };
 
   return (
@@ -84,19 +78,6 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
               value={data.schemaName}
               onChange={(e) => updateNodeData(id, { schemaName: e.target.value })}
             />
-          )}
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="messageId"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Message ID</label>
-          {!isMessageIdConnected && (
-            <STInput className="nodrag" type="number" value={data.messageId ?? ''} onChange={handleMessageIdChange} />
           )}
         </div>
 
