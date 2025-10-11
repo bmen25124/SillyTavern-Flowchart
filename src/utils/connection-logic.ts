@@ -2,7 +2,6 @@ import { Connection, Edge, Node } from '@xyflow/react';
 import { nodeDefinitionMap } from '../components/nodes/definitions/map.js';
 import { FlowDataType } from '../flow-types.js';
 
-// This function was previously in flow-types.ts
 function getHandleType(
   node: Node,
   handleId: string | null,
@@ -23,7 +22,6 @@ function getHandleType(
   return staticHandles.find((h) => h.id === handleId)?.type;
 }
 
-// This function was also previously in flow-types.ts
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
   const sourceNode = nodes.find((node) => node.id === connection.source);
   const targetNode = nodes.find((node) => node.id === connection.target);
