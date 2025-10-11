@@ -9,6 +9,7 @@ import {
   SchemaNodeDataSchema,
   StringNodeDataSchema,
   StructuredRequestNodeDataSchema,
+  SchemaTypeDefinition,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
@@ -35,6 +36,52 @@ export interface FlowRunnerDependencies {
     maxResponseToken: number,
   ) => Promise<any>;
   getSillyTavernContext: () => any;
+}
+
+function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
+  let zodType: z.ZodTypeAny;
+
+  switch (definition.type) {
+    case 'string':
+      zodType = z.string();
+      break;
+    case 'number':
+      zodType = z.number();
+      break;
+    case 'boolean':
+      zodType = z.boolean();
+      break;
+    case 'enum':
+      if (!definition.values || definition.values.length === 0) {
+        zodType = z.string();
+      } else {
+        zodType = z.enum(definition.values as [string, ...string[]]);
+      }
+      break;
+    case 'object':
+      const shape: Record<string, z.ZodTypeAny> = {};
+      if (definition.fields) {
+        for (const field of definition.fields) {
+          shape[field.name] = buildZodSchema(field);
+        }
+      }
+      zodType = z.object(shape);
+      break;
+    case 'array':
+      if (definition.items) {
+        zodType = z.array(buildZodSchema(definition.items));
+      } else {
+        zodType = z.array(z.any());
+      }
+      break;
+    default:
+      zodType = z.any();
+  }
+
+  if (definition.description) {
+    return zodType.describe(definition.description);
+  }
+  return zodType;
 }
 
 export class LowLevelFlowRunner {
@@ -323,28 +370,11 @@ export class LowLevelFlowRunner {
         const parseResult = SchemaNodeDataSchema.safeParse(node.data);
         if (parseResult.success) {
           const { fields } = parseResult.data;
-          const schema = z.object(
-            fields.reduce(
-              (acc, field) => {
-                let zodType;
-                switch (field.type) {
-                  case 'string':
-                    zodType = z.string();
-                    break;
-                  case 'number':
-                    zodType = z.number();
-                    break;
-                  case 'boolean':
-                    zodType = z.boolean();
-                    break;
-                }
-                acc[field.name] = zodType;
-                return acc;
-              },
-              {} as Record<string, z.ZodType<any, any>>,
-            ),
-          );
-          output = schema;
+          const topLevelObjectDefinition: SchemaTypeDefinition = {
+            type: 'object',
+            fields: fields,
+          };
+          output = buildZodSchema(topLevelObjectDefinition);
         } else {
           console.error(`[FlowChart] Invalid data for schemaNode ${node.id}:`, parseResult.error.issues);
         }

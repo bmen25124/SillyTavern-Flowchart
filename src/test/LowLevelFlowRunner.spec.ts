@@ -176,6 +176,50 @@ describe('LowLevelFlowRunner', () => {
     expect(requestNodeReport?.output).toEqual({ structured: 'data' });
   });
 
+  it('should correctly build and use a complex schema with descriptions from schemaNode', async () => {
+    const complexSchemaNode: Node = {
+      id: 'schema',
+      type: 'schemaNode',
+      position: { x: 0, y: 0 },
+      data: {
+        fields: [
+          {
+            id: 'f1',
+            name: 'user',
+            type: 'object',
+            description: 'The user object',
+            fields: [
+              { id: 'f1.1', name: 'id', type: 'number', description: 'User ID' },
+              { id: 'f1.2', name: 'name', type: 'string' },
+            ],
+          },
+          { id: 'f2', name: 'tags', type: 'array', items: { type: 'string' } },
+          { id: 'f3', name: 'status', type: 'enum', values: ['active', 'inactive'] },
+        ],
+      },
+    };
+
+    const flow: FlowData = {
+      nodes: [complexSchemaNode],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const schemaOutput = report.executedNodes.find((n) => n.nodeId === 'schema')?.output as z.ZodObject<any>;
+
+    expect(schemaOutput).toBeInstanceOf(z.ZodObject);
+    expect(schemaOutput.shape.user.description).toBe('The user object');
+    expect(schemaOutput.shape.user.shape.id.description).toBe('User ID');
+    expect(schemaOutput.shape.user.shape.name.description).toBeUndefined();
+
+    const validData = {
+      user: { id: 1, name: 'test' },
+      tags: ['a', 'b'],
+      status: 'active',
+    };
+    expect(schemaOutput.safeParse(validData).success).toBe(true);
+  });
+
   it('should merge messages from two sources with mergeMessagesNode in the correct order', async () => {
     const flow: FlowData = {
       nodes: [

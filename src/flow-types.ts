@@ -190,8 +190,44 @@ export const StructuredRequestNodeDataSchema = z.object({
 });
 export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
 
+// Recursive schema definitions for SchemaNode
+export type FieldDefinition = {
+  id: string;
+  name: string;
+} & SchemaTypeDefinition;
+
+export type SchemaTypeDefinition = {
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'enum';
+  description?: string;
+  fields?: FieldDefinition[]; // For 'object'
+  items?: SchemaTypeDefinition; // For 'array'
+  values?: string[]; // For 'enum'
+};
+
+const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.lazy(() =>
+  z.object({
+    type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
+    description: z.string().optional(),
+    fields: z.array(FieldDefinitionSchema).optional(),
+    items: SchemaTypeDefinitionSchema.optional(),
+    values: z.array(z.string()).optional(),
+  }),
+);
+
+const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
+    description: z.string().optional(),
+    fields: z.array(FieldDefinitionSchema).optional(), // Recursive on itself for children
+    items: SchemaTypeDefinitionSchema.optional(), // Recursive on the other type for array items
+    values: z.array(z.string()).optional(),
+  }),
+);
+
 export const SchemaNodeDataSchema = z.object({
-  fields: z.array(z.object({ id: z.string(), name: z.string(), type: z.enum(['string', 'number', 'boolean']) })),
+  fields: z.array(FieldDefinitionSchema).default([]),
 });
 export type SchemaNodeData = z.infer<typeof SchemaNodeDataSchema>;
 
