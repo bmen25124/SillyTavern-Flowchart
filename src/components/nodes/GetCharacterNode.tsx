@@ -36,6 +36,7 @@ export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, data, selected
               inputClasses="nodrag"
               containerClasses="nodrag"
               closeOnSelect={true}
+              enableSearch={true}
             />
           )}
         </div>

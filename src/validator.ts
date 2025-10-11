@@ -17,6 +17,7 @@ import {
   HandlebarNodeDataSchema,
   JsonNodeDataSchema,
   MergeObjectsNodeDataSchema,
+  LogNodeDataSchema,
 } from './flow-types.js';
 import { FlowData } from './constants.js';
 
@@ -30,6 +31,7 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   mergeObjectsNode: MergeObjectsNodeDataSchema,
   stringNode: StringNodeDataSchema,
   numberNode: NumberNodeDataSchema,
+  logNode: LogNodeDataSchema,
   structuredRequestNode: StructuredRequestNodeDataSchema,
   schemaNode: SchemaNodeDataSchema,
   profileIdNode: ProfileIdNodeDataSchema,

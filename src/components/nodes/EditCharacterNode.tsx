@@ -45,6 +45,7 @@ export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, data, select
               inputClasses="nodrag"
               containerClasses="nodrag"
               closeOnSelect={true}
+              enableSearch={true}
             />
           )}
         </div>

@@ -17,6 +17,7 @@ export const availableNodes = [
   { type: 'mergeObjectsNode', label: 'Merge Objects Node', data: { inputCount: 2 } },
   { type: 'stringNode', label: 'String Node', data: { value: 'hello' } },
   { type: 'numberNode', label: 'Number Node', data: { value: 123 } },
+  { type: 'logNode', label: 'Log Node', data: { prefix: 'Log:' } },
   { type: 'jsonNode', label: 'JSON Node', data: { items: [] } },
   { type: 'handlebarNode', label: 'Handlebar Node', data: { template: 'Hello, {{name}}!' } },
   {

@@ -76,6 +76,10 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
     outputs: [{ id: null, type: FlowDataType.NUMBER }],
   },
+  logNode: {
+    inputs: [{ id: null, type: FlowDataType.ANY }],
+    outputs: [{ id: null, type: FlowDataType.ANY }],
+  },
   jsonNode: {
     inputs: [],
     outputs: [{ id: null, type: FlowDataType.OBJECT }],
@@ -297,6 +301,11 @@ export const NumberNodeDataSchema = z.object({
   value: z.number(),
 });
 export type NumberNodeData = z.infer<typeof NumberNodeDataSchema>;
+
+export const LogNodeDataSchema = z.object({
+  prefix: z.string().default('Log:'),
+});
+export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
 export const StructuredRequestNodeDataSchema = z.object({
   profileId: z.string().optional(),

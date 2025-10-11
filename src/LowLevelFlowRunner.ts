@@ -18,6 +18,7 @@ import {
   JsonNodeData,
   MergeObjectsNodeDataSchema,
   JsonNodeItem,
+  LogNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
@@ -112,6 +113,7 @@ export class LowLevelFlowRunner {
       ifNode: this.executeIfNode.bind(this),
       stringNode: this.executeStringNode.bind(this),
       numberNode: this.executeNumberNode.bind(this),
+      logNode: this.executeLogNode.bind(this),
       jsonNode: this.executeJsonNode.bind(this),
       handlebarNode: this.executeHandlebarNode.bind(this),
       getCharacterNode: this.executeGetCharacterNode.bind(this),
@@ -384,6 +386,13 @@ export class LowLevelFlowRunner {
       return 0;
     }
     return input.value !== undefined ? Number(input.value) : parseResult.data.value;
+  }
+
+  private async executeLogNode(node: Node, input: Record<string, any>): Promise<any> {
+    const parseResult = LogNodeDataSchema.safeParse(node.data);
+    const prefix = parseResult.success ? parseResult.data.prefix : '[LogNode]';
+    console.log(prefix, input);
+    return input;
   }
 
   private async executeJsonNode(node: Node): Promise<any> {

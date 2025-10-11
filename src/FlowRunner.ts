@@ -129,6 +129,7 @@ class FlowRunner {
     for (const triggerNode of manualTriggers) {
       let initialInput = {};
       try {
+        // @ts-ignore
         initialInput = JSON.parse(triggerNode.data.payload);
       } catch (e) {
         st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);

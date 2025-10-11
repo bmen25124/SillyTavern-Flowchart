@@ -37,6 +37,7 @@ import { GetCharacterNode } from '../nodes/GetCharacterNode.js';
 import { HandlebarNode } from '../nodes/HandlebarNode.js';
 import { JsonNode } from '../nodes/JsonNode.js';
 import { MergeObjectsNode } from '../nodes/MergeObjectsNode.js';
+import { LogNode } from '../nodes/LogNode.js';
 
 type AddNodeContextMenu = {
   x: number;
@@ -65,6 +66,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       mergeObjectsNode: MergeObjectsNode,
       stringNode: StringNode,
       numberNode: NumberNode,
+      logNode: LogNode,
       jsonNode: JsonNode,
       handlebarNode: HandlebarNode,
       getCharacterNode: GetCharacterNode,
