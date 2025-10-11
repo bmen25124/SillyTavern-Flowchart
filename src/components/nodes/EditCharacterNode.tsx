@@ -1,10 +1,10 @@
-import React, { FC, useMemo } from 'react';
+import React, { FC } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { EditCharacterNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
-import { Character } from 'sillytavern-utils-lib/types';
+import { shallow } from 'zustand/shallow';
 
 export type EditCharacterNodeProps = NodeProps<Node<EditCharacterNodeData>>;
 
@@ -18,10 +18,18 @@ const fields = [
   { id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } },
 ] as const;
 
-export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as EditCharacterNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
   const { characters } = SillyTavern.getContext();
+
+  if (!data) return null;
 
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 

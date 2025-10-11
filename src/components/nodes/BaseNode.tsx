@@ -1,6 +1,6 @@
-import React, { FC, ReactNode } from 'react';
+import { FC, ReactNode } from 'react';
 import { NodeResizer } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 
 type BaseNodeProps = {
@@ -11,7 +11,7 @@ type BaseNodeProps = {
 };
 
 export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) => {
-  const { duplicateNode } = useFlow();
+  const duplicateNode = useFlowStore((state) => state.duplicateNode);
 
   return (
     <div

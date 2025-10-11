@@ -1,10 +1,10 @@
 import { FC, useMemo, useState } from 'react';
-import { useFlow } from './FlowContext.js';
+import { useFlowStore } from './flowStore.js';
 import { STButton, STInput } from 'sillytavern-utils-lib/components';
 import { allNodeDefinitions } from '../nodes/definitions/index.js';
 
 export const NodePalette: FC = () => {
-  const { addNode } = useFlow();
+  const addNode = useFlowStore((state) => state.addNode);
   const [searchTerm, setSearchTerm] = useState('');
 
   const onNodeClick = (nodeType: string, data: any) => {

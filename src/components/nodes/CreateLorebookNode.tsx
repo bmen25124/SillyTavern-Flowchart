@@ -1,15 +1,24 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { CreateLorebookNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type CreateLorebookNodeProps = NodeProps<Node<CreateLorebookNodeData>>;
 
-export const CreateLorebookNode: FC<CreateLorebookNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const CreateLorebookNode: FC<CreateLorebookNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as CreateLorebookNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
+
+  if (!data) return null;
 
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 

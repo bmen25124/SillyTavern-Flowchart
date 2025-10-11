@@ -1,14 +1,23 @@
 import React, { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { NumberNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type NumberNodeProps = NodeProps<Node<NumberNodeData>>;
 
-export const NumberNode: FC<NumberNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const NumberNode: FC<NumberNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as NumberNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
+  if (!data) return null;
 
   const handleValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;

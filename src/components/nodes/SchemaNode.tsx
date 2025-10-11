@@ -1,9 +1,10 @@
 import React, { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { SchemaNodeData, FieldDefinition, SchemaTypeDefinition } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
@@ -128,8 +129,16 @@ const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemov
   );
 };
 
-export const SchemaNode: FC<SchemaNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as SchemaNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
+  if (!data) return null;
 
   const updateNested = (obj: any, path: (string | number)[], updater: (item: any) => any) => {
     const newObj = structuredClone(obj);

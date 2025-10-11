@@ -1,30 +1,38 @@
 import React, { FC, useMemo } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { StructuredRequestNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { PromptEngineeringMode } from '../../config.js';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
+import { shallow } from 'zustand/shallow';
 
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
 
-export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData, nodes } = useFlow();
+export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as StructuredRequestNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
   const edges = useEdges();
 
-  const schemaNode = useMemo(() => {
-    const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
-    if (!schemaEdge) return null;
-    return nodes.find((node) => node.id === schemaEdge.source);
-  }, [id, nodes, edges]);
-
   const schemaFields = useMemo(() => {
+    const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
+    if (!schemaEdge) return [];
+
+    const schemaNode = useFlowStore.getState().nodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode && schemaNode.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
       return schemaNode.data.fields;
     }
     return [];
-  }, [schemaNode]);
+  }, [id, edges]);
+
+  if (!data) return null;
 
   const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
   const isMessagesConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messages');

@@ -143,39 +143,59 @@ export class LowLevelFlowRunner {
   public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow with args`, initialInput);
 
-    const executionOrder = this.getExecutionOrder(flow);
     const nodeOutputs: Record<string, any> = {};
-    const executedNodes = new Set<string>();
     const report: ExecutionReport = { executedNodes: [] };
 
-    try {
-      for (const nodeId of executionOrder) {
-        const node = flow.nodes.find((n) => n.id === nodeId);
-        if (!node) continue;
+    const inDegree: Record<string, number> = {};
+    const adj: Record<string, string[]> = {};
+    const nodesById = new Map(flow.nodes.map((node) => [node.id, node]));
 
-        if (executedNodes.has(nodeId)) {
-          continue;
-        }
+    for (const node of flow.nodes) {
+      inDegree[node.id] = 0;
+      adj[node.id] = [];
+    }
+    for (const edge of flow.edges) {
+      if (nodesById.has(edge.source) && nodesById.has(edge.target)) {
+        inDegree[edge.target]++;
+        adj[edge.source].push(edge.target);
+      }
+    }
+
+    const queue = flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id);
+
+    try {
+      while (queue.length > 0) {
+        const nodeId = queue.shift()!;
+        const node = nodesById.get(nodeId)!;
 
         const isRootNode = !flow.edges.some((e) => e.target === nodeId);
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
+
         const output = await this.executeNode(node, inputs, flow);
 
         nodeOutputs[nodeId] = output;
-        executedNodes.add(nodeId);
         const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
         report.executedNodes.push(nodeReport);
         eventEmitter.emit('node:end', nodeReport);
 
+        // For `ifNode`, only queue the next node on the taken branch
         if (node.type === 'ifNode' && output.nextNodeId) {
-          // An if-node is for control flow only. It provides no data itself.
-          nodeOutputs[nodeId] = {};
-
-          const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
-          for (const edge of allIfEdges) {
-            if (edge.target !== output.nextNodeId) {
-              this.markBranchAsExecuted(edge.target, flow, executedNodes);
+          const nextNodeId = output.nextNodeId as string;
+          if (inDegree[nextNodeId] !== undefined) {
+            inDegree[nextNodeId]--;
+            if (inDegree[nextNodeId] === 0) {
+              queue.push(nextNodeId);
+            }
+          }
+        } else {
+          // For all other nodes, queue up their successors
+          for (const neighborId of adj[nodeId]) {
+            if (inDegree[neighborId] !== undefined) {
+              inDegree[neighborId]--;
+              if (inDegree[neighborId] === 0) {
+                queue.push(neighborId);
+              }
             }
           }
         }
@@ -187,54 +207,6 @@ export class LowLevelFlowRunner {
 
     console.log('[FlowChart] Flow execution finished.');
     return report;
-  }
-
-  private markBranchAsExecuted(startNodeId: string, flow: SpecFlow, executedNodes: Set<string>) {
-    const queue = [startNodeId];
-    while (queue.length > 0) {
-      const nodeId = queue.shift();
-      if (!nodeId || executedNodes.has(nodeId)) continue;
-
-      executedNodes.add(nodeId);
-      const outgoingEdges = flow.edges.filter((e) => e.source === nodeId);
-      for (const edge of outgoingEdges) {
-        queue.push(edge.target);
-      }
-    }
-  }
-
-  private getExecutionOrder(flow: SpecFlow): string[] {
-    const inDegree: Record<string, number> = {};
-    const adj: Record<string, string[]> = {};
-    flow.nodes.forEach((node) => {
-      inDegree[node.id] = 0;
-      adj[node.id] = [];
-    });
-
-    flow.edges.forEach((edge) => {
-      if (adj[edge.source] && inDegree[edge.target] !== undefined) {
-        adj[edge.source].push(edge.target);
-        inDegree[edge.target]++;
-      }
-    });
-
-    const queue = flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id);
-    const result: string[] = [];
-
-    while (queue.length > 0) {
-      const u = queue.shift()!;
-      result.push(u);
-
-      (adj[u] || []).forEach((v) => {
-        if (inDegree[v] !== undefined) {
-          inDegree[v]--;
-          if (inDegree[v] === 0) {
-            queue.push(v);
-          }
-        }
-      });
-    }
-    return result;
   }
 
   private getNodeInputs(
@@ -252,12 +224,12 @@ export class LowLevelFlowRunner {
 
       const targetHandle = edge.targetHandle;
       if (!targetHandle) {
-        console.warn(`Edge ${edge.id} connecting to node ${node.id} is missing a target handle and will be ignored.`);
+        // A null target handle means the entire output is passed to a single input
+        Object.assign(inputs, sourceOutput);
         continue;
       }
 
       const sourceHandle = edge.sourceHandle;
-      // If source has a specific handle, use that part of the output.
       if (
         sourceHandle &&
         typeof sourceOutput === 'object' &&
@@ -266,7 +238,6 @@ export class LowLevelFlowRunner {
       ) {
         inputs[targetHandle] = sourceOutput[sourceHandle];
       } else {
-        // Otherwise, use the entire output of the source node.
         inputs[targetHandle] = sourceOutput;
       }
     }
@@ -414,18 +385,28 @@ export class LowLevelFlowRunner {
     }
     const data = parseResult.data;
 
-    const buildObject = (items: JsonNodeItem[]): object => {
-      const obj: { [key: string]: any } = {};
-      for (const item of items) {
-        if (item.type === 'object' || item.type === 'array') {
-          obj[item.key] = buildObject(item.value as JsonNodeItem[]);
-        } else {
-          obj[item.key] = item.value;
-        }
+    const buildValue = (item: JsonNodeItem): any => {
+      switch (item.type) {
+        case 'string':
+        case 'number':
+        case 'boolean':
+          return item.value;
+        case 'object':
+          const obj: { [key: string]: any } = {};
+          for (const child of (item.value as JsonNodeItem[])) {
+            obj[child.key] = buildValue(child);
+          }
+          return obj;
+        case 'array':
+          return (item.value as JsonNodeItem[]).map(buildValue);
       }
-      return obj;
     };
-    return buildObject(data.items);
+
+    const rootObject: { [key: string]: any } = {};
+    for (const item of data.items) {
+      rootObject[item.key] = buildValue(item);
+    }
+    return rootObject;
   }
 
   private async executeHandlebarNode(node: SpecNode, input: Record<string, any>): Promise<any> {

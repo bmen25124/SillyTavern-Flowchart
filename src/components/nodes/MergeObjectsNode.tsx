@@ -1,14 +1,24 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from './BaseNode.js';
 import { MergeObjectsNodeData } from '../../flow-types.js';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type MergeObjectsNodeProps = NodeProps<Node<MergeObjectsNodeData>>;
 
-export const MergeObjectsNode: FC<MergeObjectsNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const MergeObjectsNode: FC<MergeObjectsNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as MergeObjectsNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
+  if (!data) return null;
+
   const inputCount = data.inputCount ?? 2;
 
   const setInputCount = (count: number) => {

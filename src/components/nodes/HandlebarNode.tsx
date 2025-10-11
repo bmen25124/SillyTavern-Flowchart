@@ -1,15 +1,24 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { HandlebarNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STTextarea } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
 
-export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as HandlebarNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
+
+  if (!data) return null;
 
   const isTemplateConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'template');
   const isDataConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'data');

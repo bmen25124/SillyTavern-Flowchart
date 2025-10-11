@@ -13,7 +13,7 @@ import {
   getViewportForBounds,
   MiniMap,
 } from '@xyflow/react';
-import { FlowProvider, useFlow } from './FlowContext.js';
+import { useFlowStore } from './flowStore.js';
 import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
@@ -37,12 +37,12 @@ type AddNodeContextMenu = {
 };
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlowStore();
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
   const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
   const wasConnectionSuccessful = useRef(false);
-  const { activeNodeId } = useDebugStore();
+  const activeNodeId = useDebugStore((state) => state.activeNodeId);
 
   const isValidConnection = useCallback(
     (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), edges),
@@ -240,12 +240,18 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
 };
 
 const FlowManager: FC = () => {
-  const { nodes, edges, loadFlow, getFlowData, addNode } = useFlow();
-  const { getNodes } = useReactFlow();
+  const { nodes, edges, loadFlow, getFlowData, addNode } = useFlowStore();
+  const { getNodes, setViewport, getViewport } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const copyBuffer = useRef<Node[]>([]);
+
+  // Load active flow into store on mount
+  useEffect(() => {
+    const activeFlowData = settings.flows[settings.activeFlow] || { nodes: [], edges: [] };
+    loadFlow(structuredClone(activeFlowData));
+  }, []); // Run only once on mount
 
   // Debounced auto-save effect
   useEffect(() => {
@@ -389,9 +395,7 @@ const FlowManager: FC = () => {
 
   const handleScreenshot = useCallback(async () => {
     const flowElement = document.querySelector<HTMLElement>('.react-flow');
-    const viewportElement = document.querySelector<HTMLElement>('.react-flow__viewport');
-
-    if (!flowElement || !viewportElement) {
+    if (!flowElement) {
       st_echo('error', 'Could not find the flow element to screenshot.');
       return;
     }
@@ -404,7 +408,6 @@ const FlowManager: FC = () => {
     const imageWidth = 2048;
     const padding = 40;
     const nodesBounds = getNodesBounds(nodes);
-
     const imageBounds = {
       width: nodesBounds.width + padding * 2,
       height: nodesBounds.height + padding * 2,
@@ -412,36 +415,39 @@ const FlowManager: FC = () => {
       y: nodesBounds.y - padding,
     };
     const imageHeight = (imageBounds.height / imageBounds.width) * imageWidth;
-
     const viewport = getViewportForBounds(imageBounds, imageWidth, imageHeight, 0.1, 2, {});
 
-    const originalTransform = viewportElement.style.transform;
-    viewportElement.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
+    const originalViewport = getViewport();
+    setViewport(viewport, { duration: 0 });
 
-    try {
-      const dataUrl = await toPng(flowElement, {
-        backgroundColor: '#202124',
-        width: imageWidth,
-        height: imageHeight,
-        filter: (node: HTMLElement) => !node.classList?.contains('react-flow__controls'),
-        skipFonts: true,
-        pixelRatio: 2,
-      });
+    // Allow React Flow to re-render with the new viewport before taking the screenshot.
+    setTimeout(async () => {
+      try {
+        const dataUrl = await toPng(flowElement, {
+          backgroundColor: '#202124',
+          width: imageWidth,
+          height: imageHeight,
+          filter: (node: HTMLElement) => !node.classList?.contains('react-flow__controls'),
+          skipFonts: true,
+          pixelRatio: 2,
+        });
 
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `flowchart-${settings.activeFlow}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      st_echo('info', 'Screenshot saved.');
-    } catch (err) {
-      console.error('Failed to take screenshot:', err);
-      st_echo('error', 'Failed to take screenshot.');
-    } finally {
-      viewportElement.style.transform = originalTransform;
-    }
-  }, [getNodes, settings.activeFlow]);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `flowchart-${settings.activeFlow}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        st_echo('info', 'Screenshot saved.');
+      } catch (err) {
+        console.error('Failed to take screenshot:', err);
+        st_echo('error', 'Failed to take screenshot.');
+      } finally {
+        // Restore the original viewport.
+        setViewport(originalViewport, { duration: 0 });
+      }
+    }, 100);
+  }, [getNodes, setViewport, getViewport, settings.activeFlow]);
 
   return (
     <div className="flowchart-ground-manager">
@@ -489,10 +495,8 @@ const FlowManager: FC = () => {
 
 export const FlowChartGround: FC = () => {
   return (
-    <FlowProvider>
-      <ReactFlowProvider>
-        <FlowManager />
-      </ReactFlowProvider>
-    </FlowProvider>
+    <ReactFlowProvider>
+      <FlowManager />
+    </ReactFlowProvider>
   );
 };

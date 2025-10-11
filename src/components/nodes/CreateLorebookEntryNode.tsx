@@ -1,10 +1,11 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { CreateLorebookEntryNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfo } from 'sillytavern-utils-lib';
+import { shallow } from 'zustand/shallow';
 
 export type CreateLorebookEntryNodeProps = NodeProps<Node<CreateLorebookEntryNodeData>>;
 
@@ -14,8 +15,14 @@ const fields = [
   { id: 'content', label: 'Content', component: STTextarea, props: { rows: 2 } },
 ] as const;
 
-export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as CreateLorebookEntryNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
 
@@ -26,6 +33,8 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
   }, []);
 
   const lorebookOptions = useMemo(() => lorebookNames.map((name) => ({ value: name, label: name })), [lorebookNames]);
+
+  if (!data) return null;
 
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 

@@ -1,16 +1,25 @@
 import React, { FC } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { CreateMessagesNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
+import { shallow } from 'zustand/shallow';
 
 export type CreateMessagesNodeProps = NodeProps<Node<CreateMessagesNodeData>>;
 
-export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as CreateMessagesNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
+
+  if (!data) return null;
 
   const isProfileIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'profileId');
   const isLastMessageIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'lastMessageId');

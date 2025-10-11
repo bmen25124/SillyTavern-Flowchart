@@ -1,15 +1,24 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { BaseNode } from './BaseNode.js';
 import { ManualTriggerNodeData } from '../../flow-types.js';
+import { shallow } from 'zustand/shallow';
 
 export type ManualTriggerNodeProps = NodeProps<Node<ManualTriggerNodeData>>;
 
-export const ManualTriggerNode: FC<ManualTriggerNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const ManualTriggerNode: FC<ManualTriggerNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as ManualTriggerNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
+  if (!data) return null;
 
   const handleCodeChange = (value: string) => {
     updateNodeData(id, { payload: value });

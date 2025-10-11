@@ -229,7 +229,7 @@ export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
 // Recursive types and schema for JsonNode
 const baseJsonNodeItemSchema = z.object({
   id: z.string(),
-  key: z.string(),
+  key: z.string(), // Key is always present, but ignored for array children.
   type: z.enum(['string', 'number', 'boolean', 'object', 'array']),
 });
 

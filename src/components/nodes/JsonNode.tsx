@@ -1,19 +1,21 @@
 import React, { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { JsonNodeData, JsonNodeItem } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
 const JsonItemEditor: FC<{
   item: JsonNodeItem;
   path: number[];
+  parentType: 'object' | 'array';
   onUpdate: (path: number[], data: Partial<JsonNodeItem> | { value: any }) => void;
   onRemove: (path: number[]) => void;
   onAddChild: (path: number[]) => void;
-}> = ({ item, path, onUpdate, onRemove, onAddChild }) => {
+}> = ({ item, path, parentType, onUpdate, onRemove, onAddChild }) => {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as JsonNodeItem['type'];
     let newValue: any;
@@ -75,12 +77,14 @@ const JsonItemEditor: FC<{
   return (
     <div style={{ marginLeft: path.length > 1 ? '15px' : 0, marginTop: '5px' }}>
       <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-        <STInput
-          className="nodrag"
-          value={item.key}
-          onChange={(e) => onUpdate(path, { key: e.target.value })}
-          placeholder="Key"
-        />
+        {parentType === 'object' && (
+          <STInput
+            className="nodrag"
+            value={item.key}
+            onChange={(e) => onUpdate(path, { key: e.target.value })}
+            placeholder="Key"
+          />
+        )}
         <STSelect className="nodrag" value={item.type} onChange={handleTypeChange}>
           <option value="string">string</option>
           <option value="number">number</option>
@@ -99,6 +103,7 @@ const JsonItemEditor: FC<{
               key={child.id}
               item={child}
               path={[...path, i]}
+              parentType={item.type as 'object' | 'array'}
               onUpdate={onUpdate}
               onRemove={onRemove}
               onAddChild={onAddChild}
@@ -113,8 +118,16 @@ const JsonItemEditor: FC<{
   );
 };
 
-export const JsonNode: FC<JsonNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const JsonNode: FC<JsonNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as JsonNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+
+  if (!data) return null;
 
   const updateNested = (items: JsonNodeItem[], path: number[], updater: (item: JsonNodeItem) => JsonNodeItem) => {
     const newItems = structuredClone(items);
@@ -167,6 +180,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, data, selected }) => {
           key={item.id}
           item={item}
           path={[index]}
+          parentType="object"
           onUpdate={handleUpdate}
           onRemove={handleRemove}
           onAddChild={handleAddChild}

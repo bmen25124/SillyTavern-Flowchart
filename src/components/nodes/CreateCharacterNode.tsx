@@ -1,9 +1,10 @@
 import React, { FC } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { CreateCharacterNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type CreateCharacterNodeProps = NodeProps<Node<CreateCharacterNodeData>>;
 
@@ -17,9 +18,17 @@ const fields = [
   { id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } },
 ] as const;
 
-export const CreateCharacterNode: FC<CreateCharacterNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const CreateCharacterNode: FC<CreateCharacterNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as CreateCharacterNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
+
+  if (!data) return null;
 
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 

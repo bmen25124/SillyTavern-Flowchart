@@ -1,15 +1,24 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
-import { useFlow } from '../popup/FlowContext.js';
+import { useFlowStore } from '../popup/flowStore.js';
 import { CustomMessageNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { shallow } from 'zustand/shallow';
 
 export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 
-export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as CustomMessageNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
   const edges = useEdges();
+
+  if (!data) return null;
 
   const handleMessageChange = (
     msgId: string,
