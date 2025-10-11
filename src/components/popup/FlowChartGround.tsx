@@ -395,6 +395,18 @@ const FlowManager: FC = () => {
     flowRunner.runManualTriggers(settings.activeFlow);
   };
 
+  const handleCopyFlow = async () => {
+    try {
+      const flowData = getFlowData();
+      const jsonString = JSON.stringify(flowData, null, 2);
+      await navigator.clipboard.writeText(jsonString);
+      st_echo('info', `Flow "${settings.activeFlow}" copied to clipboard as JSON.`);
+    } catch (err) {
+      console.error('Failed to copy flow:', err);
+      st_echo('error', 'Failed to copy flow to clipboard.');
+    }
+  };
+
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -413,6 +425,7 @@ const FlowManager: FC = () => {
         <STButton color="primary" onClick={handleRunFlow}>
           Run Flow
         </STButton>
+        <STButton onClick={handleCopyFlow}>Copy</STButton>
       </div>
       {!isValid && (
         <div className="flowchart-errors">
