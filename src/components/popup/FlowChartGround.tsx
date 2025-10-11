@@ -14,6 +14,8 @@ import { FlowProvider, useFlow } from './FlowContext.js';
 import { TriggerNode } from '../nodes/TriggerNode.js';
 import { IfNode } from '../nodes/IfNode.js';
 import { CreateMessagesNode } from '../nodes/CreateMessagesNode.js';
+import { CustomMessageNode } from '../nodes/CustomMessageNode.js';
+import { MergeMessagesNode } from '../nodes/MergeMessagesNode.js';
 import { StringNode } from '../nodes/StringNode.js';
 import { NumberNode } from '../nodes/NumberNode.js';
 import { StructuredRequestNode } from '../nodes/StructuredRequestNode.js';
@@ -50,6 +52,8 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       triggerNode: TriggerNode,
       ifNode: IfNode,
       createMessagesNode: CreateMessagesNode,
+      customMessageNode: CustomMessageNode,
+      mergeMessagesNode: MergeMessagesNode,
       stringNode: StringNode,
       numberNode: NumberNode,
       structuredRequestNode: StructuredRequestNode,

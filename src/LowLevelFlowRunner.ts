@@ -1,12 +1,14 @@
 import { Node, Edge } from '@xyflow/react';
 import {
   CreateMessagesNodeDataSchema,
+  CustomMessageNodeDataSchema,
   IfNodeDataSchema,
+  MergeMessagesNodeDataSchema,
   NumberNodeDataSchema,
+  ProfileIdNodeDataSchema,
   SchemaNodeDataSchema,
   StringNodeDataSchema,
   StructuredRequestNodeDataSchema,
-  ProfileIdNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
@@ -186,6 +188,36 @@ export class LowLevelFlowRunner {
           }
         } else {
           console.error(`[FlowChart] Invalid data for createMessagesNode ${node.id}:`, parseResult.error.issues);
+        }
+        break;
+      }
+      case 'customMessageNode': {
+        const parseResult = CustomMessageNodeDataSchema.safeParse(node.data);
+        if (parseResult.success) {
+          output = parseResult.data.messages.map(({ role, content }) => ({ role, content }));
+        } else {
+          console.error(`[FlowChart] Invalid data for customMessageNode ${node.id}:`, parseResult.error.issues);
+        }
+        break;
+      }
+      case 'mergeMessagesNode': {
+        const parseResult = MergeMessagesNodeDataSchema.safeParse(node.data);
+        if (parseResult.success) {
+          const allMessages = [];
+          const messageKeys = Object.keys(input)
+            .filter((key) => key.startsWith('messages_') && Array.isArray(input[key]))
+            .sort((a, b) => {
+              const numA = parseInt(a.split('_')[1], 10);
+              const numB = parseInt(b.split('_')[1], 10);
+              return numA - numB;
+            });
+
+          for (const key of messageKeys) {
+            allMessages.push(...input[key]);
+          }
+          output = allMessages;
+        } else {
+          console.error(`[FlowChart] Invalid data for mergeMessagesNode ${node.id}:`, parseResult.error.issues);
         }
         break;
       }

@@ -8,6 +8,8 @@ import {
   StructuredRequestNodeDataSchema,
   SchemaNodeDataSchema,
   ProfileIdNodeDataSchema,
+  CustomMessageNodeDataSchema,
+  MergeMessagesNodeDataSchema,
 } from './flow-types.js';
 import { FlowData } from './constants.js';
 
@@ -15,6 +17,8 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   triggerNode: TriggerNodeDataSchema,
   ifNode: IfNodeDataSchema,
   createMessagesNode: CreateMessagesNodeDataSchema,
+  customMessageNode: CustomMessageNodeDataSchema,
+  mergeMessagesNode: MergeMessagesNodeDataSchema,
   stringNode: StringNodeDataSchema,
   numberNode: NumberNodeDataSchema,
   structuredRequestNode: StructuredRequestNodeDataSchema,

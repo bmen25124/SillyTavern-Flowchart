@@ -6,6 +6,12 @@ export const availableNodes = [
   { type: 'triggerNode', label: 'Trigger Node', data: { selectedEventType: 'user_message_rendered' } },
   { type: 'ifNode', label: 'If Node', data: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }] } },
   { type: 'createMessagesNode', label: 'Create Messages Node', data: { profileId: '' } },
+  {
+    type: 'customMessageNode',
+    label: 'Custom Message Node',
+    data: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
+  },
+  { type: 'mergeMessagesNode', label: 'Merge Messages Node', data: { inputCount: 2 } },
   { type: 'stringNode', label: 'String Node', data: { value: 'hello' } },
   { type: 'numberNode', label: 'Number Node', data: { value: 123 } },
   {
@@ -36,9 +42,9 @@ export const NodePalette: FC = () => {
   return (
     <div className="flowchart-node-palette">
       <h3>Add Node</h3>
-      <div style={{ display: 'flex' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
         {availableNodes.map((node) => (
-          <STButton key={node.type} onClick={() => onNodeClick(node.type, node.data)}>
+          <STButton key={node.type} onClick={() => onNodeClick(node.type, structuredClone(node.data))}>
             {node.label.split(' Node')[0]}
           </STButton>
         ))}

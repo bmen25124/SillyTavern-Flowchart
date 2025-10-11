@@ -45,6 +45,16 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     ],
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
+  customMessageNode: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
+  },
+  mergeMessagesNode: {
+    inputs: [
+      // Dynamic handles are checked separately in `checkConnectionValidity`
+    ],
+    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
+  },
   stringNode: {
     inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
     outputs: [{ id: null, type: FlowDataType.STRING }],
@@ -99,7 +109,14 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     sourceHandleType = sourceHandleTypes.find((h) => h.id === connection.sourceHandle)?.type;
   }
 
-  const targetHandleType = targetHandleTypes.find((h) => h.id === connection.targetHandle)?.type;
+  let targetHandleType = targetHandleTypes.find((h) => h.id === connection.targetHandle)?.type;
+  if (
+    !targetHandleType &&
+    targetNode.type === 'mergeMessagesNode' &&
+    connection.targetHandle?.startsWith('messages_')
+  ) {
+    targetHandleType = FlowDataType.MESSAGES;
+  }
 
   if (!sourceHandleType || !targetHandleType) {
     return false;
@@ -137,6 +154,22 @@ export const CreateMessagesNodeDataSchema = z.object({
   lastMessageId: z.number().optional(),
 });
 export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema>;
+
+export const CustomMessageNodeDataSchema = z.object({
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      role: z.enum(['system', 'user', 'assistant']),
+      content: z.string(),
+    }),
+  ),
+});
+export type CustomMessageNodeData = z.infer<typeof CustomMessageNodeDataSchema>;
+
+export const MergeMessagesNodeDataSchema = z.object({
+  inputCount: z.number().min(1).default(2),
+});
+export type MergeMessagesNodeData = z.infer<typeof MergeMessagesNodeDataSchema>;
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),

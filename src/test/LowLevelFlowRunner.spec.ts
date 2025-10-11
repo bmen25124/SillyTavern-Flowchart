@@ -175,4 +175,93 @@ describe('LowLevelFlowRunner', () => {
     const requestNodeReport = report.executedNodes.find((n) => n.nodeId === 'request');
     expect(requestNodeReport?.output).toEqual({ structured: 'data' });
   });
+
+  it('should merge messages from two sources with mergeMessagesNode in the correct order', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
+        {
+          id: 'customA',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: { messages: [{ id: 'm1', role: 'user', content: 'Message A' }] },
+        },
+        {
+          id: 'customB',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: { messages: [{ id: 'm2', role: 'assistant', content: 'Message B' }] },
+        },
+        { id: 'merge', type: 'mergeMessagesNode', position: { x: 0, y: 0 }, data: { inputCount: 2 } },
+      ],
+      edges: [
+        { id: 'e-A-merge', source: 'customA', target: 'merge', targetHandle: 'messages_0' },
+        { id: 'e-B-merge', source: 'customB', target: 'merge', targetHandle: 'messages_1' },
+      ],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
+    expect(mergeNodeReport).toBeDefined();
+
+    const expectedMessages = [
+      { role: 'user', content: 'Message A' },
+      { role: 'assistant', content: 'Message B' },
+    ];
+    expect(mergeNodeReport?.output).toEqual(expectedMessages);
+  });
+
+  it('should merge messages from multiple dynamic sources in the correct order', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'start',
+          type: 'triggerNode',
+          position: { x: 0, y: 0 },
+          data: { selectedEventType: 'user_message_rendered' },
+        },
+        {
+          id: 'customA',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: { messages: [{ id: 'm1', role: 'user', content: 'A' }] },
+        },
+        {
+          id: 'customB',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: { messages: [{ id: 'm2', role: 'assistant', content: 'B' }] },
+        },
+        {
+          id: 'customC',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: { messages: [{ id: 'm3', role: 'system', content: 'C' }] },
+        },
+        { id: 'merge', type: 'mergeMessagesNode', position: { x: 0, y: 0 }, data: { inputCount: 3 } },
+      ],
+      edges: [
+        { id: 'e-A-merge', source: 'customA', target: 'merge', targetHandle: 'messages_0' },
+        { id: 'e-B-merge', source: 'customB', target: 'merge', targetHandle: 'messages_1' },
+        { id: 'e-C-merge', source: 'customC', target: 'merge', targetHandle: 'messages_2' },
+      ],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
+    expect(mergeNodeReport).toBeDefined();
+
+    const expectedMessages = [
+      { role: 'user', content: 'A' },
+      { role: 'assistant', content: 'B' },
+      { role: 'system', content: 'C' },
+    ];
+
+    expect(mergeNodeReport?.output).toEqual(expectedMessages);
+  });
 });
