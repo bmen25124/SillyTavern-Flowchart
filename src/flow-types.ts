@@ -14,6 +14,7 @@ export enum FlowDataType {
   STRING = 'string',
   NUMBER = 'number',
   BOOLEAN = 'boolean',
+  OBJECT = 'object',
   PROFILE_ID = 'profileId',
   MESSAGES = 'messages',
   SCHEMA = 'schema',
@@ -31,6 +32,10 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     inputs: [],
     outputs: [],
   },
+  manualTriggerNode: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.OBJECT }],
+  },
   ifNode: {
     inputs: [],
     // Outputs are for control flow. The runner doesn't pass data from them.
@@ -46,7 +51,9 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
   customMessageNode: {
-    inputs: [],
+    inputs: [
+      // Dynamic handles for each message content are checked separately in `checkConnectionValidity`
+    ],
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
   mergeMessagesNode: {
@@ -55,6 +62,12 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     ],
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
+  mergeObjectsNode: {
+    inputs: [
+      // Dynamic handles are checked separately in `checkConnectionValidity`
+    ],
+    outputs: [{ id: null, type: FlowDataType.OBJECT }],
+  },
   stringNode: {
     inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
     outputs: [{ id: null, type: FlowDataType.STRING }],
@@ -62,6 +75,30 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
   numberNode: {
     inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
     outputs: [{ id: null, type: FlowDataType.NUMBER }],
+  },
+  jsonNode: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.OBJECT }],
+  },
+  handlebarNode: {
+    inputs: [
+      { id: 'template', type: FlowDataType.STRING },
+      { id: 'data', type: FlowDataType.OBJECT },
+    ],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+  },
+  getCharacterNode: {
+    inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'result', type: FlowDataType.OBJECT },
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'description', type: FlowDataType.STRING },
+      { id: 'first_mes', type: FlowDataType.STRING },
+      { id: 'scenario', type: FlowDataType.STRING },
+      { id: 'personality', type: FlowDataType.STRING },
+      { id: 'mes_example', type: FlowDataType.STRING },
+      { id: 'tags', type: FlowDataType.OBJECT }, // It's a string[]
+    ],
   },
   structuredRequestNode: {
     inputs: [
@@ -147,7 +184,7 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
                 sourceHandleType = FlowDataType.BOOLEAN;
                 break;
               default:
-                sourceHandleType = FlowDataType.ANY; // for object, array, enum
+                sourceHandleType = FlowDataType.OBJECT; // for object, array, enum
             }
           }
         }
@@ -173,11 +210,19 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
   ) {
     targetHandleType = FlowDataType.MESSAGES;
   }
+  if (!targetHandleType && targetNode.type === 'mergeObjectsNode' && connection.targetHandle?.startsWith('object_')) {
+    targetHandleType = FlowDataType.OBJECT;
+  }
+  if (!targetHandleType && targetNode.type === 'customMessageNode') {
+    // any handle on customMessageNode is for a string content
+    targetHandleType = FlowDataType.STRING;
+  }
 
   if (!sourceHandleType || !targetHandleType) {
     return false;
   }
 
+  // Permissive connections
   if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
     return true;
   }
@@ -186,6 +231,12 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
   }
   if (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID) {
     return true;
+  }
+  if (targetHandleType === FlowDataType.STRING && sourceHandleType !== FlowDataType.STRING) {
+    return true; // Allow any type to be coerced to string
+  }
+  if (targetHandleType === FlowDataType.OBJECT && sourceHandleType !== FlowDataType.OBJECT) {
+    return true; // Allow any type to be part of an object
   }
 
   return sourceHandleType === targetHandleType;
@@ -197,6 +248,11 @@ export const TriggerNodeDataSchema = z.object({
   }),
 });
 export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;
+
+export const ManualTriggerNodeDataSchema = z.object({
+  payload: z.string().default('{}'),
+});
+export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
 
 export const IfNodeDataSchema = z.object({
   conditions: z
@@ -226,6 +282,11 @@ export const MergeMessagesNodeDataSchema = z.object({
   inputCount: z.number().min(1).default(2),
 });
 export type MergeMessagesNodeData = z.infer<typeof MergeMessagesNodeDataSchema>;
+
+export const MergeObjectsNodeDataSchema = z.object({
+  inputCount: z.number().min(1).default(2),
+});
+export type MergeObjectsNodeData = z.infer<typeof MergeObjectsNodeDataSchema>;
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),
@@ -310,3 +371,34 @@ export const EditCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().optional(),
 });
 export type EditCharacterNodeData = z.infer<typeof EditCharacterNodeDataSchema>;
+
+export const GetCharacterNodeDataSchema = z.object({
+  characterAvatar: z.string().optional(),
+});
+export type GetCharacterNodeData = z.infer<typeof GetCharacterNodeDataSchema>;
+
+export const HandlebarNodeDataSchema = z.object({
+  template: z.string().default('Hello, {{name}}!'),
+});
+export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
+
+// Recursive types for JsonNode
+export type JsonValue = string | number | boolean | JsonObject | JsonArray;
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+export interface JsonArray extends Array<JsonValue> {}
+
+export type JsonNodeItem = {
+  id: string;
+  key: string;
+  value: JsonValue;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+};
+
+export const JsonNodeDataSchema = z.object({
+  items: z.array(z.any()).default([]), // Using any due to recursion complexity in Zod
+});
+export type JsonNodeData = {
+  items: JsonNodeItem[];
+};

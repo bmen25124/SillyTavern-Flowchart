@@ -4,7 +4,9 @@ import { STButton } from 'sillytavern-utils-lib/components';
 
 export const availableNodes = [
   { type: 'triggerNode', label: 'Trigger Node', data: { selectedEventType: 'user_message_rendered' } },
+  { type: 'manualTriggerNode', label: 'Manual Trigger', data: { payload: '{\n  "name": "World"\n}' } },
   { type: 'ifNode', label: 'If Node', data: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }] } },
+  { type: 'getCharacterNode', label: 'Get Character Node', data: { characterAvatar: '' } },
   { type: 'createMessagesNode', label: 'Create Messages Node', data: { profileId: '' } },
   {
     type: 'customMessageNode',
@@ -12,8 +14,11 @@ export const availableNodes = [
     data: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
   },
   { type: 'mergeMessagesNode', label: 'Merge Messages Node', data: { inputCount: 2 } },
+  { type: 'mergeObjectsNode', label: 'Merge Objects Node', data: { inputCount: 2 } },
   { type: 'stringNode', label: 'String Node', data: { value: 'hello' } },
   { type: 'numberNode', label: 'Number Node', data: { value: 123 } },
+  { type: 'jsonNode', label: 'JSON Node', data: { items: [] } },
+  { type: 'handlebarNode', label: 'Handlebar Node', data: { template: 'Hello, {{name}}!' } },
   {
     type: 'structuredRequestNode',
     label: 'Structured Request Node',

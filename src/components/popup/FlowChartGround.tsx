@@ -32,6 +32,11 @@ import { createDefaultFlow } from '../../config.js';
 import { NodeHandleTypes, checkConnectionValidity } from '../../flow-types.js';
 import { CreateCharacterNode } from '../nodes/CreateCharacterNode.js';
 import { EditCharacterNode } from '../nodes/EditCharacterNode.js';
+import { ManualTriggerNode } from '../nodes/ManualTriggerNode.js';
+import { GetCharacterNode } from '../nodes/GetCharacterNode.js';
+import { HandlebarNode } from '../nodes/HandlebarNode.js';
+import { JsonNode } from '../nodes/JsonNode.js';
+import { MergeObjectsNode } from '../nodes/MergeObjectsNode.js';
 
 type AddNodeContextMenu = {
   x: number;
@@ -52,12 +57,17 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
   const nodeTypes = useMemo(
     () => ({
       triggerNode: TriggerNode,
+      manualTriggerNode: ManualTriggerNode,
       ifNode: IfNode,
       createMessagesNode: CreateMessagesNode,
       customMessageNode: CustomMessageNode,
       mergeMessagesNode: MergeMessagesNode,
+      mergeObjectsNode: MergeObjectsNode,
       stringNode: StringNode,
       numberNode: NumberNode,
+      jsonNode: JsonNode,
+      handlebarNode: HandlebarNode,
+      getCharacterNode: GetCharacterNode,
       structuredRequestNode: StructuredRequestNode,
       schemaNode: SchemaNode,
       profileIdNode: ProfileIdNode,
@@ -114,13 +124,29 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
           for (const nodeDef of availableNodes) {
             const targetInputs = NodeHandleTypes[nodeDef.type]?.inputs;
             if (!targetInputs) continue;
-            for (const targetHandle of targetInputs) {
-              const tempTargetNode: Node = {
-                id: 'temp',
-                type: nodeDef.type,
-                position: { x: 0, y: 0 },
-                data: structuredClone(nodeDef.data),
-              };
+
+            const tempTargetNode: Node = {
+              id: 'temp',
+              type: nodeDef.type,
+              position: { x: 0, y: 0 },
+              data: structuredClone(nodeDef.data),
+            };
+
+            // Check connection to generic input handle
+            const genericInput = targetInputs.find((h) => h.id === null);
+            if (
+              genericInput &&
+              checkConnectionValidity(
+                { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: null },
+                [...nodes, tempTargetNode],
+                edges,
+              )
+            ) {
+              candidates.push({ nodeType: nodeDef.type, nodeLabel: nodeDef.label, connectToHandle: null });
+            }
+
+            // Check connections to specific input handles
+            for (const targetHandle of targetInputs.filter((h) => h.id !== null)) {
               if (
                 checkConnectionValidity(
                   { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: targetHandle.id },
@@ -130,23 +156,37 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
               ) {
                 candidates.push({
                   nodeType: nodeDef.type,
-                  nodeLabel: nodeDef.label,
+                  nodeLabel: `${nodeDef.label} -> ${targetHandle.id}`,
                   connectToHandle: targetHandle.id,
                 });
               }
             }
           }
         } else {
+          // Logic for dragging from a target handle
           for (const nodeDef of availableNodes) {
             const sourceOutputs = NodeHandleTypes[nodeDef.type]?.outputs;
             if (!sourceOutputs) continue;
-            for (const sourceHandle of sourceOutputs) {
-              const tempSourceNode: Node = {
-                id: 'temp',
-                type: nodeDef.type,
-                position: { x: 0, y: 0 },
-                data: structuredClone(nodeDef.data),
-              };
+            const tempSourceNode: Node = {
+              id: 'temp',
+              type: nodeDef.type,
+              position: { x: 0, y: 0 },
+              data: structuredClone(nodeDef.data),
+            };
+
+            const genericOutput = sourceOutputs.find((h) => h.id === null);
+            if (
+              genericOutput &&
+              checkConnectionValidity(
+                { source: 'temp', sourceHandle: null, target: startNodeId, targetHandle: startHandleId },
+                [...nodes, tempSourceNode],
+                edges,
+              )
+            ) {
+              candidates.push({ nodeType: nodeDef.type, nodeLabel: nodeDef.label, connectToHandle: null });
+            }
+
+            for (const sourceHandle of sourceOutputs.filter((h) => h.id !== null)) {
               if (
                 checkConnectionValidity(
                   { source: 'temp', sourceHandle: sourceHandle.id, target: startNodeId, targetHandle: startHandleId },
@@ -156,14 +196,14 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
               ) {
                 candidates.push({
                   nodeType: nodeDef.type,
-                  nodeLabel: nodeDef.label,
+                  nodeLabel: `${sourceHandle.id} -> ${nodeDef.label}`,
                   connectToHandle: sourceHandle.id,
                 });
               }
             }
           }
         }
-        return Array.from(new Map(candidates.map((item) => [item.nodeType, item])).values());
+        return Array.from(new Map(candidates.map((item) => [item.nodeLabel, item])).values());
       };
 
       const compatibleNodes = findCompatibleNodes();
@@ -222,7 +262,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd as any}
-        onPaneClick={() => {}}
+        onPaneClick={() => setContextMenu(null)}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
@@ -235,6 +275,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         <div
           className="flowchart-context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x, zIndex: 999, position: 'fixed' }}
+          onContextMenu={(e) => e.stopPropagation()}
         >
           <ul>
             {contextMenu.options.map((option) => (
@@ -344,9 +385,17 @@ const FlowManager: FC = () => {
     loadFlow({ nodes: newNodes, edges: newEdges });
   };
 
+  const handleRunFlow = () => {
+    if (!isValid) {
+      st_echo('error', 'Cannot run an invalid flow. Please fix the errors first.');
+      return;
+    }
+    flowRunner.runManualTriggers(settings.activeFlow);
+  };
+
   return (
     <div className="flowchart-ground-manager">
-      <div className="flowchart-preset-selector">
+      <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <STPresetSelect
           label="Flow"
           value={settings.activeFlow}
@@ -359,6 +408,9 @@ const FlowManager: FC = () => {
           enableRename
           enableDelete
         />
+        <STButton color="primary" onClick={handleRunFlow}>
+          Run Flow
+        </STButton>
       </div>
       {!isValid && (
         <div className="flowchart-errors">

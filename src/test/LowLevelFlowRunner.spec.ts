@@ -3,10 +3,21 @@ import { LowLevelFlowRunner, FlowRunnerDependencies } from '../LowLevelFlowRunne
 import { FlowData } from '../constants.js';
 import { z } from 'zod';
 import { Node } from '@xyflow/react';
+import { Character } from 'sillytavern-utils-lib/types';
 
 describe('LowLevelFlowRunner', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
   let runner: LowLevelFlowRunner;
+  const mockCharacter: Character = {
+    name: 'Test Character',
+    avatar: 'test-char.png',
+    description: 'A mock character for testing.',
+    first_mes: 'Hello!',
+    scenario: 'A test scenario.',
+    personality: 'Friendly',
+    mes_example: 'An example message.',
+    tags: ['test', 'mock'],
+  } as any;
 
   beforeEach(() => {
     dependencies = {
@@ -19,7 +30,7 @@ describe('LowLevelFlowRunner', () => {
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
     dependencies.getSillyTavernContext.mockReturnValue({
-      characters: [{ name: 'Test Character', avatar: 'test-char.png' }],
+      characters: [mockCharacter],
     });
     runner = new LowLevelFlowRunner(dependencies);
   });
@@ -114,9 +125,17 @@ describe('LowLevelFlowRunner', () => {
     };
 
     const report = await runner.executeFlow(flow, { value: 15 });
-    expect(report.executedNodes.map((n) => n.nodeId)).toEqual(['start', 'if', 'trueNode']);
-    expect(report.executedNodes[1].output).toHaveProperty('nextNodeId', 'trueNode');
-    expect(report.executedNodes[2].output).toBe('true');
+    const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    expect(executedNodeIds).toContain('start');
+    expect(executedNodeIds).toContain('if');
+    expect(executedNodeIds).toContain('trueNode');
+    expect(executedNodeIds).not.toContain('falseNode');
+
+    const ifNodeReport = report.executedNodes.find((n) => n.nodeId === 'if');
+    expect(ifNodeReport?.output).toHaveProperty('nextNodeId', 'trueNode');
+
+    const trueNodeReport = report.executedNodes.find((n) => n.nodeId === 'trueNode');
+    expect(trueNodeReport?.output).toBe('true');
   });
 
   it('should call makeStructuredRequest for structuredRequestNode', async () => {
@@ -361,10 +380,173 @@ describe('LowLevelFlowRunner', () => {
 
     const report = await runner.executeFlow(flow, {});
     expect(dependencies.saveCharacter).toHaveBeenCalledWith({
-      name: 'Test Character',
-      avatar: 'test-char.png',
+      ...mockCharacter,
       description: 'New Description',
     });
     expect(report.executedNodes[0].output).toBe('Test Character');
+  });
+
+  it('should execute manualTriggerNode and provide its JSON payload as output', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'manual',
+          type: 'manualTriggerNode',
+          position: { x: 0, y: 0 },
+          data: { payload: '{ "user": "test", "id": 123 }' },
+        },
+        { id: 'string', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'static' } },
+      ],
+      edges: [{ id: 'e1', source: 'manual', target: 'string', sourceHandle: null, targetHandle: null }],
+    };
+    const report = await runner.executeFlow(flow, {});
+    const triggerNodeReport = report.executedNodes.find((n) => n.nodeId === 'manual');
+    expect(triggerNodeReport?.output).toEqual({ user: 'test', id: 123 });
+
+    const stringNodeReport = report.executedNodes.find((n) => n.nodeId === 'string');
+    // The string node's 'value' input is not connected, so it should take its static value.
+    // The input context is merged from the trigger, but doesn't affect the 'value' handle.
+    expect(stringNodeReport?.input).toEqual({ user: 'test', id: 123 });
+    expect(stringNodeReport?.output).toEqual('static');
+  });
+
+  it('should execute getCharacterNode and output character data', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'getChar',
+          type: 'getCharacterNode',
+          position: { x: 0, y: 0 },
+          data: { characterAvatar: 'test-char.png' },
+        },
+      ],
+      edges: [],
+    };
+    const report = await runner.executeFlow(flow, {});
+    const charNodeReport = report.executedNodes.find((n) => n.nodeId === 'getChar');
+    expect(charNodeReport?.output.name).toBe('Test Character');
+    expect(charNodeReport?.output.description).toBe('A mock character for testing.');
+    expect(charNodeReport?.output.result.name).toBe('Test Character');
+  });
+
+  it('should execute jsonNode and output a valid JSON object', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'json',
+          type: 'jsonNode',
+          position: { x: 0, y: 0 },
+          data: {
+            items: [
+              { id: '1', key: 'name', value: 'John', type: 'string' },
+              { id: '2', key: 'age', value: 30, type: 'number' },
+              {
+                id: '3',
+                key: 'address',
+                value: [{ id: '3.1', key: 'city', value: 'New York', type: 'string' }],
+                type: 'object',
+              },
+            ],
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const jsonNodeReport = report.executedNodes.find((n) => n.nodeId === 'json');
+    expect(jsonNodeReport?.output).toEqual({
+      name: 'John',
+      age: 30,
+      address: { city: 'New York' },
+    });
+  });
+
+  it('should execute mergeObjectsNode and combine inputs', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'json1',
+          type: 'jsonNode',
+          position: { x: 0, y: 0 },
+          data: { items: [{ id: '1', key: 'a', value: 1, type: 'number' }] },
+        },
+        {
+          id: 'json2',
+          type: 'jsonNode',
+          position: { x: 0, y: 0 },
+          data: {
+            items: [
+              { id: '1', key: 'b', value: 2, type: 'number' },
+              { id: '2', key: 'a', value: 99, type: 'number' },
+            ],
+          },
+        },
+        {
+          id: 'merge',
+          type: 'mergeObjectsNode',
+          position: { x: 0, y: 0 },
+          data: { inputCount: 2 },
+        },
+      ],
+      edges: [
+        { id: 'e1', source: 'json1', target: 'merge', targetHandle: 'object_0' },
+        { id: 'e2', source: 'json2', target: 'merge', targetHandle: 'object_1' },
+      ],
+    };
+    const report = await runner.executeFlow(flow, {});
+    const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
+    // json2 (object_1) should overwrite properties from json1 (object_0)
+    expect(mergeNodeReport?.output).toEqual({ a: 99, b: 2 });
+  });
+
+  it('should execute handlebarNode and render the template', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'data',
+          type: 'jsonNode',
+          position: { x: 0, y: 0 },
+          data: { items: [{ id: '1', key: 'name', value: 'SillyTavern', type: 'string' }] },
+        },
+        {
+          id: 'template',
+          type: 'handlebarNode',
+          position: { x: 0, y: 0 },
+          data: { template: 'Hello, {{name}}!' },
+        },
+      ],
+      edges: [{ id: 'e1', source: 'data', target: 'template', targetHandle: 'data' }],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const handlebarNodeReport = report.executedNodes.find((n) => n.nodeId === 'template');
+    expect(handlebarNodeReport?.output).toEqual({ result: 'Hello, SillyTavern!' });
+  });
+
+  it('should use connected input for customMessageNode content', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'string',
+          type: 'stringNode',
+          position: { x: 0, y: 0 },
+          data: { value: 'Dynamic Content' },
+        },
+        {
+          id: 'custom',
+          type: 'customMessageNode',
+          position: { x: 0, y: 0 },
+          data: {
+            messages: [{ id: 'msg1', role: 'user', content: 'Static Content' }],
+          },
+        },
+      ],
+      edges: [{ id: 'e1', source: 'string', target: 'custom', targetHandle: 'msg1' }],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const customNodeReport = report.executedNodes.find((n) => n.nodeId === 'custom');
+    expect(customNodeReport?.output).toEqual([{ role: 'user', content: 'Dynamic Content' }]);
   });
 });

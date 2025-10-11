@@ -66,7 +66,7 @@ class FlowRunner {
         st_echo('info', `FlowChart: Event "${eventType}" triggered.`);
         const triggers = eventTriggers[eventType];
         for (const trigger of triggers) {
-          this.executeFlow(trigger.flowId, trigger.nodeId, args);
+          this.executeFlowFromEvent(trigger.flowId, trigger.nodeId, args);
         }
       };
       // @ts-ignore
@@ -75,7 +75,7 @@ class FlowRunner {
     }
   }
 
-  async executeFlow(flowId: string, startNodeId: string, eventArgs: any[]) {
+  private async executeFlow(flowId: string, initialInput: Record<string, any>) {
     const settings = settingsManager.getSettings();
     const flow = settings.flows[flowId];
     if (!flow) {
@@ -83,6 +83,20 @@ class FlowRunner {
       return;
     }
 
+    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+
+    if (report) {
+      executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
+      if (executionHistory.length > 50) {
+        executionHistory.pop();
+      }
+    }
+    return report;
+  }
+
+  async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
+    const settings = settingsManager.getSettings();
+    const flow = settings.flows[flowId];
     const startNode = flow.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
 
@@ -94,16 +108,34 @@ class FlowRunner {
       initialInput[name] = eventArgs[index];
     });
 
-    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+    return this.executeFlow(flowId, initialInput);
+  }
 
-    if (report) {
-      executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
-      if (executionHistory.length > 50) {
-        executionHistory.pop();
-      }
+  async runManualTriggers(flowId: string) {
+    const settings = settingsManager.getSettings();
+    const flow = settings.flows[flowId];
+    if (!flow) {
+      st_echo('error', `Flow "${flowId}" not found for manual run.`);
+      return;
     }
 
-    return report;
+    const manualTriggers = flow.nodes.filter((node) => node.type === 'manualTriggerNode');
+    if (manualTriggers.length === 0) {
+      st_echo('info', `No Manual Trigger nodes found in flow "${flowId}".`);
+      return;
+    }
+
+    st_echo('info', `Executing ${manualTriggers.length} manual trigger(s) for flow "${flowId}"...`);
+    for (const triggerNode of manualTriggers) {
+      let initialInput = {};
+      try {
+        initialInput = JSON.parse(triggerNode.data.payload);
+      } catch (e) {
+        st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);
+        continue;
+      }
+      await this.executeFlow(flowId, initialInput);
+    }
   }
 }
 
