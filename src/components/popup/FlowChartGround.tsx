@@ -41,6 +41,9 @@ import { JsonNode } from '../nodes/JsonNode.js';
 import { MergeObjectsNode } from '../nodes/MergeObjectsNode.js';
 import { LogNode } from '../nodes/LogNode.js';
 import { toPng } from 'html-to-image';
+import { CreateLorebookNode } from '../nodes/CreateLorebookNode.js';
+import { CreateLorebookEntryNode } from '../nodes/CreateLorebookEntryNode.js';
+import { EditLorebookEntryNode } from '../nodes/EditLorebookEntryNode.js';
 
 type AddNodeContextMenu = {
   x: number;
@@ -78,6 +81,9 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       profileIdNode: ProfileIdNode,
       createCharacterNode: CreateCharacterNode,
       editCharacterNode: EditCharacterNode,
+      createLorebookNode: CreateLorebookNode,
+      createLorebookEntryNode: CreateLorebookEntryNode,
+      editLorebookEntryNode: EditLorebookEntryNode,
     }),
     [],
   );

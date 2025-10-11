@@ -19,12 +19,16 @@ import {
   MergeObjectsNodeDataSchema,
   JsonNodeItem,
   LogNodeDataSchema,
+  CreateLorebookNodeDataSchema,
+  CreateLorebookEntryNodeDataSchema,
+  EditLorebookEntryNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
 import { validateFlow } from './validator.js';
 import { FullExportData, Character } from 'sillytavern-utils-lib/types';
 import Handlebars from 'handlebars';
+import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -48,6 +52,15 @@ export interface FlowRunnerDependencies {
   getSillyTavernContext: () => any;
   createCharacter: (data: FullExportData) => Promise<void>;
   saveCharacter: (data: Character) => Promise<void>;
+  st_createNewWorldInfo: (worldName: string) => Promise<boolean>;
+  applyWorldInfoEntry: (options: {
+    entry: WIEntry;
+    selectedWorldName: string;
+    operation?: 'add' | 'update' | 'auto';
+  }) => Promise<{ entry: WIEntry; operation: 'add' | 'update' }>;
+  getWorldInfo: (
+    include: ('all' | 'global' | 'character' | 'chat' | 'persona')[],
+  ) => Promise<Record<string, WIEntry[]>>;
 }
 
 type NodeExecutor = (node: Node, input: Record<string, any>, flow: FlowData) => Promise<any>;
@@ -121,6 +134,9 @@ export class LowLevelFlowRunner {
       profileIdNode: this.executeProfileIdNode.bind(this),
       createCharacterNode: this.executeCreateCharacterNode.bind(this),
       editCharacterNode: this.executeEditCharacterNode.bind(this),
+      createLorebookNode: this.executeCreateLorebookNode.bind(this),
+      createLorebookEntryNode: this.executeCreateLorebookEntryNode.bind(this),
+      editLorebookEntryNode: this.executeEditLorebookEntryNode.bind(this),
     };
   }
 
@@ -588,5 +604,84 @@ export class LowLevelFlowRunner {
 
     await this.dependencies.saveCharacter(updatedChar);
     return updatedChar.name;
+  }
+
+  private async executeCreateLorebookNode(node: Node, input: Record<string, any>): Promise<any> {
+    const parseResult = CreateLorebookNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const worldName = input.worldName ?? staticData.worldName;
+    if (!worldName) throw new Error(`World name is required.`);
+
+    const success = await this.dependencies.st_createNewWorldInfo(worldName);
+    if (!success) throw new Error(`Failed to create lorebook "${worldName}". It might already exist.`);
+    return worldName;
+  }
+
+  private async executeCreateLorebookEntryNode(node: Node, input: Record<string, any>): Promise<any> {
+    const parseResult = CreateLorebookEntryNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const worldName = input.worldName ?? staticData.worldName;
+    const keys = input.key ?? staticData.key ?? '';
+    const content = input.content ?? staticData.content ?? '';
+    const comment = input.comment ?? staticData.comment ?? '';
+
+    if (!worldName) throw new Error('World name is required.');
+    if (!keys) throw new Error('Key(s) are required.');
+
+    const newEntry: WIEntry = {
+      uid: -1, // SillyTavern will assign a new UID
+      key: keys.split(',').map((k: string) => k.trim()),
+      content,
+      comment,
+      disable: false,
+      keysecondary: [],
+    };
+
+    const result = await this.dependencies.applyWorldInfoEntry({
+      entry: newEntry,
+      selectedWorldName: worldName,
+      operation: 'add',
+    });
+
+    return result.entry;
+  }
+
+  private async executeEditLorebookEntryNode(node: Node, input: Record<string, any>): Promise<any> {
+    const parseResult = EditLorebookEntryNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const worldName = input.worldName ?? staticData.worldName;
+    const entryUid = input.entryUid ?? staticData.entryUid;
+
+    if (!worldName) throw new Error('World name is required to find the entry.');
+    if (entryUid === undefined) throw new Error('Entry UID is required to identify the entry to edit.');
+
+    const allWorlds = await this.dependencies.getWorldInfo(['all']);
+    const world = allWorlds[worldName];
+    if (!world) throw new Error(`Lorebook "${worldName}" not found.`);
+
+    const entryToEdit = world.find((entry) => entry.uid === entryUid);
+    if (!entryToEdit) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
+
+    const newKeys = input.key ?? staticData.key;
+    const newContent = input.content ?? staticData.content;
+    const newComment = input.comment ?? staticData.comment;
+
+    if (newKeys !== undefined) entryToEdit.key = newKeys.split(',').map((k: string) => k.trim());
+    if (newContent !== undefined) entryToEdit.content = newContent;
+    if (newComment !== undefined) entryToEdit.comment = newComment;
+
+    const result = await this.dependencies.applyWorldInfoEntry({
+      entry: entryToEdit,
+      selectedWorldName: worldName,
+      operation: 'update',
+    });
+
+    return result.entry;
   }
 }

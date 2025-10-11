@@ -171,7 +171,10 @@
   width: unset !important;
 }
 
-.react-flow svg { overflow: visible; } // For screenshot
+.react-flow svg {
+  // For screenshot
+  overflow: visible;
+}
 
 .flowchart-ground-manager {
   display: flex;

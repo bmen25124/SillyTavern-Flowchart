@@ -147,6 +147,29 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     ],
     outputs: [{ id: null, type: FlowDataType.STRING }], // Output character name
   },
+  createLorebookNode: {
+    inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
+    outputs: [{ id: null, type: FlowDataType.STRING }], // outputs worldName
+  },
+  createLorebookEntryNode: {
+    inputs: [
+      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'key', type: FlowDataType.STRING },
+      { id: 'content', type: FlowDataType.STRING },
+      { id: 'comment', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: null, type: FlowDataType.OBJECT }], // outputs WIEntry
+  },
+  editLorebookEntryNode: {
+    inputs: [
+      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'entryUid', type: FlowDataType.NUMBER },
+      { id: 'key', type: FlowDataType.STRING },
+      { id: 'content', type: FlowDataType.STRING },
+      { id: 'comment', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: null, type: FlowDataType.OBJECT }], // outputs updated WIEntry
+  },
 };
 
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
@@ -409,3 +432,25 @@ export const JsonNodeDataSchema = z.object({
 export type JsonNodeData = {
   items: JsonNodeItem[];
 };
+
+export const CreateLorebookNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+});
+export type CreateLorebookNodeData = z.infer<typeof CreateLorebookNodeDataSchema>;
+
+export const CreateLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  key: z.string().optional(), // comma-separated
+  content: z.string().optional(),
+  comment: z.string().optional(),
+});
+export type CreateLorebookEntryNodeData = z.infer<typeof CreateLorebookEntryNodeDataSchema>;
+
+export const EditLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  entryUid: z.number().optional(), // uid is used as an identifier
+  key: z.string().optional(),
+  content: z.string().optional(),
+  comment: z.string().optional(), // new comment
+});
+export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;

@@ -34,6 +34,17 @@ export const availableNodes = [
   { type: 'profileIdNode', label: 'Profile ID Node', data: { profileId: '' } },
   { type: 'createCharacterNode', label: 'Create Character Node', data: { name: 'New Character' } },
   { type: 'editCharacterNode', label: 'Edit Character Node', data: { characterAvatar: '' } },
+  { type: 'createLorebookNode', label: 'Create Lorebook Node', data: { worldName: 'My Lorebook' } },
+  {
+    type: 'createLorebookEntryNode',
+    label: 'Create Lorebook Entry Node',
+    data: { worldName: '', key: '', content: '', comment: '' },
+  },
+  {
+    type: 'editLorebookEntryNode',
+    label: 'Edit Lorebook Entry Node',
+    data: { worldName: '', entryComment: '' },
+  },
 ];
 
 export const NodePalette: FC = () => {

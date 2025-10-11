@@ -1,10 +1,10 @@
 import { settingsManager } from './components/Settings.js';
 import { EventNameParameters } from './flow-types.js';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
-import { createCharacter, saveCharacter } from 'sillytavern-utils-lib';
+import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfo } from 'sillytavern-utils-lib';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 
@@ -19,6 +19,9 @@ class FlowRunner {
       getSillyTavernContext: () => SillyTavern.getContext(),
       createCharacter,
       saveCharacter: (character) => saveCharacter(character, true),
+      st_createNewWorldInfo: (worldName) => st_createNewWorldInfo(worldName, { interactive: true }),
+      applyWorldInfoEntry,
+      getWorldInfo,
     });
   }
 

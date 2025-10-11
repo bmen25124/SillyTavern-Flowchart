@@ -4,6 +4,7 @@ import { FlowData } from '../constants.js';
 import { z } from 'zod';
 import { Node } from '@xyflow/react';
 import { Character } from 'sillytavern-utils-lib/types';
+import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 
 describe('LowLevelFlowRunner', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -26,12 +27,18 @@ describe('LowLevelFlowRunner', () => {
       getSillyTavernContext: jest.fn(),
       createCharacter: jest.fn(),
       saveCharacter: jest.fn(),
+      st_createNewWorldInfo: jest.fn(),
+      applyWorldInfoEntry: jest.fn(),
+      getWorldInfo: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
     dependencies.getSillyTavernContext.mockReturnValue({
       characters: [mockCharacter],
     });
+    dependencies.st_createNewWorldInfo.mockResolvedValue(true);
+    dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'add' }));
+    dependencies.getWorldInfo.mockResolvedValue({});
     runner = new LowLevelFlowRunner(dependencies);
   });
 
@@ -166,7 +173,6 @@ describe('LowLevelFlowRunner', () => {
           data: {
             profileId: 'test-profile',
             schemaName: 'test-schema',
-            messageId: 1,
             promptEngineeringMode: 'native',
             maxResponseToken: 100,
           },
@@ -189,9 +195,8 @@ describe('LowLevelFlowRunner', () => {
     expect(mockCallArgs[1]).toEqual([{ role: 'user', content: 'message' }]);
     expect(mockCallArgs[2]).toBe(schemaNodeReport?.output); // Check for instance equality
     expect(mockCallArgs[3]).toBe('test-schema');
-    expect(mockCallArgs[4]).toBe(1);
-    expect(mockCallArgs[5]).toBe('native');
-    expect(mockCallArgs[6]).toBe(100);
+    expect(mockCallArgs[4]).toBe('native');
+    expect(mockCallArgs[5]).toBe(100);
 
     const executedOrder = report.executedNodes.map((n) => n.nodeId).sort();
     expect(executedOrder).toEqual(['createMsg', 'request', 'schema', 'start'].sort());
@@ -548,5 +553,92 @@ describe('LowLevelFlowRunner', () => {
     const report = await runner.executeFlow(flow, {});
     const customNodeReport = report.executedNodes.find((n) => n.nodeId === 'custom');
     expect(customNodeReport?.output).toEqual([{ role: 'user', content: 'Dynamic Content' }]);
+  });
+
+  it('should call st_createNewWorldInfo for createLorebookNode', async () => {
+    const flow: FlowData = {
+      nodes: [{ id: 'create', type: 'createLorebookNode', position: { x: 0, y: 0 }, data: { worldName: 'My Lore' } }],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My Lore');
+    expect(report.executedNodes[0].output).toBe('My Lore');
+  });
+
+  it('should call applyWorldInfoEntry to create a new entry for createLorebookEntryNode', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'createEntry',
+          type: 'createLorebookEntryNode',
+          position: { x: 0, y: 0 },
+          data: {
+            worldName: 'My Lore',
+            key: 'key1, key2',
+            content: 'This is the content.',
+            comment: 'Entry Title',
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
+      entry: {
+        uid: -1,
+        key: ['key1', 'key2'],
+        content: 'This is the content.',
+        comment: 'Entry Title',
+        disable: false,
+        keysecondary: [],
+      },
+      selectedWorldName: 'My Lore',
+      operation: 'add',
+    });
+    expect(report.executedNodes[0].output).toBeDefined();
+  });
+
+  it('should call applyWorldInfoEntry to update an entry for editLorebookEntryNode', async () => {
+    const mockEntry: WIEntry = {
+      uid: 123,
+      key: ['oldKey'],
+      content: 'Old content',
+      comment: 'Find Me',
+      disable: false,
+      keysecondary: [],
+    };
+    dependencies.getWorldInfo.mockResolvedValue({ 'My Lore': [mockEntry] });
+    dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'update' }));
+
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'editEntry',
+          type: 'editLorebookEntryNode',
+          position: { x: 0, y: 0 },
+          data: {
+            worldName: 'My Lore',
+            entryUid: 123,
+            content: 'New Content',
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    const updatedEntry = {
+      ...mockEntry,
+      content: 'New Content',
+    };
+    expect(dependencies.getWorldInfo).toHaveBeenCalledWith(['all']);
+    expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
+      entry: updatedEntry,
+      selectedWorldName: 'My Lore',
+      operation: 'update',
+    });
+    expect(report.executedNodes[0].output).toEqual(updatedEntry);
   });
 });

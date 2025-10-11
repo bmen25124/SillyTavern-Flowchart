@@ -18,6 +18,9 @@ import {
   JsonNodeDataSchema,
   MergeObjectsNodeDataSchema,
   LogNodeDataSchema,
+  CreateLorebookNodeDataSchema,
+  CreateLorebookEntryNodeDataSchema,
+  EditLorebookEntryNodeDataSchema,
 } from './flow-types.js';
 import { FlowData } from './constants.js';
 
@@ -40,6 +43,9 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   getCharacterNode: GetCharacterNodeDataSchema,
   handlebarNode: HandlebarNodeDataSchema,
   jsonNode: JsonNodeDataSchema,
+  createLorebookNode: CreateLorebookNodeDataSchema,
+  createLorebookEntryNode: CreateLorebookEntryNodeDataSchema,
+  editLorebookEntryNode: EditLorebookEntryNodeDataSchema,
 };
 
 export interface ValidationResult {
