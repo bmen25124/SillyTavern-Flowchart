@@ -23,8 +23,8 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   dataSchema: LogNodeDataSchema,
   initialData: { prefix: 'Log:' },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.ANY }],
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
 };
 
@@ -54,6 +54,12 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
   handles: {
     inputs: [], // Dynamic handles
     outputs: [{ id: null, type: FlowDataType.OBJECT }],
+  },
+  getHandleType: ({ handleId, handleDirection }) => {
+    if (handleDirection === 'input' && handleId?.startsWith('object_')) {
+      return FlowDataType.OBJECT;
+    }
+    return undefined;
   },
 };
 

@@ -1,7 +1,6 @@
-import { IfNodeData, IfNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType, IfNodeData, IfNodeDataSchema } from '../../../flow-types.js';
 import { IfNode } from '../IfNode.js';
 import { NodeDefinition } from './types.js';
-import { FlowDataType } from '../../../flow-types.js';
 
 export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   type: 'ifNode',
@@ -13,5 +12,14 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: 'false', type: FlowDataType.ANY }], // + dynamic condition handles
+  },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'output') {
+      const isConditionHandle = (node.data as IfNodeData).conditions.some((c) => c.id === handleId);
+      if (handleId === 'false' || isConditionHandle) {
+        return FlowDataType.ANY;
+      }
+    }
+    return undefined;
   },
 };

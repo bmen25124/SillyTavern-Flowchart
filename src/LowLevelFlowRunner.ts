@@ -21,6 +21,7 @@ import {
   CreateLorebookNodeDataSchema,
   CreateLorebookEntryNodeDataSchema,
   EditLorebookEntryNodeDataSchema,
+  JsonNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character } from 'sillytavern-utils-lib/types';
@@ -250,25 +251,23 @@ export class LowLevelFlowRunner {
       if (sourceOutput === undefined) continue;
 
       const targetHandle = edge.targetHandle;
-      if (targetHandle) {
-        const sourceHandle = edge.sourceHandle;
-        if (
-          sourceHandle &&
-          typeof sourceOutput === 'object' &&
-          sourceOutput !== null &&
-          sourceOutput[sourceHandle] !== undefined
-        ) {
-          inputs[targetHandle] = sourceOutput[sourceHandle];
-        } else {
-          inputs[targetHandle] = sourceOutput;
-        }
+      if (!targetHandle) {
+        console.warn(`Edge ${edge.id} connecting to node ${node.id} is missing a target handle and will be ignored.`);
+        continue;
+      }
+
+      const sourceHandle = edge.sourceHandle;
+      // If source has a specific handle, use that part of the output.
+      if (
+        sourceHandle &&
+        typeof sourceOutput === 'object' &&
+        sourceOutput !== null &&
+        sourceOutput[sourceHandle] !== undefined
+      ) {
+        inputs[targetHandle] = sourceOutput[sourceHandle];
       } else {
-        // No target handle: Distinguish between context-passing (objects) and value-passing (primitives).
-        if (typeof sourceOutput === 'object' && sourceOutput !== null && !Array.isArray(sourceOutput)) {
-          Object.assign(inputs, sourceOutput);
-        } else {
-          inputs.value = sourceOutput;
-        }
+        // Otherwise, use the entire output of the source node.
+        inputs[targetHandle] = sourceOutput;
       }
     }
     return inputs;
@@ -388,7 +387,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    return input.value !== undefined ? String(input.value) : parseResult.data.value;
+    // Prefer connected input value over static value in the node.
+    return { value: input.value !== undefined ? String(input.value) : parseResult.data.value };
   }
 
   private async executeNumberNode(node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -396,27 +396,29 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    return input.value !== undefined ? Number(input.value) : parseResult.data.value;
+    // Prefer connected input value over static value in the node.
+    return { value: input.value !== undefined ? Number(input.value) : parseResult.data.value };
   }
 
   private async executeLogNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = LogNodeDataSchema.safeParse(node.data);
     const prefix = parseResult.success ? parseResult.data.prefix : '[LogNode]';
-    console.log(prefix, input);
-    return input;
+    console.log(prefix, input.value);
+    return { value: input.value }; // Pass the value through
   }
 
   private async executeJsonNode(node: SpecNode): Promise<any> {
-    const data = node.data as JsonNodeData;
+    const parseResult = JsonNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) {
+      throw new Error(`Invalid data for JsonNode: ${parseResult.error.message}`);
+    }
+    const data = parseResult.data;
+
     const buildObject = (items: JsonNodeItem[]): object => {
       const obj: { [key: string]: any } = {};
       for (const item of items) {
-        if (item.type === 'object') {
+        if (item.type === 'object' || item.type === 'array') {
           obj[item.key] = buildObject(item.value as JsonNodeItem[]);
-        } else if (item.type === 'array') {
-          obj[item.key] = (item.value as JsonNodeItem[]).map((child) =>
-            child.type === 'object' ? buildObject(child.value as JsonNodeItem[]) : child.value,
-          );
         } else {
           obj[item.key] = item.value;
         }

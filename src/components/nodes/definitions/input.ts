@@ -20,8 +20,8 @@ export const stringNodeDefinition: NodeDefinition<StringNodeData> = {
   dataSchema: StringNodeDataSchema,
   initialData: { value: 'hello' },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.STRING }],
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'value', type: FlowDataType.STRING }],
   },
 };
 
@@ -33,8 +33,8 @@ export const numberNodeDefinition: NodeDefinition<NumberNodeData> = {
   dataSchema: NumberNodeDataSchema,
   initialData: { value: 123 },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.NUMBER }],
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'value', type: FlowDataType.NUMBER }],
   },
 };
 

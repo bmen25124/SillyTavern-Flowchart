@@ -1,11 +1,19 @@
 import { FC } from 'react';
-import { Node, NodeProps } from '@xyflow/react';
+import { Node, NodeProps, Edge } from '@xyflow/react';
 import { z } from 'zod';
 import { FlowDataType } from '../../../flow-types.js';
 
 export type HandleSpec = {
   id: string | null;
   type: FlowDataType;
+};
+
+export type GetHandleTypeParams = {
+  handleId: string | null;
+  handleDirection: 'input' | 'output';
+  node: Node;
+  nodes: Node[];
+  edges: Edge[];
 };
 
 export interface NodeDefinition<T extends Node<Record<string, unknown>, string | undefined | any> | any = any> {
@@ -20,4 +28,10 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
     inputs: HandleSpec[];
     outputs: HandleSpec[];
   };
+  /**
+   * Optional function to dynamically determine the data type of a handle.
+   * This is used for nodes with dynamic handles (e.g., based on data or connections).
+   * If not provided, the static `handles` array is used as a fallback.
+   */
+  getHandleType?: (params: GetHandleTypeParams) => FlowDataType | undefined;
 }

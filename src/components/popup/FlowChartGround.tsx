@@ -11,7 +11,6 @@ import {
   OnConnectStartParams,
   getNodesBounds,
   getViewportForBounds,
-  useEdges,
   MiniMap,
 } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
@@ -38,8 +37,7 @@ type AddNodeContextMenu = {
 };
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
-  const { nodes, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
-  const reactFlowEdges = useEdges();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
   const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
@@ -47,8 +45,8 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
   const { activeNodeId } = useDebugStore();
 
   const isValidConnection = useCallback(
-    (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), reactFlowEdges),
-    [getNodes, reactFlowEdges],
+    (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), edges),
+    [getNodes, edges],
   );
 
   const onConnect = useCallback(
@@ -106,7 +104,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                 checkConnectionValidity(
                   { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: targetHandle.id },
                   [...allNodes, tempTargetNode],
-                  reactFlowEdges,
+                  edges,
                 )
               ) {
                 const label = targetHandle.id ? `${nodeDef.label} -> ${targetHandle.id}` : nodeDef.label;
@@ -133,7 +131,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                 checkConnectionValidity(
                   { source: 'temp', sourceHandle: sourceHandle.id, target: startNodeId, targetHandle: startHandleId },
                   [...allNodes, tempSourceNode],
-                  reactFlowEdges,
+                  edges,
                 )
               ) {
                 const label = sourceHandle.id ? `${sourceHandle.id} -> ${nodeDef.label}` : nodeDef.label;
@@ -183,7 +181,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         });
       }
     },
-    [getNodes, reactFlowEdges, screenToFlowPosition, addNode, onConnect, setContextMenu],
+    [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
   const nodesWithDynamicClasses = useMemo(
@@ -205,7 +203,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
         nodes={nodesWithDynamicClasses}
-        edges={reactFlowEdges}
+        edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
