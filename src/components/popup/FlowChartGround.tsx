@@ -68,8 +68,8 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
   );
 
   const isValidConnection = useCallback(
-    (connection: Edge | Connection) => checkConnectionValidity(connection, nodes),
-    [nodes],
+    (connection: Edge | Connection) => checkConnectionValidity(connection, nodes, edges),
+    [nodes, edges],
   );
 
   const onConnect = useCallback(
@@ -125,6 +125,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                 checkConnectionValidity(
                   { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: targetHandle.id },
                   [...nodes, tempTargetNode],
+                  edges,
                 )
               ) {
                 candidates.push({
@@ -150,6 +151,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                 checkConnectionValidity(
                   { source: 'temp', sourceHandle: sourceHandle.id, target: startNodeId, targetHandle: startHandleId },
                   [...nodes, tempSourceNode],
+                  edges,
                 )
               ) {
                 candidates.push({
@@ -198,7 +200,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         });
       }
     },
-    [nodes, screenToFlowPosition, addNode, onConnect, setContextMenu],
+    [nodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
   const nodesWithInvalidClass = useMemo(

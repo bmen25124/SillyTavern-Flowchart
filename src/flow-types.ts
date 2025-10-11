@@ -71,7 +71,8 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
       { id: 'messageId', type: FlowDataType.NUMBER },
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
     ],
-    outputs: [{ id: null, type: FlowDataType.STRUCTURED_RESULT }],
+    // Output for the full object. Dynamic handles for fields are validated separately.
+    outputs: [{ id: 'result', type: FlowDataType.STRUCTURED_RESULT }],
   },
   schemaNode: {
     inputs: [],
@@ -108,7 +109,7 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
   },
 };
 
-export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[]): boolean {
+export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
   const sourceNode = nodes.find((node) => node.id === connection.source);
   const targetNode = nodes.find((node) => node.id === connection.target);
 
@@ -124,7 +125,37 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
   }
 
   let sourceHandleType: FlowDataType | undefined;
-  if (sourceNode.type === 'ifNode') {
+  if (sourceNode.type === 'structuredRequestNode') {
+    if (connection.sourceHandle === 'result') {
+      sourceHandleType = FlowDataType.STRUCTURED_RESULT;
+    } else {
+      const schemaEdge = edges.find((edge) => edge.target === sourceNode.id && edge.targetHandle === 'schema');
+      if (schemaEdge) {
+        const schemaNode = nodes.find((node) => node.id === schemaEdge.source);
+        if (schemaNode && schemaNode.type === 'schemaNode' && schemaNode.data.fields) {
+          // @ts-ignore
+          const field = schemaNode.data.fields.find((f: any) => f.name === connection.sourceHandle);
+          if (field) {
+            switch (field.type) {
+              case 'string':
+                sourceHandleType = FlowDataType.STRING;
+                break;
+              case 'number':
+                sourceHandleType = FlowDataType.NUMBER;
+                break;
+              case 'boolean':
+                sourceHandleType = FlowDataType.BOOLEAN;
+                break;
+              default:
+                sourceHandleType = FlowDataType.ANY; // for object, array, enum
+            }
+          }
+        }
+      }
+      // If we can't determine type, let's be permissive.
+      if (!sourceHandleType) sourceHandleType = FlowDataType.ANY;
+    }
+  } else if (sourceNode.type === 'ifNode') {
     // @ts-ignore
     const isConditionHandle = sourceNode.data?.conditions?.some((c: any) => c.id === connection.sourceHandle);
     if (connection.sourceHandle === 'false' || isConditionHandle) {

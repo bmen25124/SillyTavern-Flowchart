@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
 import { useFlow } from '../popup/FlowContext.js';
 import { StructuredRequestNodeData } from '../../flow-types.js';
@@ -10,8 +10,21 @@ import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
 
 export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data, selected }) => {
-  const { updateNodeData } = useFlow();
+  const { updateNodeData, nodes } = useFlow();
   const edges = useEdges();
+
+  const schemaNode = useMemo(() => {
+    const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
+    if (!schemaEdge) return null;
+    return nodes.find((node) => node.id === schemaEdge.source);
+  }, [id, nodes, edges]);
+
+  const schemaFields = useMemo(() => {
+    if (schemaNode && schemaNode.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
+      return schemaNode.data.fields;
+    }
+    return [];
+  }, [schemaNode]);
 
   const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
   const isMessagesConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messages');
@@ -120,7 +133,31 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, data
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Right} />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+          <span>Result (Full Object)</span>
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="result"
+            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+          />
+        </div>
+        {schemaFields.map((field: any) => (
+          <div
+            key={field.id}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+          >
+            <span>{field.name}</span>
+            <Handle
+              type="source"
+              position={Position.Right}
+              id={field.name}
+              style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+            />
+          </div>
+        ))}
+      </div>
     </BaseNode>
   );
 };

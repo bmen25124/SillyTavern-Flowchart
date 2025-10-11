@@ -357,7 +357,7 @@ export class LowLevelFlowRunner {
                 promptEngineeringMode as any,
                 maxResponseToken,
               );
-              output = result;
+              output = { ...result, result };
             } catch (error) {
               console.error(`[FlowChart] Error in structuredRequestNode ${node.id}:`, error);
             }

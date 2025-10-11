@@ -177,7 +177,7 @@ describe('LowLevelFlowRunner', () => {
     const executedOrder = report.executedNodes.map((n) => n.nodeId).sort();
     expect(executedOrder).toEqual(['createMsg', 'request', 'schema', 'start'].sort());
     const requestNodeReport = report.executedNodes.find((n) => n.nodeId === 'request');
-    expect(requestNodeReport?.output).toEqual({ structured: 'data' });
+    expect(requestNodeReport?.output).toEqual({ structured: 'data', result: { structured: 'data' } });
   });
 
   it('should correctly build and use a complex schema with descriptions from schemaNode', async () => {
