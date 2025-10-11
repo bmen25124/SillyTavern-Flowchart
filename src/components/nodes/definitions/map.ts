@@ -404,4 +404,6 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   groupNodeDefinition,
 ];
 
-export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(allNodeDefinitionsBase.map((def) => [def.type, def]));
+export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(
+  allNodeDefinitionsBase.map((def) => [def.type, def]),
+);

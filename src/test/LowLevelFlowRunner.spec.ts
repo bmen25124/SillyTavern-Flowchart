@@ -3,19 +3,13 @@ import { LowLevelFlowRunner, FlowRunnerDependencies } from '../LowLevelFlowRunne
 import { Character } from 'sillytavern-utils-lib/types';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecFlow } from '../flow-spec.js';
-import { eventEmitter } from '../events.js';
-
-jest.mock('../events.js', () => ({
-  eventEmitter: {
-    on: jest.fn(),
-    off: jest.fn(),
-    emit: jest.fn(),
-  },
-}));
+import * as events from '../events.js';
 
 describe('LowLevelFlowRunner', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
   let runner: LowLevelFlowRunner;
+  // @ts-ignore
+  let emitSpy;
   const mockCharacter: Character = {
     name: 'Test Character',
     avatar: 'test-char.png',
@@ -29,6 +23,8 @@ describe('LowLevelFlowRunner', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    emitSpy = jest.spyOn(events.eventEmitter, 'emit').mockImplementation(() => {});
+
     dependencies = {
       getBaseMessagesForProfile: jest.fn(),
       makeStructuredRequest: jest.fn(),
@@ -41,6 +37,7 @@ describe('LowLevelFlowRunner', () => {
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
+    // @ts-ignore
     dependencies.getSillyTavernContext.mockReturnValue({
       characters: [mockCharacter],
     });
@@ -48,6 +45,11 @@ describe('LowLevelFlowRunner', () => {
     dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'add' }));
     dependencies.getWorldInfo.mockResolvedValue({});
     runner = new LowLevelFlowRunner(dependencies);
+  });
+
+  afterEach(() => {
+    // @ts-ignore
+    emitSpy.mockRestore();
   });
 
   it('should execute a simple flow and emit debug events', async () => {
@@ -66,12 +68,16 @@ describe('LowLevelFlowRunner', () => {
     const report = await runner.executeFlow(flow, { initial: 'input' });
     expect(report.executedNodes).toHaveLength(2);
     expect(report.executedNodes[0].nodeId).toBe('start');
-    expect(report.executedNodes[1].output).toBe('hello');
+    expect(report.executedNodes[1].output).toEqual({ value: 'hello' });
 
-    expect(eventEmitter.emit).toHaveBeenCalledWith('node:start', 'start');
-    expect(eventEmitter.emit).toHaveBeenCalledWith('node:end', report.executedNodes[0]);
-    expect(eventEmitter.emit).toHaveBeenCalledWith('node:start', 'string');
-    expect(eventEmitter.emit).toHaveBeenCalledWith('node:end', report.executedNodes[1]);
+    // @ts-ignore
+    expect(emitSpy).toHaveBeenCalledWith('node:start', 'start');
+    // @ts-ignore
+    expect(emitSpy).toHaveBeenCalledWith('node:end', report.executedNodes[0]);
+    // @ts-ignore
+    expect(emitSpy).toHaveBeenCalledWith('node:start', 'string');
+    // @ts-ignore
+    expect(emitSpy).toHaveBeenCalledWith('node:end', report.executedNodes[1]);
   });
 
   it('should ignore group nodes during execution', async () => {
@@ -297,7 +303,7 @@ describe('LowLevelFlowRunner', () => {
           data: { messages: [{ id: 'msg1', role: 'user', content: 'Static Content' }] },
         },
       ],
-      edges: [{ id: 'e1', source: 'string', target: 'custom', sourceHandle: null, targetHandle: 'msg1' }],
+      edges: [{ id: 'e1', source: 'string', target: 'custom', sourceHandle: 'value', targetHandle: 'msg1' }],
     };
 
     const report = await runner.executeFlow(flow, {});
