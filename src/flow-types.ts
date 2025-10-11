@@ -1,7 +1,5 @@
 import { z } from 'zod';
 import { EventNames } from 'sillytavern-utils-lib/types';
-import { Connection, Edge, Node } from '@xyflow/react';
-import { nodeDefinitionMap } from './components/nodes/definitions/index.js';
 
 // These parameters are ordered method parameters.
 // For example, `{ messageId: z.number() }` means, `function (messageId: number)`
@@ -21,64 +19,6 @@ export enum FlowDataType {
   SCHEMA = 'schema',
   STRUCTURED_RESULT = 'structuredResult',
   ANY = 'any',
-}
-
-// Helper to get type from a definition, centralizing the logic.
-function getHandleType(
-  node: Node,
-  handleId: string | null,
-  handleDirection: 'input' | 'output',
-  nodes: Node[],
-  edges: Edge[],
-): FlowDataType | undefined {
-  if (!node.type) return undefined;
-  const definition = nodeDefinitionMap.get(node.type);
-  if (!definition) return undefined;
-
-  // Prefer the specific getHandleType function if it exists for dynamic nodes.
-  if (definition.getHandleType) {
-    const dynamicType = definition.getHandleType({ handleId, handleDirection, node, nodes, edges });
-    if (dynamicType !== undefined) return dynamicType;
-  }
-
-  // Fallback to static handles array for simple nodes.
-  const staticHandles = handleDirection === 'input' ? definition.handles.inputs : definition.handles.outputs;
-  return staticHandles.find((h) => h.id === handleId)?.type;
-}
-
-export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
-  const sourceNode = nodes.find((node) => node.id === connection.source);
-  const targetNode = nodes.find((node) => node.id === connection.target);
-
-  if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
-    return false;
-  }
-  if (sourceNode.type === 'triggerNode') return false;
-  if (sourceNode.type === 'groupNode' || targetNode.type === 'groupNode') return false;
-
-  const sourceHandleType = getHandleType(sourceNode, connection.sourceHandle ?? null, 'output', nodes, edges);
-  const targetHandleType = getHandleType(targetNode, connection.targetHandle ?? null, 'input', nodes, edges);
-
-  if (!sourceHandleType || !targetHandleType) {
-    return false;
-  }
-
-  // Permissive connections for flexible types.
-  if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
-    return true;
-  }
-  // Allow Profile ID and String to be used interchangeably.
-  if (
-    (targetHandleType === FlowDataType.PROFILE_ID && sourceHandleType === FlowDataType.STRING) ||
-    (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID)
-  ) {
-    return true;
-  }
-
-  // NOTE: Implicit coercion from any type to string or object has been removed
-  // as it was a source of bugs. Use explicit conversion nodes if needed.
-
-  return sourceHandleType === targetHandleType;
 }
 
 export const TriggerNodeDataSchema = z.object({

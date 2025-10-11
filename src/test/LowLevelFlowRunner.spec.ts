@@ -28,6 +28,7 @@ describe('LowLevelFlowRunner', () => {
   } as any;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     dependencies = {
       getBaseMessagesForProfile: jest.fn(),
       makeStructuredRequest: jest.fn(),
@@ -47,7 +48,6 @@ describe('LowLevelFlowRunner', () => {
     dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'add' }));
     dependencies.getWorldInfo.mockResolvedValue({});
     runner = new LowLevelFlowRunner(dependencies);
-    (eventEmitter.emit as jest.Mock).mockClear();
   });
 
   it('should execute a simple flow and emit debug events', async () => {

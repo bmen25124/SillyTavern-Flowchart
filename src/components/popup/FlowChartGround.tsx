@@ -22,10 +22,10 @@ import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
 import { createDefaultFlow } from '../../config.js';
-import { checkConnectionValidity } from '../../flow-types.js';
 import { toPng } from 'html-to-image';
 import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
 import { useDebugStore } from './DebugPanel.js';
+import { checkConnectionValidity } from '../../utils/connection-logic.js';
 
 type AddNodeContextMenu = {
   x: number;
