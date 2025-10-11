@@ -10,6 +10,8 @@ import {
   ProfileIdNodeDataSchema,
   CustomMessageNodeDataSchema,
   MergeMessagesNodeDataSchema,
+  CreateCharacterNodeDataSchema,
+  EditCharacterNodeDataSchema,
 } from './flow-types.js';
 import { FlowData } from './constants.js';
 
@@ -24,6 +26,8 @@ const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
   structuredRequestNode: StructuredRequestNodeDataSchema,
   schemaNode: SchemaNodeDataSchema,
   profileIdNode: ProfileIdNodeDataSchema,
+  createCharacterNode: CreateCharacterNodeDataSchema,
+  editCharacterNode: EditCharacterNodeDataSchema,
 };
 
 export interface ValidationResult {

@@ -10,10 +10,13 @@ import {
   StringNodeDataSchema,
   StructuredRequestNodeDataSchema,
   SchemaTypeDefinition,
+  CreateCharacterNodeDataSchema,
+  EditCharacterNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FlowData } from './constants.js';
 import { validateFlow } from './validator.js';
+import { FullExportData, Character } from 'sillytavern-utils-lib/types';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -36,6 +39,8 @@ export interface FlowRunnerDependencies {
     maxResponseToken: number,
   ) => Promise<any>;
   getSillyTavernContext: () => any;
+  createCharacter: (data: FullExportData) => Promise<void>;
+  saveCharacter: (data: Character) => Promise<void>;
 }
 
 function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
@@ -386,6 +391,117 @@ export class LowLevelFlowRunner {
           output = parseResult.data.profileId;
         } else {
           console.error(`[FlowChart] Invalid data for profileIdNode ${node.id}:`, parseResult.error.issues);
+        }
+        break;
+      }
+      case 'createCharacterNode': {
+        const parseResult = CreateCharacterNodeDataSchema.safeParse(node.data);
+        if (!parseResult.success) {
+          console.error(`[FlowChart] Invalid data for createCharacterNode ${node.id}:`, parseResult.error.issues);
+          break;
+        }
+        const staticData = parseResult.data;
+        const name = input.name ?? staticData.name;
+        if (!name) {
+          console.error(`[FlowChart] Character name is required for createCharacterNode ${node.id}.`);
+          break;
+        }
+
+        const description = input.description ?? staticData.description ?? '';
+        const first_mes = input.first_mes ?? staticData.first_mes ?? '';
+        const scenario = input.scenario ?? staticData.scenario ?? '';
+        const personality = input.personality ?? staticData.personality ?? '';
+        const mes_example = input.mes_example ?? staticData.mes_example ?? '';
+        const tagsStr = input.tags ?? staticData.tags ?? '';
+        const tags = tagsStr
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter(Boolean);
+
+        const charData: FullExportData = {
+          name,
+          description,
+          first_mes,
+          scenario,
+          personality,
+          mes_example,
+          tags,
+          avatar: 'none',
+          spec: 'chara_card_v3',
+          spec_version: '3.0',
+          data: {
+            name,
+            description,
+            first_mes,
+            scenario,
+            personality,
+            mes_example,
+            tags,
+            avatar: 'none',
+          },
+        };
+
+        try {
+          await this.dependencies.createCharacter(charData);
+          output = name;
+        } catch (error) {
+          console.error(`[FlowChart] Error in createCharacterNode ${node.id}:`, error);
+        }
+        break;
+      }
+      case 'editCharacterNode': {
+        const parseResult = EditCharacterNodeDataSchema.safeParse(node.data);
+        if (!parseResult.success) {
+          console.error(`[FlowChart] Invalid data for editCharacterNode ${node.id}:`, parseResult.error.issues);
+          break;
+        }
+        const staticData = parseResult.data;
+        const characterAvatar = input.characterAvatar ?? staticData.characterAvatar;
+        if (!characterAvatar) {
+          console.error(`[FlowChart] Character to edit is required for editCharacterNode ${node.id}.`);
+          break;
+        }
+
+        const stContext = this.dependencies.getSillyTavernContext();
+        const existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+        if (!existingChar) {
+          console.error(`[FlowChart] Character with avatar "${characterAvatar}" not found for editing.`);
+          break;
+        }
+
+        const updatedChar: Character = { ...existingChar };
+
+        const name = input.name ?? staticData.name;
+        if (name !== undefined) updatedChar.name = name;
+
+        const description = input.description ?? staticData.description;
+        if (description !== undefined) updatedChar.description = description;
+
+        const first_mes = input.first_mes ?? staticData.first_mes;
+        if (first_mes !== undefined) updatedChar.first_mes = first_mes;
+
+        const scenario = input.scenario ?? staticData.scenario;
+        if (scenario !== undefined) updatedChar.scenario = scenario;
+
+        const personality = input.personality ?? staticData.personality;
+        if (personality !== undefined) updatedChar.personality = personality;
+
+        const mes_example = input.mes_example ?? staticData.mes_example;
+        if (mes_example !== undefined) updatedChar.mes_example = mes_example;
+
+        const tagsStr = input.tags ?? staticData.tags;
+        if (tagsStr !== undefined) {
+          updatedChar.tags = tagsStr
+            .split(',')
+            .map((t: string) => t.trim())
+            .filter(Boolean);
+        }
+
+        try {
+          await this.dependencies.saveCharacter(updatedChar);
+          output = updatedChar.name;
+        } catch (error) {
+          console.error(`[FlowChart] Error in editCharacterNode ${node.id}:`, error);
         }
         break;
       }

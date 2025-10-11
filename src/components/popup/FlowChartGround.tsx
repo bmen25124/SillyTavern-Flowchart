@@ -30,6 +30,8 @@ import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
 import { createDefaultFlow } from '../../config.js';
 import { NodeHandleTypes, checkConnectionValidity } from '../../flow-types.js';
+import { CreateCharacterNode } from '../nodes/CreateCharacterNode.js';
+import { EditCharacterNode } from '../nodes/EditCharacterNode.js';
 
 type AddNodeContextMenu = {
   x: number;
@@ -59,6 +61,8 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       structuredRequestNode: StructuredRequestNode,
       schemaNode: SchemaNode,
       profileIdNode: ProfileIdNode,
+      createCharacterNode: CreateCharacterNode,
+      editCharacterNode: EditCharacterNode,
     }),
     [],
   );

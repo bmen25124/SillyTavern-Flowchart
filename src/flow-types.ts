@@ -81,6 +81,31 @@ export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: Ha
     inputs: [],
     outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
   },
+  createCharacterNode: {
+    inputs: [
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'description', type: FlowDataType.STRING },
+      { id: 'first_mes', type: FlowDataType.STRING },
+      { id: 'scenario', type: FlowDataType.STRING },
+      { id: 'personality', type: FlowDataType.STRING },
+      { id: 'mes_example', type: FlowDataType.STRING },
+      { id: 'tags', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: null, type: FlowDataType.STRING }], // Output character name
+  },
+  editCharacterNode: {
+    inputs: [
+      { id: 'characterAvatar', type: FlowDataType.STRING },
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'description', type: FlowDataType.STRING },
+      { id: 'first_mes', type: FlowDataType.STRING },
+      { id: 'scenario', type: FlowDataType.STRING },
+      { id: 'personality', type: FlowDataType.STRING },
+      { id: 'mes_example', type: FlowDataType.STRING },
+      { id: 'tags', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: null, type: FlowDataType.STRING }], // Output character name
+  },
 };
 
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[]): boolean {
@@ -235,3 +260,22 @@ export const ProfileIdNodeDataSchema = z.object({
   profileId: z.string().optional(),
 });
 export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
+
+const CharacterFieldsSchema = {
+  name: z.string().optional(),
+  description: z.string().optional(),
+  first_mes: z.string().optional(),
+  scenario: z.string().optional(),
+  personality: z.string().optional(),
+  mes_example: z.string().optional(),
+  tags: z.string().optional(), // Comma-separated
+};
+
+export const CreateCharacterNodeDataSchema = z.object(CharacterFieldsSchema);
+export type CreateCharacterNodeData = z.infer<typeof CreateCharacterNodeDataSchema>;
+
+export const EditCharacterNodeDataSchema = z.object({
+  ...CharacterFieldsSchema,
+  characterAvatar: z.string().optional(),
+});
+export type EditCharacterNodeData = z.infer<typeof EditCharacterNodeDataSchema>;

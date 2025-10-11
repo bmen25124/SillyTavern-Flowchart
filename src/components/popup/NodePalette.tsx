@@ -26,6 +26,8 @@ export const availableNodes = [
   },
   { type: 'schemaNode', label: 'Schema Node', data: { fields: [] } },
   { type: 'profileIdNode', label: 'Profile ID Node', data: { profileId: '' } },
+  { type: 'createCharacterNode', label: 'Create Character Node', data: { name: 'New Character' } },
+  { type: 'editCharacterNode', label: 'Edit Character Node', data: { characterAvatar: '' } },
 ];
 
 export const NodePalette: FC = () => {

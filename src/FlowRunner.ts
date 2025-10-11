@@ -4,6 +4,7 @@ import { st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
+import { createCharacter, saveCharacter } from 'sillytavern-utils-lib';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 
@@ -16,6 +17,8 @@ class FlowRunner {
       getBaseMessagesForProfile,
       makeStructuredRequest,
       getSillyTavernContext: () => SillyTavern.getContext(),
+      createCharacter,
+      saveCharacter,
     });
   }
 

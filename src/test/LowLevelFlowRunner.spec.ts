@@ -13,10 +13,14 @@ describe('LowLevelFlowRunner', () => {
       getBaseMessagesForProfile: jest.fn(),
       makeStructuredRequest: jest.fn(),
       getSillyTavernContext: jest.fn(),
+      createCharacter: jest.fn(),
+      saveCharacter: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
-    dependencies.getSillyTavernContext.mockReturnValue({});
+    dependencies.getSillyTavernContext.mockReturnValue({
+      characters: [{ name: 'Test Character', avatar: 'test-char.png' }],
+    });
     runner = new LowLevelFlowRunner(dependencies);
   });
 
@@ -307,5 +311,60 @@ describe('LowLevelFlowRunner', () => {
     ];
 
     expect(mergeNodeReport?.output).toEqual(expectedMessages);
+  });
+
+  it('should call createCharacter for createCharacterNode', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'create',
+          type: 'createCharacterNode',
+          position: { x: 0, y: 0 },
+          data: {
+            name: 'New Char',
+            description: 'A description',
+            tags: 'tag1, tag2',
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    expect(dependencies.createCharacter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'New Char',
+        description: 'A description',
+        tags: ['tag1', 'tag2'],
+        avatar: 'none',
+        spec: 'chara_card_v3',
+      }),
+    );
+    expect(report.executedNodes[0].output).toBe('New Char');
+  });
+
+  it('should call saveCharacter for editCharacterNode', async () => {
+    const flow: FlowData = {
+      nodes: [
+        {
+          id: 'edit',
+          type: 'editCharacterNode',
+          position: { x: 0, y: 0 },
+          data: {
+            characterAvatar: 'test-char.png',
+            description: 'New Description',
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    const report = await runner.executeFlow(flow, {});
+    expect(dependencies.saveCharacter).toHaveBeenCalledWith({
+      name: 'Test Character',
+      avatar: 'test-char.png',
+      description: 'New Description',
+    });
+    expect(report.executedNodes[0].output).toBe('Test Character');
   });
 });
