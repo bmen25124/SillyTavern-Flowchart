@@ -9,6 +9,8 @@ import {
   useReactFlow,
   Node,
   OnConnectStartParams,
+  getNodesBounds,
+  getViewportForBounds,
 } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
 import { TriggerNode } from '../nodes/TriggerNode.js';
@@ -38,6 +40,7 @@ import { HandlebarNode } from '../nodes/HandlebarNode.js';
 import { JsonNode } from '../nodes/JsonNode.js';
 import { MergeObjectsNode } from '../nodes/MergeObjectsNode.js';
 import { LogNode } from '../nodes/LogNode.js';
+import { toPng } from 'html-to-image';
 
 type AddNodeContextMenu = {
   x: number;
@@ -269,6 +272,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         colorMode="dark"
         fitView
         isValidConnection={isValidConnection}
+        minZoom={0.1}
       >
         <Background />
         <Controls />
@@ -294,6 +298,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
 
 const FlowManager: FC = () => {
   const { nodes, edges, loadFlow, getFlowData } = useFlow();
+  const { getNodes } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -407,6 +412,66 @@ const FlowManager: FC = () => {
     }
   };
 
+  const handleScreenshot = useCallback(async () => {
+    // 1. Target the parent '.react-flow' container to include nodes, edges, and background.
+    const flowElement = document.querySelector<HTMLElement>('.react-flow');
+    const viewportElement = document.querySelector<HTMLElement>('.react-flow__viewport');
+
+    if (!flowElement || !viewportElement) {
+      st_echo('error', 'Could not find the flow element to screenshot.');
+      return;
+    }
+    const nodes = getNodes();
+    if (nodes.length === 0) {
+      st_echo('info', 'Cannot take screenshot of an empty flow.');
+      return;
+    }
+
+    const imageWidth = 2048;
+    const padding = 40; // Add padding around the nodes
+    const nodesBounds = getNodesBounds(nodes);
+
+    // Calculate image dimensions based on the nodes' bounding box to maintain aspect ratio
+    const imageBounds = {
+      width: nodesBounds.width + padding * 2,
+      height: nodesBounds.height + padding * 2,
+      x: nodesBounds.x - padding,
+      y: nodesBounds.y - padding,
+    };
+    const imageHeight = (imageBounds.height / imageBounds.width) * imageWidth;
+
+    // Get the transform needed to fit all nodes into the desired image dimensions
+    const viewport = getViewportForBounds(imageBounds, imageWidth, imageHeight, 0.1, 2, {});
+
+    // 2. Temporarily manipulate the DOM for the screenshot
+    const originalTransform = viewportElement.style.transform;
+    viewportElement.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
+
+    try {
+      const dataUrl = await toPng(flowElement, {
+        backgroundColor: '#202124',
+        width: imageWidth,
+        height: imageHeight,
+        filter: (node: HTMLElement) => !node.classList?.contains('react-flow__controls'),
+        skipFonts: true,
+        pixelRatio: 2,
+      });
+
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `flowchart-${settings.activeFlow}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      st_echo('info', 'Screenshot saved.');
+    } catch (err) {
+      console.error('Failed to take screenshot:', err);
+      st_echo('error', 'Failed to take screenshot.');
+    } finally {
+      viewportElement.style.transform = originalTransform;
+    }
+  }, [getNodes, settings.activeFlow]);
+
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -426,6 +491,7 @@ const FlowManager: FC = () => {
           Run Flow
         </STButton>
         <STButton onClick={handleCopyFlow}>Copy</STButton>
+        <STButton onClick={handleScreenshot}>Screenshot</STButton>
       </div>
       {!isValid && (
         <div className="flowchart-errors">

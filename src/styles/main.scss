@@ -171,6 +171,8 @@
   width: unset !important;
 }
 
+.react-flow svg { overflow: visible; } // For screenshot
+
 .flowchart-ground-manager {
   display: flex;
   flex-direction: column;

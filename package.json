@@ -47,6 +47,7 @@
         "@xyflow/react": "^12.8.6",
         "fast-xml-parser": "^5.2.5",
         "handlebars": "^4.7.8",
+        "html-to-image": "1.11.11",
         "sillytavern-utils-lib": "^1.0.58",
         "zod": "^4.1.11"
     },
