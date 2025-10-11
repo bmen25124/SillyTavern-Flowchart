@@ -8,11 +8,9 @@ import {
   applyEdgeChanges,
   addEdge,
   Connection,
-  NodeRemoveChange,
 } from '@xyflow/react';
 import { settingsManager } from '../Settings.js';
 import { FlowData } from '../../constants.js';
-import { checkConnectionValidity } from '../../flow-types.js';
 
 type FlowContextType = {
   nodes: Node[];
@@ -36,41 +34,7 @@ export const FlowProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [nodes, setNodes] = useState<Node[]>(() => structuredClone(activeFlowData.nodes));
   const [edges, setEdges] = useState<Edge[]>(() => structuredClone(activeFlowData.edges));
 
-  const onNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      const nodesToRemoveChanges = changes.filter((change): change is NodeRemoveChange => change.type === 'remove');
-
-      if (nodesToRemoveChanges.length > 0) {
-        const edgesToAdd: Edge[] = [];
-        for (const { id: nodeIdToRemove } of nodesToRemoveChanges) {
-          const incoming = edges.filter((e) => e.target === nodeIdToRemove);
-          const outgoing = edges.filter((e) => e.source === nodeIdToRemove);
-
-          if (incoming.length === 1 && outgoing.length === 1) {
-            const inEdge = incoming[0];
-            const outEdge = outgoing[0];
-
-            const connection = {
-              source: inEdge.source,
-              sourceHandle: inEdge.sourceHandle || null,
-              target: outEdge.target,
-              targetHandle: outEdge.targetHandle || null,
-            };
-
-            if (checkConnectionValidity(connection, nodes)) {
-              edgesToAdd.push({ ...connection, id: crypto.randomUUID() });
-            }
-          }
-        }
-        if (edgesToAdd.length > 0) {
-          setEdges((eds) => [...eds, ...edgesToAdd]);
-        }
-      }
-
-      setNodes((nds) => applyNodeChanges(changes, nds));
-    },
-    [nodes, edges, setNodes, setEdges],
-  );
+  const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
 
   const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
   const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), []);

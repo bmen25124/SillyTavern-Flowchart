@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { Connection, Edge, Node } from '@xyflow/react';
+import { nodeDefinitionMap } from './components/nodes/definitions/index.js';
 
 // These parameters are ordered method parameters.
 // For example, `{ messageId: z.number() }` means, `function (messageId: number)`
@@ -22,156 +23,6 @@ export enum FlowDataType {
   ANY = 'any',
 }
 
-export type HandleSpec = {
-  id: string | null;
-  type: FlowDataType;
-};
-
-export const NodeHandleTypes: Record<string, { inputs: HandleSpec[]; outputs: HandleSpec[] }> = {
-  triggerNode: {
-    inputs: [],
-    outputs: [],
-  },
-  manualTriggerNode: {
-    inputs: [],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }],
-  },
-  ifNode: {
-    inputs: [],
-    // Outputs are for control flow. The runner doesn't pass data from them.
-    // We will treat them as ANY to allow connection. The true source of data for the
-    // next node will be a predecessor of the ifNode.
-    outputs: [{ id: 'false', type: FlowDataType.ANY }], // + dynamic condition handles
-  },
-  createMessagesNode: {
-    inputs: [
-      { id: 'profileId', type: FlowDataType.PROFILE_ID },
-      { id: 'lastMessageId', type: FlowDataType.NUMBER },
-    ],
-    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
-  },
-  customMessageNode: {
-    inputs: [
-      // Dynamic handles for each message content are checked separately in `checkConnectionValidity`
-    ],
-    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
-  },
-  mergeMessagesNode: {
-    inputs: [
-      // Dynamic handles are checked separately in `checkConnectionValidity`
-    ],
-    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
-  },
-  mergeObjectsNode: {
-    inputs: [
-      // Dynamic handles are checked separately in `checkConnectionValidity`
-    ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }],
-  },
-  stringNode: {
-    inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
-    outputs: [{ id: null, type: FlowDataType.STRING }],
-  },
-  numberNode: {
-    inputs: [{ id: null, type: FlowDataType.ANY }], // Currently unused input
-    outputs: [{ id: null, type: FlowDataType.NUMBER }],
-  },
-  logNode: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.ANY }],
-  },
-  jsonNode: {
-    inputs: [],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }],
-  },
-  handlebarNode: {
-    inputs: [
-      { id: 'template', type: FlowDataType.STRING },
-      { id: 'data', type: FlowDataType.OBJECT },
-    ],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
-  },
-  getCharacterNode: {
-    inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
-    outputs: [
-      { id: 'result', type: FlowDataType.OBJECT },
-      { id: 'name', type: FlowDataType.STRING },
-      { id: 'description', type: FlowDataType.STRING },
-      { id: 'first_mes', type: FlowDataType.STRING },
-      { id: 'scenario', type: FlowDataType.STRING },
-      { id: 'personality', type: FlowDataType.STRING },
-      { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.OBJECT }, // It's a string[]
-    ],
-  },
-  structuredRequestNode: {
-    inputs: [
-      { id: 'profileId', type: FlowDataType.PROFILE_ID },
-      { id: 'messages', type: FlowDataType.MESSAGES },
-      { id: 'schema', type: FlowDataType.SCHEMA },
-      { id: 'maxResponseToken', type: FlowDataType.NUMBER },
-    ],
-    // Output for the full object. Dynamic handles for fields are validated separately.
-    outputs: [{ id: 'result', type: FlowDataType.STRUCTURED_RESULT }],
-  },
-  schemaNode: {
-    inputs: [],
-    outputs: [{ id: null, type: FlowDataType.SCHEMA }],
-  },
-  profileIdNode: {
-    inputs: [],
-    outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
-  },
-  createCharacterNode: {
-    inputs: [
-      { id: 'name', type: FlowDataType.STRING },
-      { id: 'description', type: FlowDataType.STRING },
-      { id: 'first_mes', type: FlowDataType.STRING },
-      { id: 'scenario', type: FlowDataType.STRING },
-      { id: 'personality', type: FlowDataType.STRING },
-      { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.STRING },
-    ],
-    outputs: [{ id: null, type: FlowDataType.STRING }], // Output character name
-  },
-  editCharacterNode: {
-    inputs: [
-      { id: 'characterAvatar', type: FlowDataType.STRING },
-      { id: 'name', type: FlowDataType.STRING },
-      { id: 'description', type: FlowDataType.STRING },
-      { id: 'first_mes', type: FlowDataType.STRING },
-      { id: 'scenario', type: FlowDataType.STRING },
-      { id: 'personality', type: FlowDataType.STRING },
-      { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.STRING },
-    ],
-    outputs: [{ id: null, type: FlowDataType.STRING }], // Output character name
-  },
-  createLorebookNode: {
-    inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
-    outputs: [{ id: null, type: FlowDataType.STRING }], // outputs worldName
-  },
-  createLorebookEntryNode: {
-    inputs: [
-      { id: 'worldName', type: FlowDataType.STRING },
-      { id: 'key', type: FlowDataType.STRING },
-      { id: 'content', type: FlowDataType.STRING },
-      { id: 'comment', type: FlowDataType.STRING },
-    ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }], // outputs WIEntry
-  },
-  editLorebookEntryNode: {
-    inputs: [
-      { id: 'worldName', type: FlowDataType.STRING },
-      { id: 'entryUid', type: FlowDataType.NUMBER },
-      { id: 'key', type: FlowDataType.STRING },
-      { id: 'content', type: FlowDataType.STRING },
-      { id: 'comment', type: FlowDataType.STRING },
-    ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }], // outputs updated WIEntry
-  },
-};
-
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
   const sourceNode = nodes.find((node) => node.id === connection.source);
   const targetNode = nodes.find((node) => node.id === connection.target);
@@ -179,13 +30,13 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
   if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
     return false;
   }
+  if (sourceNode.type === 'triggerNode') return false;
+  if (sourceNode.type === 'groupNode' || targetNode.type === 'groupNode') return false;
 
-  const sourceHandleTypes = NodeHandleTypes[sourceNode.type]?.outputs;
-  const targetHandleTypes = NodeHandleTypes[targetNode.type]?.inputs;
+  const sourceDef = nodeDefinitionMap.get(sourceNode.type);
+  const targetDef = nodeDefinitionMap.get(targetNode.type);
 
-  if (!sourceHandleTypes || !targetHandleTypes) {
-    return false;
-  }
+  if (!sourceDef || !targetDef) return false;
 
   let sourceHandleType: FlowDataType | undefined;
   if (sourceNode.type === 'structuredRequestNode') {
@@ -225,10 +76,10 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
       sourceHandleType = FlowDataType.ANY;
     }
   } else {
-    sourceHandleType = sourceHandleTypes.find((h) => h.id === connection.sourceHandle)?.type;
+    sourceHandleType = sourceDef.handles.outputs.find((h) => h.id === connection.sourceHandle)?.type;
   }
 
-  let targetHandleType = targetHandleTypes.find((h) => h.id === connection.targetHandle)?.type;
+  let targetHandleType = targetDef.handles.inputs.find((h) => h.id === connection.targetHandle)?.type;
   if (
     !targetHandleType &&
     targetNode.type === 'mergeMessagesNode' &&
@@ -283,6 +134,7 @@ export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
 export const IfNodeDataSchema = z.object({
   conditions: z
     .array(z.object({ id: z.string(), code: z.string() }))
+    .min(1)
     .default([{ id: crypto.randomUUID(), code: 'return true;' }]),
 });
 export type IfNodeData = z.infer<typeof IfNodeDataSchema>;
@@ -454,3 +306,8 @@ export const EditLorebookEntryNodeDataSchema = z.object({
   comment: z.string().optional(), // new comment
 });
 export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
+
+export const GroupNodeDataSchema = z.object({
+  label: z.string().default('Group'),
+});
+export type GroupNodeData = z.infer<typeof GroupNodeDataSchema>;

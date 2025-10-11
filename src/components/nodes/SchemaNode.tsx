@@ -47,6 +47,7 @@ const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemov
         marginTop: '5px',
         paddingTop: '5px',
         borderLeft: path.length > 2 ? '1px solid #444' : 'none',
+        paddingLeft: path.length > 2 ? '5px' : '0',
       }}
     >
       <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>

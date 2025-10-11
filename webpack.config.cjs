@@ -1,6 +1,7 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const fs = require('fs');
 
 module.exports = {
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
@@ -18,13 +19,29 @@ module.exports = {
     externalsType: 'module',
     externals: [
         function ({ context, request }, callback) {
+            if (request.includes('.css')) {
+                return callback();
+            }
             // Externalize deep relative paths that are NOT targeting node_modules.
             // This correctly identifies SillyTavern's runtime scripts.
-            if (request.startsWith('../../..') && !request.includes('node_modules')) {
+            if (request.startsWith('../../..') && (context.includes('node_modules\\sillytavern-utils-lib') || context.includes('SillyTavern-FlowChart\\src'))) {
                 const isFromMySrc = context && !context.includes('node_modules');
                 const isFromUtilsLib = context && context.includes('sillytavern-utils-lib');
+                try {
+                    let resolvedPath = path.resolve(context, request);
+                    if (resolvedPath.endsWith('.js') || resolvedPath.endsWith('.jsx')) {
+                        resolvedPath = resolvedPath.replace(/\.js$/, '.ts');
+                        resolvedPath = resolvedPath.replace(/\.jsx?$/, '.tsx');
+                    }
+                    const isFileExist = fs.existsSync(resolvedPath);
+                    if (!isFileExist) {
+                        return callback(null, `module ${request}`);
+                    }
+                    return callback();
+                } catch (err) {
+                }
 
-                if (isFromMySrc || isFromUtilsLib) {
+                if ((isFromMySrc || isFromUtilsLib)) {
                     return callback(null, `module ${request}`);
                 }
             }

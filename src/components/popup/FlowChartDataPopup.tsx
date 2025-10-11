@@ -6,15 +6,16 @@ import { st_echo } from 'sillytavern-utils-lib/config';
 import { DEFAULT_SETTINGS } from '../../config.js';
 import { FlowChartGround } from './FlowChartGround.js';
 import { FlowHistory } from './FlowHistory.js';
+import { DebugPanel } from './DebugPanel.js';
 
-type Tab = 'prompts' | 'ground' | 'history';
+type Tab = 'prompts' | 'ground' | 'history' | 'debug';
 
 interface FlowChartDataPopupProps {
   onSave: () => void;
 }
 
 export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('prompts');
+  const [activeTab, setActiveTab] = useState<Tab>('ground');
   const [importKey, setImportKey] = useState(0);
   const { Popup } = SillyTavern.getContext();
 
@@ -26,7 +27,7 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
   const handleResetAll = async () => {
     const confirmation = await Popup.show.confirm(
       'Reset FlowChart Data',
-      'Are you sure you want to reset ALL prompts, the Fate Chart, Event Generation, and UNE data to their defaults? This action cannot be undone.',
+      'Are you sure you want to reset ALL prompts and flows to their defaults? This action cannot be undone.',
     );
 
     if (confirmation) {
@@ -34,6 +35,8 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
 
       // Deep clone from defaultSettings to avoid reference issues
       settings.prompts = structuredClone(DEFAULT_SETTINGS.prompts);
+      settings.flows = structuredClone(DEFAULT_SETTINGS.flows);
+      settings.activeFlow = 'Default';
 
       // Force a re-render of all child components by changing the key
       setImportKey((k) => k + 1);
@@ -47,15 +50,17 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
       <div className="flowchart-popup-header">
         <h2>Customize FlowChart Data</h2>
         <div className="flowchart-popup-tabs">
-          <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('ground')}>Ground</STButton>
+          <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('history')}>History</STButton>
+          <STButton onClick={() => setActiveTab('debug')}>Debug</STButton>
         </div>
       </div>
       <div className="flowchart-popup-content">
-        {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'ground' && <FlowChartGround key={`ground-${importKey}`} />}
+        {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'history' && <FlowHistory />}
+        {activeTab === 'debug' && <DebugPanel />}
       </div>
       <div className="flowchart-popup-footer">
         <STButton onClick={handleResetAll} color="danger">

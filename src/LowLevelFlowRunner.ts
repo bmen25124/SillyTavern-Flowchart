@@ -1,4 +1,3 @@
-import { Node, Edge } from '@xyflow/react';
 import {
   CreateMessagesNodeDataSchema,
   CustomMessageNodeDataSchema,
@@ -24,11 +23,11 @@ import {
   EditLorebookEntryNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
-import { FlowData } from './constants.js';
-import { validateFlow } from './validator.js';
 import { FullExportData, Character } from 'sillytavern-utils-lib/types';
 import Handlebars from 'handlebars';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
+import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
+import { eventEmitter } from './events.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -63,7 +62,7 @@ export interface FlowRunnerDependencies {
   ) => Promise<Record<string, WIEntry[]>>;
 }
 
-type NodeExecutor = (node: Node, input: Record<string, any>, flow: FlowData) => Promise<any>;
+type NodeExecutor = (node: SpecNode, input: Record<string, any>, flow: SpecFlow) => Promise<any>;
 
 function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
   let zodType: z.ZodTypeAny;
@@ -140,12 +139,7 @@ export class LowLevelFlowRunner {
     };
   }
 
-  public async executeFlow(flow: FlowData, initialInput: Record<string, any>): Promise<ExecutionReport> {
-    const { isValid, errors } = validateFlow(flow);
-    if (!isValid) {
-      throw new Error(`Flow is invalid: ${errors.join(', ')}`);
-    }
-
+  public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow with args`, initialInput);
 
     const executionOrder = this.getExecutionOrder(flow);
@@ -169,12 +163,12 @@ export class LowLevelFlowRunner {
 
         nodeOutputs[nodeId] = output;
         executedNodes.add(nodeId);
-        report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: output });
+        const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
+        report.executedNodes.push(nodeReport);
+        eventEmitter.emit('node:end', nodeReport);
 
         if (node.type === 'ifNode' && output.nextNodeId) {
           // An if-node is for control flow only. It provides no data itself.
-          // Its output is set to an empty object to prevent its input context
-          // from polluting the inputs of nodes within its branches.
           nodeOutputs[nodeId] = {};
 
           const allIfEdges = flow.edges.filter((e) => e.source === nodeId);
@@ -194,7 +188,7 @@ export class LowLevelFlowRunner {
     return report;
   }
 
-  private markBranchAsExecuted(startNodeId: string, flow: FlowData, executedNodes: Set<string>) {
+  private markBranchAsExecuted(startNodeId: string, flow: SpecFlow, executedNodes: Set<string>) {
     const queue = [startNodeId];
     while (queue.length > 0) {
       const nodeId = queue.shift();
@@ -208,7 +202,7 @@ export class LowLevelFlowRunner {
     }
   }
 
-  private getExecutionOrder(flow: FlowData): string[] {
+  private getExecutionOrder(flow: SpecFlow): string[] {
     const inDegree: Record<string, number> = {};
     const adj: Record<string, string[]> = {};
     flow.nodes.forEach((node) => {
@@ -243,8 +237,8 @@ export class LowLevelFlowRunner {
   }
 
   private getNodeInputs(
-    node: Node,
-    edges: Edge[],
+    node: SpecNode,
+    edges: SpecEdge[],
     nodeOutputs: Record<string, any>,
     baseInput: Record<string, any>,
   ): Record<string, any> {
@@ -280,12 +274,16 @@ export class LowLevelFlowRunner {
     return inputs;
   }
 
-  private async executeNode(node: Node, input: Record<string, any>, flow: FlowData): Promise<any> {
-    const executor = this.nodeExecutors[node.type as string];
+  private async executeNode(node: SpecNode, input: Record<string, any>, flow: SpecFlow): Promise<any> {
+    if (node.type === 'groupNode') return {};
+
+    const executor = this.nodeExecutors[node.type];
     if (executor) {
       console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
+      eventEmitter.emit('node:start', node.id);
       try {
-        return await executor(node, input, flow);
+        const result = await executor(node, input, flow);
+        return result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
@@ -294,11 +292,11 @@ export class LowLevelFlowRunner {
     return {};
   }
 
-  private async executeTriggerNode(_node: Node, input: Record<string, any>): Promise<any> {
+  private async executeTriggerNode(_node: SpecNode, input: Record<string, any>): Promise<any> {
     return { ...input };
   }
 
-  private async executeManualTriggerNode(node: Node): Promise<any> {
+  private async executeManualTriggerNode(node: SpecNode): Promise<any> {
     const parseResult = ManualTriggerNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -310,7 +308,7 @@ export class LowLevelFlowRunner {
     }
   }
 
-  private async executeCreateMessagesNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeCreateMessagesNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateMessagesNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -326,7 +324,7 @@ export class LowLevelFlowRunner {
     return this.dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
   }
 
-  private async executeCustomMessageNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeCustomMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CustomMessageNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -337,7 +335,7 @@ export class LowLevelFlowRunner {
     }));
   }
 
-  private async executeMergeMessagesNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeMergeMessagesNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = MergeMessagesNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -349,7 +347,7 @@ export class LowLevelFlowRunner {
       .flatMap((key) => input[key]);
   }
 
-  private async executeMergeObjectsNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeMergeObjectsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = MergeObjectsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -363,7 +361,7 @@ export class LowLevelFlowRunner {
     return Object.assign({}, ...objectsToMerge);
   }
 
-  private async executeIfNode(node: Node, input: Record<string, any>, flow: FlowData): Promise<any> {
+  private async executeIfNode(node: SpecNode, input: Record<string, any>, flow: SpecFlow): Promise<any> {
     const parseResult = IfNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -385,7 +383,7 @@ export class LowLevelFlowRunner {
     return { nextNodeId: elseEdge?.target ?? null };
   }
 
-  private async executeStringNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeStringNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = StringNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -393,7 +391,7 @@ export class LowLevelFlowRunner {
     return input.value !== undefined ? String(input.value) : parseResult.data.value;
   }
 
-  private async executeNumberNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeNumberNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = NumberNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -401,14 +399,14 @@ export class LowLevelFlowRunner {
     return input.value !== undefined ? Number(input.value) : parseResult.data.value;
   }
 
-  private async executeLogNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeLogNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = LogNodeDataSchema.safeParse(node.data);
     const prefix = parseResult.success ? parseResult.data.prefix : '[LogNode]';
     console.log(prefix, input);
     return input;
   }
 
-  private async executeJsonNode(node: Node): Promise<any> {
+  private async executeJsonNode(node: SpecNode): Promise<any> {
     const data = node.data as JsonNodeData;
     const buildObject = (items: JsonNodeItem[]): object => {
       const obj: { [key: string]: any } = {};
@@ -428,7 +426,7 @@ export class LowLevelFlowRunner {
     return buildObject(data.items);
   }
 
-  private async executeHandlebarNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeHandlebarNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = HandlebarNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -444,7 +442,7 @@ export class LowLevelFlowRunner {
     }
   }
 
-  private async executeGetCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeGetCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = GetCharacterNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -463,7 +461,7 @@ export class LowLevelFlowRunner {
     return { ...character, result: character };
   }
 
-  private async executeStructuredRequestNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeStructuredRequestNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = StructuredRequestNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -498,7 +496,7 @@ export class LowLevelFlowRunner {
     }
   }
 
-  private async executeSchemaNode(node: Node): Promise<any> {
+  private async executeSchemaNode(node: SpecNode): Promise<any> {
     const parseResult = SchemaNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -507,7 +505,7 @@ export class LowLevelFlowRunner {
     return buildZodSchema(topLevelObjectDefinition);
   }
 
-  private async executeProfileIdNode(node: Node): Promise<any> {
+  private async executeProfileIdNode(node: SpecNode): Promise<any> {
     const parseResult = ProfileIdNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -515,7 +513,7 @@ export class LowLevelFlowRunner {
     return parseResult.data.profileId;
   }
 
-  private async executeCreateCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeCreateCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateCharacterNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -558,7 +556,7 @@ export class LowLevelFlowRunner {
     return name;
   }
 
-  private async executeEditCharacterNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeEditCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = EditCharacterNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
@@ -606,7 +604,7 @@ export class LowLevelFlowRunner {
     return updatedChar.name;
   }
 
-  private async executeCreateLorebookNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeCreateLorebookNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateLorebookNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
@@ -619,7 +617,7 @@ export class LowLevelFlowRunner {
     return worldName;
   }
 
-  private async executeCreateLorebookEntryNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeCreateLorebookEntryNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateLorebookEntryNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
@@ -650,7 +648,7 @@ export class LowLevelFlowRunner {
     return result.entry;
   }
 
-  private async executeEditLorebookEntryNode(node: Node, input: Record<string, any>): Promise<any> {
+  private async executeEditLorebookEntryNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = EditLorebookEntryNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;

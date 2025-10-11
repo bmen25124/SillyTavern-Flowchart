@@ -1,52 +1,5 @@
-import { z } from 'zod';
-import {
-  TriggerNodeDataSchema,
-  IfNodeDataSchema,
-  CreateMessagesNodeDataSchema,
-  StringNodeDataSchema,
-  NumberNodeDataSchema,
-  StructuredRequestNodeDataSchema,
-  SchemaNodeDataSchema,
-  ProfileIdNodeDataSchema,
-  CustomMessageNodeDataSchema,
-  MergeMessagesNodeDataSchema,
-  CreateCharacterNodeDataSchema,
-  EditCharacterNodeDataSchema,
-  ManualTriggerNodeDataSchema,
-  GetCharacterNodeDataSchema,
-  HandlebarNodeDataSchema,
-  JsonNodeDataSchema,
-  MergeObjectsNodeDataSchema,
-  LogNodeDataSchema,
-  CreateLorebookNodeDataSchema,
-  CreateLorebookEntryNodeDataSchema,
-  EditLorebookEntryNodeDataSchema,
-} from './flow-types.js';
 import { FlowData } from './constants.js';
-
-const NodeDataSchemas: Record<string, z.ZodType<any, any>> = {
-  triggerNode: TriggerNodeDataSchema,
-  manualTriggerNode: ManualTriggerNodeDataSchema,
-  ifNode: IfNodeDataSchema,
-  createMessagesNode: CreateMessagesNodeDataSchema,
-  customMessageNode: CustomMessageNodeDataSchema,
-  mergeMessagesNode: MergeMessagesNodeDataSchema,
-  mergeObjectsNode: MergeObjectsNodeDataSchema,
-  stringNode: StringNodeDataSchema,
-  numberNode: NumberNodeDataSchema,
-  logNode: LogNodeDataSchema,
-  structuredRequestNode: StructuredRequestNodeDataSchema,
-  schemaNode: SchemaNodeDataSchema,
-  profileIdNode: ProfileIdNodeDataSchema,
-  createCharacterNode: CreateCharacterNodeDataSchema,
-  editCharacterNode: EditCharacterNodeDataSchema,
-  getCharacterNode: GetCharacterNodeDataSchema,
-  handlebarNode: HandlebarNodeDataSchema,
-  jsonNode: JsonNodeDataSchema,
-  createLorebookNode: CreateLorebookNodeDataSchema,
-  createLorebookEntryNode: CreateLorebookEntryNodeDataSchema,
-  editLorebookEntryNode: EditLorebookEntryNodeDataSchema,
-};
+import { nodeDefinitionMap } from './components/nodes/definitions/index.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -68,9 +21,9 @@ export const validateFlow = (flow: FlowData): ValidationResult => {
 
   // 1. Validate each node's data
   for (const node of flow.nodes) {
-    const schema = NodeDataSchemas[node.type as string];
-    if (schema) {
-      const result = schema.safeParse(node.data);
+    const definition = nodeDefinitionMap.get(node.type as string);
+    if (definition) {
+      const result = definition.dataSchema.safeParse(node.data);
       if (!result.success) {
         const formattedErrors = result.error.issues.map(
           (issue) => `Node [${node.id} (${node.type})]: ${issue.path.join('.')} - ${issue.message}`,
@@ -78,7 +31,7 @@ export const validateFlow = (flow: FlowData): ValidationResult => {
         errors.push(...formattedErrors);
         invalidNodeIds.add(node.id);
       }
-    } else if (node.type && !NodeDataSchemas[node.type]) {
+    } else if (node.type && !nodeDefinitionMap.has(node.type)) {
       errors.push(`Node [${node.id}]: Unknown node type "${node.type}".`);
       invalidNodeIds.add(node.id);
     }
@@ -153,7 +106,7 @@ export const validateFlow = (flow: FlowData): ValidationResult => {
     if (triggerNode.type === 'triggerNode') {
       const hasOutgoingEdge = flow.edges.some((e) => e.source === triggerNode.id);
       if (hasOutgoingEdge) {
-        errors.push(`Trigger Node [${triggerNode.id}] cannot have outgoing connections.`);
+        errors.push(`Event Trigger Node [${triggerNode.id}] cannot have outgoing connections.`);
         invalidNodeIds.add(triggerNode.id);
       }
     }

@@ -5,8 +5,24 @@ import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfo } from 'sillytavern-utils-lib';
+import { FlowData } from './constants.js';
+import { SpecFlow } from './flow-spec.js';
+import { eventEmitter } from './events.js';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
+
+function convertToSpec(flow: FlowData): SpecFlow {
+  return {
+    nodes: flow.nodes.map((n) => ({ id: n.id, type: n.type ?? 'unknown', data: n.data })),
+    edges: flow.edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      sourceHandle: e.sourceHandle ?? null,
+      target: e.target,
+      targetHandle: e.targetHandle ?? null,
+    })),
+  };
+}
 
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
@@ -85,20 +101,23 @@ class FlowRunner {
       console.error(`[FlowChart] Flow with id ${flowId} not found.`);
       return;
     }
-
+    eventEmitter.emit('flow:start');
     try {
-      const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+      const specFlow = convertToSpec(flow);
+      const report = await this.lowLevelRunner.executeFlow(specFlow, initialInput);
 
       if (report) {
         executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
         if (executionHistory.length > 50) {
           executionHistory.pop();
         }
+        eventEmitter.emit('flow:end', report);
       }
       return report;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       st_echo('error', `Flow "${flowId}" failed: ${errorMessage}`);
+      eventEmitter.emit('flow:error', error);
       return undefined;
     }
   }

@@ -11,39 +11,22 @@ import {
   OnConnectStartParams,
   getNodesBounds,
   getViewportForBounds,
+  useEdges,
+  MiniMap,
 } from '@xyflow/react';
 import { FlowProvider, useFlow } from './FlowContext.js';
-import { TriggerNode } from '../nodes/TriggerNode.js';
-import { IfNode } from '../nodes/IfNode.js';
-import { CreateMessagesNode } from '../nodes/CreateMessagesNode.js';
-import { CustomMessageNode } from '../nodes/CustomMessageNode.js';
-import { MergeMessagesNode } from '../nodes/MergeMessagesNode.js';
-import { StringNode } from '../nodes/StringNode.js';
-import { NumberNode } from '../nodes/NumberNode.js';
-import { StructuredRequestNode } from '../nodes/StructuredRequestNode.js';
-import { SchemaNode } from '../nodes/SchemaNode.js';
-import { ProfileIdNode } from '../nodes/ProfileIdNode.js';
 import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { STButton, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
-import { NodePalette, availableNodes } from './NodePalette.js';
+import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
 import { createDefaultFlow } from '../../config.js';
-import { NodeHandleTypes, checkConnectionValidity } from '../../flow-types.js';
-import { CreateCharacterNode } from '../nodes/CreateCharacterNode.js';
-import { EditCharacterNode } from '../nodes/EditCharacterNode.js';
-import { ManualTriggerNode } from '../nodes/ManualTriggerNode.js';
-import { GetCharacterNode } from '../nodes/GetCharacterNode.js';
-import { HandlebarNode } from '../nodes/HandlebarNode.js';
-import { JsonNode } from '../nodes/JsonNode.js';
-import { MergeObjectsNode } from '../nodes/MergeObjectsNode.js';
-import { LogNode } from '../nodes/LogNode.js';
+import { checkConnectionValidity } from '../../flow-types.js';
 import { toPng } from 'html-to-image';
-import { CreateLorebookNode } from '../nodes/CreateLorebookNode.js';
-import { CreateLorebookEntryNode } from '../nodes/CreateLorebookEntryNode.js';
-import { EditLorebookEntryNode } from '../nodes/EditLorebookEntryNode.js';
+import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
+import { useDebugStore } from './DebugPanel.js';
 
 type AddNodeContextMenu = {
   x: number;
@@ -55,42 +38,17 @@ type AddNodeContextMenu = {
 };
 
 const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
-  const { screenToFlowPosition } = useReactFlow();
+  const { nodes, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlow();
+  const reactFlowEdges = useEdges();
+  const { screenToFlowPosition, getNodes } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
   const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
   const wasConnectionSuccessful = useRef(false);
-
-  const nodeTypes = useMemo(
-    () => ({
-      triggerNode: TriggerNode,
-      manualTriggerNode: ManualTriggerNode,
-      ifNode: IfNode,
-      createMessagesNode: CreateMessagesNode,
-      customMessageNode: CustomMessageNode,
-      mergeMessagesNode: MergeMessagesNode,
-      mergeObjectsNode: MergeObjectsNode,
-      stringNode: StringNode,
-      numberNode: NumberNode,
-      logNode: LogNode,
-      jsonNode: JsonNode,
-      handlebarNode: HandlebarNode,
-      getCharacterNode: GetCharacterNode,
-      structuredRequestNode: StructuredRequestNode,
-      schemaNode: SchemaNode,
-      profileIdNode: ProfileIdNode,
-      createCharacterNode: CreateCharacterNode,
-      editCharacterNode: EditCharacterNode,
-      createLorebookNode: CreateLorebookNode,
-      createLorebookEntryNode: CreateLorebookEntryNode,
-      editLorebookEntryNode: EditLorebookEntryNode,
-    }),
-    [],
-  );
+  const { activeNodeId } = useDebugStore();
 
   const isValidConnection = useCallback(
-    (connection: Edge | Connection) => checkConnectionValidity(connection, nodes, edges),
-    [nodes, edges],
+    (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), reactFlowEdges),
+    [getNodes, reactFlowEdges],
   );
 
   const onConnect = useCallback(
@@ -117,12 +75,14 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       }
 
       const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
+      const allNodes = getNodes();
+
       if (!startNodeId || !handleType) {
         connectingNode.current = null;
         return;
       }
 
-      const startNode = nodes.find((n) => n.id === startNodeId);
+      const startNode = allNodes.find((n) => n.id === startNodeId);
       if (!startNode || !startNode.type) {
         connectingNode.current = null;
         return;
@@ -132,82 +92,54 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         const candidates: { nodeType: string; nodeLabel: string; connectToHandle: string | null }[] = [];
 
         if (handleType === 'source') {
-          for (const nodeDef of availableNodes) {
-            const targetInputs = NodeHandleTypes[nodeDef.type]?.inputs;
-            if (!targetInputs) continue;
-
+          for (const nodeDef of allNodeDefinitions) {
+            const targetInputs = nodeDef.handles.inputs;
             const tempTargetNode: Node = {
               id: 'temp',
               type: nodeDef.type,
               position: { x: 0, y: 0 },
-              data: structuredClone(nodeDef.data),
+              data: structuredClone(nodeDef.initialData),
             };
 
-            // Check connection to generic input handle
-            const genericInput = targetInputs.find((h) => h.id === null);
-            if (
-              genericInput &&
-              checkConnectionValidity(
-                { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: null },
-                [...nodes, tempTargetNode],
-                edges,
-              )
-            ) {
-              candidates.push({ nodeType: nodeDef.type, nodeLabel: nodeDef.label, connectToHandle: null });
-            }
-
-            // Check connections to specific input handles
-            for (const targetHandle of targetInputs.filter((h) => h.id !== null)) {
+            for (const targetHandle of targetInputs) {
               if (
                 checkConnectionValidity(
                   { source: startNodeId, sourceHandle: startHandleId, target: 'temp', targetHandle: targetHandle.id },
-                  [...nodes, tempTargetNode],
-                  edges,
+                  [...allNodes, tempTargetNode],
+                  reactFlowEdges,
                 )
               ) {
+                const label = targetHandle.id ? `${nodeDef.label} -> ${targetHandle.id}` : nodeDef.label;
                 candidates.push({
                   nodeType: nodeDef.type,
-                  nodeLabel: `${nodeDef.label} -> ${targetHandle.id}`,
+                  nodeLabel: label,
                   connectToHandle: targetHandle.id,
                 });
               }
             }
           }
         } else {
-          // Logic for dragging from a target handle
-          for (const nodeDef of availableNodes) {
-            const sourceOutputs = NodeHandleTypes[nodeDef.type]?.outputs;
-            if (!sourceOutputs) continue;
+          for (const nodeDef of allNodeDefinitions) {
+            const sourceOutputs = nodeDef.handles.outputs;
             const tempSourceNode: Node = {
               id: 'temp',
               type: nodeDef.type,
               position: { x: 0, y: 0 },
-              data: structuredClone(nodeDef.data),
+              data: structuredClone(nodeDef.initialData),
             };
 
-            const genericOutput = sourceOutputs.find((h) => h.id === null);
-            if (
-              genericOutput &&
-              checkConnectionValidity(
-                { source: 'temp', sourceHandle: null, target: startNodeId, targetHandle: startHandleId },
-                [...nodes, tempSourceNode],
-                edges,
-              )
-            ) {
-              candidates.push({ nodeType: nodeDef.type, nodeLabel: nodeDef.label, connectToHandle: null });
-            }
-
-            for (const sourceHandle of sourceOutputs.filter((h) => h.id !== null)) {
+            for (const sourceHandle of sourceOutputs) {
               if (
                 checkConnectionValidity(
                   { source: 'temp', sourceHandle: sourceHandle.id, target: startNodeId, targetHandle: startHandleId },
-                  [...nodes, tempSourceNode],
-                  edges,
+                  [...allNodes, tempSourceNode],
+                  reactFlowEdges,
                 )
               ) {
+                const label = sourceHandle.id ? `${sourceHandle.id} -> ${nodeDef.label}` : nodeDef.label;
                 candidates.push({
                   nodeType: nodeDef.type,
-                  nodeLabel: `${sourceHandle.id} -> ${nodeDef.label}`,
+                  nodeLabel: label,
                   connectToHandle: sourceHandle.id,
                 });
               }
@@ -224,10 +156,10 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
       const createAndConnectNode = (nodeType: string, connectToHandle: string | null) => {
-        const nodeDef = availableNodes.find((n) => n.type === nodeType);
+        const nodeDef = nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
-        const newNode = addNode({ type: nodeType, position, data: structuredClone(nodeDef.data) });
+        const newNode = addNode({ type: nodeType, position, data: structuredClone(nodeDef.initialData) });
         const connection =
           handleType === 'source'
             ? { source: startNodeId, sourceHandle: startHandleId, target: newNode.id, targetHandle: connectToHandle }
@@ -251,23 +183,29 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         });
       }
     },
-    [nodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu],
+    [getNodes, reactFlowEdges, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
-  const nodesWithInvalidClass = useMemo(
+  const nodesWithDynamicClasses = useMemo(
     () =>
-      nodes.map((node) => ({
-        ...node,
-        className: invalidNodeIds.has(node.id) ? 'flow-node-invalid' : '',
-      })),
-    [nodes, invalidNodeIds],
+      nodes.map((node) => {
+        const classNames = [];
+        if (invalidNodeIds.has(node.id)) classNames.push('flow-node-invalid');
+        if (node.id === activeNodeId) classNames.push('flow-node-executing');
+        return {
+          ...node,
+          className: classNames.join(' '),
+          zIndex: node.type === 'groupNode' ? -1 : 0,
+        };
+      }),
+    [nodes, invalidNodeIds, activeNodeId],
   );
 
   return (
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
-        nodes={nodesWithInvalidClass}
-        edges={edges}
+        nodes={nodesWithDynamicClasses}
+        edges={reactFlowEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -282,6 +220,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       >
         <Background />
         <Controls />
+        <MiniMap />
       </ReactFlow>
       {contextMenu && (
         <div
@@ -303,11 +242,12 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
 };
 
 const FlowManager: FC = () => {
-  const { nodes, edges, loadFlow, getFlowData } = useFlow();
+  const { nodes, edges, loadFlow, getFlowData, addNode } = useFlow();
   const { getNodes } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const copyBuffer = useRef<Node[]>([]);
 
   // Debounced auto-save effect
   useEffect(() => {
@@ -328,6 +268,37 @@ const FlowManager: FC = () => {
       }
     };
   }, [nodes, edges, settings.activeFlow, getFlowData]);
+
+  // Copy/Paste effect
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'c') {
+          const selectedNodes = getNodes().filter((n) => n.selected);
+          if (selectedNodes.length > 0) {
+            copyBuffer.current = structuredClone(selectedNodes.map((n) => ({ ...n, selected: false })));
+            st_echo('info', `${selectedNodes.length} node(s) copied.`);
+          }
+        } else if (event.key === 'v') {
+          if (copyBuffer.current.length > 0) {
+            copyBuffer.current.forEach((nodeToPaste) => {
+              addNode({
+                ...nodeToPaste,
+                position: {
+                  x: nodeToPaste.position.x + 20,
+                  y: nodeToPaste.position.y + 20,
+                },
+              });
+            });
+            st_echo('info', `${copyBuffer.current.length} node(s) pasted.`);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [getNodes, addNode]);
 
   const { isValid, errors, invalidNodeIds, invalidEdgeIds } = useMemo(
     () => validateFlow({ nodes, edges }),
@@ -419,7 +390,6 @@ const FlowManager: FC = () => {
   };
 
   const handleScreenshot = useCallback(async () => {
-    // 1. Target the parent '.react-flow' container to include nodes, edges, and background.
     const flowElement = document.querySelector<HTMLElement>('.react-flow');
     const viewportElement = document.querySelector<HTMLElement>('.react-flow__viewport');
 
@@ -434,10 +404,9 @@ const FlowManager: FC = () => {
     }
 
     const imageWidth = 2048;
-    const padding = 40; // Add padding around the nodes
+    const padding = 40;
     const nodesBounds = getNodesBounds(nodes);
 
-    // Calculate image dimensions based on the nodes' bounding box to maintain aspect ratio
     const imageBounds = {
       width: nodesBounds.width + padding * 2,
       height: nodesBounds.height + padding * 2,
@@ -446,10 +415,8 @@ const FlowManager: FC = () => {
     };
     const imageHeight = (imageBounds.height / imageBounds.width) * imageWidth;
 
-    // Get the transform needed to fit all nodes into the desired image dimensions
     const viewport = getViewportForBounds(imageBounds, imageWidth, imageHeight, 0.1, 2, {});
 
-    // 2. Temporarily manipulate the DOM for the screenshot
     const originalTransform = viewportElement.style.transform;
     viewportElement.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`;
 
