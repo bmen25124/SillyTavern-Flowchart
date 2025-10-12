@@ -23,6 +23,7 @@ export const applyWorldInfoEntry = mockFn;
 export const getWorldInfos = mockFn;
 export const buildPrompt = mockFn;
 export const Generator = class { constructor() { return new Proxy({}, { get: () => mockFn }); } };
+export const ExtensionSettingsManager = class { constructor() { return new Proxy({}, { get: () => mockFn }); } };
 
 // Default export for good measure
 export default mockFn;

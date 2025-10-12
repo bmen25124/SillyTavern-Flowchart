@@ -1,9 +1,9 @@
 import { FC } from 'react';
 import { STButton, STInput, STTextarea } from 'sillytavern-utils-lib/components';
-import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import {
   DEFAULT_SETTINGS,
+  settingsManager,
   STRUCTURED_REQUEST_JSON_PROMPT_KEY,
   STRUCTURED_REQUEST_XML_PROMPT_KEY,
 } from '../../config.js';

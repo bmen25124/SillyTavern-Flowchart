@@ -1,9 +1,8 @@
 import { FC, useState } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
-import { settingsManager } from '../Settings.js';
 import { PromptsSettings } from './PromptsSettings.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { DEFAULT_SETTINGS } from '../../config.js';
+import { DEFAULT_SETTINGS, settingsManager } from '../../config.js';
 import { FlowChartGround } from './FlowChartGround.js';
 import { FlowHistory } from './FlowHistory.js';
 import { DebugPanel } from './DebugPanel.js';

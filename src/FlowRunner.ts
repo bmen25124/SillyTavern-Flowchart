@@ -1,13 +1,11 @@
-import { settingsManager } from './components/Settings.js';
 import { EventNameParameters } from './flow-types.js';
 import { sendChatMessage, st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
-import { SpecFlow } from './flow-spec.js';
 import { eventEmitter } from './events.js';
-import { st_updateMessageBlock } from './config.js';
+import { settingsManager, st_updateMessageBlock } from './config.js';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 

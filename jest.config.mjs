@@ -22,6 +22,7 @@ export default {
       {
         // Crucial for ESM support in ts-jest
         useESM: true,
+        // babelConfig: true,
       },
     ],
   },

@@ -42,7 +42,7 @@ import Handlebars from 'handlebars';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
-import { settingsManager } from './components/Settings.js';
+import { settingsManager } from './config.js';
 import {
   MERGE_MESSAGES_HANDLE_PREFIX,
   MERGE_OBJECTS_HANDLE_PREFIX,

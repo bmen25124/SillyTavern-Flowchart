@@ -1,11 +1,8 @@
 import { FC, useCallback } from 'react';
 import { STButton, STInput } from 'sillytavern-utils-lib/components';
-import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
-import { EXTENSION_KEY, ExtensionSettings, DEFAULT_SETTINGS } from '../config.js';
+import { ExtensionSettings, settingsManager } from '../config.js';
 import { useForceUpdate } from '../hooks/useForceUpdate.js';
 import { PopupManager } from './popup/PopupManager.js';
-
-export const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(EXTENSION_KEY, DEFAULT_SETTINGS);
 
 export const FlowChartSettings: FC = () => {
   const forceUpdate = useForceUpdate();

@@ -4,7 +4,7 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { GetPromptNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
-import { settingsManager } from '../Settings.js';
+import { settingsManager } from '../../config.js';
 import { shallow } from 'zustand/shallow';
 
 export type GetPromptNodeProps = NodeProps<Node<GetPromptNodeData>>;

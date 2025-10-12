@@ -1,7 +1,7 @@
 export interface SpecNode {
   id: string;
   type: string;
-  position: { x: number; y: number };
+  position?: { x: number; y: number };
   data: any;
   width?: number | null;
   height?: number | null;

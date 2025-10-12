@@ -15,14 +15,13 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import { useFlowStore } from './flowStore.js';
-import { settingsManager } from '../Settings.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { STButton, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
-import { createDefaultFlow } from '../../config.js';
+import { createDefaultFlow, settingsManager } from '../../config.js';
 import { toPng } from 'html-to-image';
 import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
 import { useDebugStore } from './DebugPanel.js';

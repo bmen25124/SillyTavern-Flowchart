@@ -3,6 +3,7 @@ import { updateMessageBlock } from '../../../../../script.js';
 
 import { SpecFlow, SpecNode } from './flow-spec.js';
 import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
+import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
 
 export enum PromptEngineeringMode {
   NATIVE = 'native',
@@ -67,6 +68,8 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     Default: createDefaultFlow(),
   },
 };
+
+export const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(EXTENSION_KEY, DEFAULT_SETTINGS);
 
 export function st_updateMessageBlock(messageId: number, message: object, { rerenderMessage = true } = {}): void {
   updateMessageBlock(messageId, message, { rerenderMessage });

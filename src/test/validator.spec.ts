@@ -1,9 +1,9 @@
+import { SpecFlow } from '../flow-spec.js';
 import { validateFlow } from '../validator.js';
-import { FlowData } from '../constants.js';
 
 describe('validateFlow', () => {
   it('should return valid for a correct flow', () => {
-    const flow: FlowData = {
+    const flow: SpecFlow = {
       nodes: [
         {
           id: 'start',
@@ -21,7 +21,7 @@ describe('validateFlow', () => {
   });
 
   it('should invalidate a trigger node with an incoming edge', () => {
-    const flow: FlowData = {
+    const flow: SpecFlow = {
       nodes: [
         {
           id: 'start',
@@ -39,7 +39,7 @@ describe('validateFlow', () => {
   });
 
   it('should allow a manual trigger node to have an outgoing edge', () => {
-    const flow: FlowData = {
+    const flow: SpecFlow = {
       nodes: [
         {
           id: 'start',

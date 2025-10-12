@@ -38,7 +38,7 @@ const toSpecNode = (node: Node): SpecNode => ({
 const fromSpecNode = (specNode: SpecNode): Node => ({
   id: specNode.id,
   type: specNode.type,
-  position: specNode.position,
+  position: specNode.position ?? { x: 0, y: 0 },
   data: specNode.data,
   width: specNode.width || undefined,
   height: specNode.height || undefined,

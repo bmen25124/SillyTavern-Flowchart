@@ -1,7 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { settingsManager, FlowChartSettings } from './components/Settings.js';
+import { FlowChartSettings } from './components/Settings.js';
+import { settingsManager } from './config.js';
 
 import { Generator } from 'sillytavern-utils-lib';
 import { st_echo } from 'sillytavern-utils-lib/config';
