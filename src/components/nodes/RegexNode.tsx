@@ -7,6 +7,8 @@ import { STSelect, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/com
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type RegexNodeProps = NodeProps<Node<RegexNodeData>>;
 
@@ -44,6 +46,7 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RegexNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
+  const definition = nodeDefinitionMap.get('regexNode');
 
   useEffect(() => {
     const loadedRegexes = SillyTavern.getContext().extensionSettings.regex ?? [];
@@ -71,7 +74,7 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
     [mode, regexOptions],
   );
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Regex" selected={selected}>
@@ -103,24 +106,24 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
         )}
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
-          <span>Result</span>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="result"
-            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-          />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
-          <span>Matches (Array)</span>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="matches"
-            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-          />
-        </div>
+        {definition.handles.outputs.map((handle) => {
+          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
+          return (
+            <div
+              key={handle.id}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+              title={schemaText}
+            >
+              <span style={{ textTransform: 'capitalize' }}>{handle.id}</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={handle.id!}
+                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+              />
+            </div>
+          );
+        })}
       </div>
     </BaseNode>
   );

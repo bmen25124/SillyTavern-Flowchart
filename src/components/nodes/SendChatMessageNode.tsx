@@ -6,6 +6,8 @@ import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type SendChatMessageNodeProps = NodeProps<Node<SendChatMessageNodeData>>;
 
@@ -31,13 +33,18 @@ const fields = [
 export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SendChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = nodeDefinitionMap.get('sendChatMessageNode');
+  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'messageId');
+  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Send Chat Message" selected={selected}>
       <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <Handle type="source" position={Position.Right} id="messageId" />
+      <div title={schemaText}>
+        <Handle type="source" position={Position.Right} id="messageId" />
+      </div>
     </BaseNode>
   );
 };

@@ -6,6 +6,8 @@ import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type StringNodeProps = NodeProps<Node<StringNodeData>>;
 
@@ -14,13 +16,18 @@ const fields = [createFieldConfig({ id: 'value', label: 'Value', component: STIn
 export const StringNode: FC<StringNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StringNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = nodeDefinitionMap.get('stringNode');
+  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'value');
+  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="String" selected={selected}>
       <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <Handle type="source" position={Position.Right} id="value" />
+      <div title={schemaText}>
+        <Handle type="source" position={Position.Right} id="value" />
+      </div>
     </BaseNode>
   );
 };

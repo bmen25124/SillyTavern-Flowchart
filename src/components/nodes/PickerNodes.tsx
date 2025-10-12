@@ -19,6 +19,9 @@ import {
 import { PromptEngineeringMode } from '../../config.js';
 import { world_names } from 'sillytavern-utils-lib/config';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
+import { HandleSpec } from './definitions/types.js';
 
 // A generic picker for simple, static enum-like values
 const EnumPicker: FC<{
@@ -27,9 +30,10 @@ const EnumPicker: FC<{
   title: string;
   value: string;
   options: readonly { value: string; label: string }[];
-  outputHandleId: string;
+  outputHandle: HandleSpec;
   onUpdate: (value: string) => void;
-}> = ({ id, selected, title, value, options, outputHandleId, onUpdate }) => {
+}> = ({ id, selected, title, value, options, outputHandle, onUpdate }) => {
+  const schemaText = outputHandle.schema ? schemaToText(outputHandle.schema) : outputHandle.type;
   return (
     <BaseNode id={id} title={title} selected={selected}>
       <STSelect className="nodrag" value={value} onChange={(e) => onUpdate(e.target.value)}>
@@ -39,12 +43,15 @@ const EnumPicker: FC<{
           </option>
         ))}
       </STSelect>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
         <span>Value</span>
         <Handle
           type="source"
           position={Position.Right}
-          id={outputHandleId}
+          id={outputHandle.id}
           style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
         />
       </div>
@@ -56,7 +63,12 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickCharacterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickCharacterNode');
+  const outputHandle = definition?.handles.outputs[0];
+  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+
+  if (!data || !outputHandle) return null;
+
   return (
     <BaseNode id={id} title="Pick Character" selected={selected}>
       <STFancyDropdown
@@ -69,7 +81,10 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
         closeOnSelect={true}
         enableSearch={true}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
         <span>Avatar</span>
         <Handle
           type="source"
@@ -90,7 +105,12 @@ export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id
     setLorebookNames(world_names);
   }, []);
   const lorebookOptions = useMemo(() => lorebookNames.map((name) => ({ value: name, label: name })), [lorebookNames]);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickLorebookNode');
+  const outputHandle = definition?.handles.outputs[0];
+  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+
+  if (!data || !outputHandle) return null;
+
   return (
     <BaseNode id={id} title="Pick Lorebook" selected={selected}>
       <STFancyDropdown
@@ -103,7 +123,10 @@ export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id
         closeOnSelect={true}
         enableSearch={true}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
         <span>Name</span>
         <Handle
           type="source"
@@ -123,7 +146,11 @@ export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, se
     const prompts = settingsManager.getSettings().prompts;
     return Object.keys(prompts).map((name) => ({ value: name, label: name }));
   }, []);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickPromptNode');
+  const outputHandle = definition?.handles.outputs[0];
+  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+
+  if (!data || !outputHandle) return null;
   return (
     <BaseNode id={id} title="Pick Prompt" selected={selected}>
       <STFancyDropdown
@@ -136,7 +163,10 @@ export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, se
         closeOnSelect={true}
         enableSearch={true}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
         <span>Name</span>
         <Handle
           type="source"
@@ -157,7 +187,12 @@ export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> =
     setAllRegexes(SillyTavern.getContext().extensionSettings.regex ?? []);
   }, []);
   const regexOptions = useMemo(() => allRegexes.map((r) => ({ value: r.id, label: r.scriptName })), [allRegexes]);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickRegexScriptNode');
+  const outputHandle = definition?.handles.outputs[0];
+  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+
+  if (!data || !outputHandle) return null;
+
   return (
     <BaseNode id={id} title="Pick Regex Script" selected={selected}>
       <STFancyDropdown
@@ -170,7 +205,10 @@ export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> =
         closeOnSelect={true}
         enableSearch={true}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
         <span>ID</span>
         <Handle
           type="source"
@@ -186,7 +224,10 @@ export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> =
 export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickMathOperationNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickMathOperationNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -200,7 +241,7 @@ export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>
         { value: 'divide', label: 'Divide' },
         { value: 'modulo', label: 'Modulo' },
       ]}
-      outputHandleId="operation"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -212,7 +253,10 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
 }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickStringToolsOperationNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickStringToolsOperationNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -224,7 +268,7 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
         { value: 'split', label: 'Split' },
         { value: 'join', label: 'Join' },
       ]}
-      outputHandleId="operation"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -236,7 +280,10 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
 }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickPromptEngineeringModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickPromptEngineeringModeNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -244,7 +291,7 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
       title="Pick Prompt Mode"
       value={data.mode}
       options={Object.values(PromptEngineeringMode).map((mode) => ({ value: mode, label: mode }))}
-      outputHandleId="mode"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -253,7 +300,10 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
 export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRandomModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickRandomModeNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -264,7 +314,7 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
         { value: 'number', label: 'Number' },
         { value: 'array', label: 'From Array' },
       ]}
-      outputHandleId="mode"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -273,7 +323,10 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
 export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRegexModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickRegexModeNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -284,7 +337,7 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
         { value: 'sillytavern', label: 'SillyTavern' },
         { value: 'custom', label: 'Custom' },
       ]}
-      outputHandleId="mode"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -293,7 +346,10 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
 export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTargetNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickTypeConverterTargetNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
+  const definition = nodeDefinitionMap.get('pickTypeConverterTargetNode');
+  const outputHandle = definition?.handles.outputs[0];
+
+  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -306,7 +362,7 @@ export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTar
         { value: 'object', label: 'Object (from JSON)' },
         { value: 'array', label: 'Array (from JSON)' },
       ]}
-      outputHandleId="type"
+      outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { targetType: value as any })}
     />
   );

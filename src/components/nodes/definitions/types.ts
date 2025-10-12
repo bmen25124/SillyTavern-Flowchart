@@ -49,7 +49,7 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * Optional function to get a list of dynamic handles based on the node's data.
    * This is used by the UI to suggest compatible nodes when creating new connections.
    */
-  getDynamicHandles?: (data: T) => { inputs: HandleSpec[]; outputs: HandleSpec[] };
+  getDynamicHandles?: (data: T, allNodes: Node[], allEdges: Edge[]) => { inputs: HandleSpec[]; outputs: HandleSpec[] };
   /**
    * Generates a unique ID for a dynamic handle based on an index.
    */

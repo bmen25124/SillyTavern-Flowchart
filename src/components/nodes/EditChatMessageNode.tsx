@@ -6,6 +6,8 @@ import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type EditChatMessageNodeProps = NodeProps<Node<EditChatMessageNodeData>>;
 
@@ -28,13 +30,18 @@ const fields = [
 export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = nodeDefinitionMap.get('editChatMessageNode');
+  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'messageObject');
+  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Edit Chat Message" selected={selected}>
       <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <Handle type="source" position={Position.Right} id="messageObject" />
+      <div title={schemaText}>
+        <Handle type="source" position={Position.Right} id="messageObject" />
+      </div>
     </BaseNode>
   );
 };

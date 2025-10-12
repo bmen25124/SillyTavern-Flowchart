@@ -53,7 +53,7 @@ function computeCompatibilityMap() {
     const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
     const sourceHandles = [
       ...sourceDef.handles.outputs,
-      ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode.data).outputs : []),
+      ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode.data, [], []).outputs : []),
     ];
 
     for (const sourceHandle of sourceHandles) {
@@ -62,7 +62,7 @@ function computeCompatibilityMap() {
         const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
         const targetHandles = [
           ...targetDef.handles.inputs,
-          ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode.data).inputs : []),
+          ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode.data, [], []).inputs : []),
         ];
 
         for (const targetHandle of targetHandles) {
@@ -98,7 +98,7 @@ function computeCompatibilityMap() {
     const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
     const targetHandles = [
       ...targetDef.handles.inputs,
-      ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode.data).inputs : []),
+      ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode.data, [], []).inputs : []),
     ];
 
     for (const targetHandle of targetHandles) {
@@ -107,7 +107,7 @@ function computeCompatibilityMap() {
         const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
         const sourceHandles = [
           ...sourceDef.handles.outputs,
-          ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode.data).outputs : []),
+          ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode.data, [], []).outputs : []),
         ];
 
         for (const sourceHandle of sourceHandles) {

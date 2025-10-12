@@ -7,6 +7,8 @@ import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type GetLorebookNodeProps = NodeProps<Node<GetLorebookNodeData>>;
 
@@ -31,6 +33,9 @@ export const GetLorebookNode: FC<GetLorebookNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
+  const definition = nodeDefinitionMap.get('getLorebookNode');
+  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'entries');
+  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   useEffect(() => {
     getWorldInfos(['all']).then((worlds) => {
@@ -57,7 +62,7 @@ export const GetLorebookNode: FC<GetLorebookNodeProps> = ({ id, selected }) => {
     <BaseNode id={id} title="Get Lorebook" selected={selected}>
       <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title={schemaText}>
           <span>Entries (Array)</span>
           <Handle
             type="source"
