@@ -13,12 +13,14 @@ import {
   PickPromptNodeData,
   PickRandomModeNodeData,
   PickRegexModeNodeData,
+  PickRegexScriptNodeData,
   PickStringToolsOperationNodeData,
   PickTypeConverterTargetNodeData,
   PickVariableScopeNodeData,
 } from '../../flow-types.js';
 import { PromptEngineeringMode } from '../../config.js';
 import { world_names } from 'sillytavern-utils-lib/config';
+import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
 
 // A generic picker for simple, static enum-like values
 const EnumPicker: FC<{
@@ -157,6 +159,45 @@ export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, se
           type="source"
           position={Position.Right}
           id="name"
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+        />
+      </div>
+    </BaseNode>
+  );
+};
+
+export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> = ({ id, selected }) => {
+  const { data, updateNodeData } = useFlowStore(
+    (state) => ({
+      data: state.nodes.find((n) => n.id === id)?.data as PickRegexScriptNodeData,
+      updateNodeData: state.updateNodeData,
+    }),
+    shallow,
+  );
+  const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
+  useEffect(() => {
+    setAllRegexes(SillyTavern.getContext().extensionSettings.regex ?? []);
+  }, []);
+  const regexOptions = useMemo(() => allRegexes.map((r) => ({ value: r.id, label: r.scriptName })), [allRegexes]);
+  if (!data) return null;
+  return (
+    <BaseNode id={id} title="Pick Regex Script" selected={selected}>
+      <STFancyDropdown
+        value={[data.scriptId ?? '']}
+        onChange={(e) => updateNodeData(id, { scriptId: e[0] })}
+        multiple={false}
+        items={regexOptions}
+        inputClasses="nodrag"
+        containerClasses="nodrag"
+        closeOnSelect={true}
+        enableSearch={true}
+      />
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
+        <span>ID</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="id"
           style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
         />
       </div>

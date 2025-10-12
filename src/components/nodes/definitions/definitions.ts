@@ -100,6 +100,8 @@ import {
   PickRegexModeNodeDataSchema,
   PickTypeConverterTargetNodeData,
   PickTypeConverterTargetNodeDataSchema,
+  PickRegexScriptNodeData,
+  PickRegexScriptNodeDataSchema,
 } from '../../../flow-types.js';
 import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -394,12 +396,17 @@ const customMessageNodeDefinition: BaseNodeDefinition<CustomMessageNodeData> = {
   initialData: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   getDynamicHandles: (data) => ({
-    inputs: data.messages.map((m) => ({ id: m.id, type: FlowDataType.STRING })),
+    inputs: data.messages.flatMap((m) => [
+      { id: m.id, type: FlowDataType.STRING },
+      { id: `${m.id}_role`, type: FlowDataType.STRING },
+    ]),
     outputs: [],
   }),
   getHandleType: ({ handleId, handleDirection, node }) => {
-    if (handleDirection === 'input') {
-      if ((node.data as CustomMessageNodeData).messages.some((m) => m.id === handleId)) return FlowDataType.STRING;
+    if (handleDirection === 'input' && handleId) {
+      const isRoleHandle = handleId.endsWith('_role');
+      const msgId = isRoleHandle ? handleId.slice(0, -5) : handleId;
+      if ((node.data as CustomMessageNodeData).messages.some((m) => m.id === msgId)) return FlowDataType.STRING;
     }
     return undefined;
   },
@@ -812,6 +819,14 @@ const pickPromptNodeDefinition: BaseNodeDefinition<PickPromptNodeData> = {
   initialData: { promptName: '' },
   handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
 };
+const pickRegexScriptNodeDefinition: BaseNodeDefinition<PickRegexScriptNodeData> = {
+  type: 'pickRegexScriptNode',
+  label: 'Pick Regex Script',
+  category: 'Picker',
+  dataSchema: PickRegexScriptNodeDataSchema,
+  initialData: { scriptId: '' },
+  handles: { inputs: [], outputs: [{ id: 'id', type: FlowDataType.STRING }] },
+};
 const pickMathOperationNodeDefinition: BaseNodeDefinition<PickMathOperationNodeData> = {
   type: 'pickMathOperationNode',
   label: 'Pick Math Operation',
@@ -912,6 +927,7 @@ export const baseNodeDefinitions: BaseNodeDefinition[] = [
   pickCharacterNodeDefinition,
   pickLorebookNodeDefinition,
   pickPromptNodeDefinition,
+  pickRegexScriptNodeDefinition,
   pickMathOperationNodeDefinition,
   pickStringToolsOperationNodeDefinition,
   pickVariableScopeNodeDefinition,

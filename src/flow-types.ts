@@ -335,6 +335,11 @@ export const PickPromptNodeDataSchema = z.object({
 });
 export type PickPromptNodeData = z.infer<typeof PickPromptNodeDataSchema>;
 
+export const PickRegexScriptNodeDataSchema = z.object({
+  scriptId: z.string().default(''),
+});
+export type PickRegexScriptNodeData = z.infer<typeof PickRegexScriptNodeDataSchema>;
+
 export const PickMathOperationNodeDataSchema = z.object({
   operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
 });

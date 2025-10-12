@@ -48,6 +48,7 @@ import {
   PickRandomModeNodeDataSchema,
   PickRegexModeNodeDataSchema,
   PickTypeConverterTargetNodeDataSchema,
+  PickRegexScriptNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -218,6 +219,7 @@ export class LowLevelFlowRunner {
       pickCharacterNode: this.executePickCharacterNode.bind(this),
       pickLorebookNode: this.executePickLorebookNode.bind(this),
       pickPromptNode: this.executePickPromptNode.bind(this),
+      pickRegexScriptNode: this.executePickRegexScriptNode.bind(this),
       pickMathOperationNode: this.executePickMathOperationNode.bind(this),
       pickStringToolsOperationNode: this.executePickStringToolsOperationNode.bind(this),
       pickVariableScopeNode: this.executePickVariableScopeNode.bind(this),
@@ -464,7 +466,7 @@ export class LowLevelFlowRunner {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
     return parseResult.data.messages.map(({ id, role, content }) => ({
-      role,
+      role: this.resolveInput(input, { [`${id}_role`]: role }, `${id}_role`),
       content: this.resolveInput(input, { [id]: content }, id),
     }));
   }
@@ -1164,6 +1166,10 @@ export class LowLevelFlowRunner {
   private async executePickPromptNode(node: SpecNode): Promise<any> {
     const data = PickPromptNodeDataSchema.parse(node.data);
     return { name: data.promptName };
+  }
+  private async executePickRegexScriptNode(node: SpecNode): Promise<any> {
+    const data = PickRegexScriptNodeDataSchema.parse(node.data);
+    return { id: data.scriptId };
   }
   private async executePickMathOperationNode(node: SpecNode): Promise<any> {
     const data = PickMathOperationNodeDataSchema.parse(node.data);

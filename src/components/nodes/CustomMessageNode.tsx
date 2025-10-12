@@ -39,23 +39,39 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) 
     updateNodeData(id, { messages: newMessages });
   };
 
-  const isContentConnected = (msgId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === msgId);
+  const isConnected = (handleId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === handleId);
 
   return (
     <BaseNode id={id} title="Custom Messages" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {(data.messages || []).map((msg) => (
           <div key={msg.id} style={{ border: '1px solid #555', padding: '5px', borderRadius: '4px' }}>
-            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', marginBottom: '5px' }}>
-              <STSelect
-                className="nodrag"
-                value={msg.role}
-                onChange={(e) => handleMessageChange(msg.id, 'role', e.target.value as 'system' | 'user' | 'assistant')}
-              >
-                <option value="system">system</option>
-                <option value="user">user</option>
-                <option value="assistant">assistant</option>
-              </STSelect>
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}
+            >
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id={`${msg.id}_role`}
+                  style={{ top: '50%', transform: 'translateY(-50%)' }}
+                />
+                {!isConnected(`${msg.id}_role`) ? (
+                  <STSelect
+                    className="nodrag"
+                    value={msg.role}
+                    onChange={(e) =>
+                      handleMessageChange(msg.id, 'role', e.target.value as 'system' | 'user' | 'assistant')
+                    }
+                  >
+                    <option value="system">system</option>
+                    <option value="user">user</option>
+                    <option value="assistant">assistant</option>
+                  </STSelect>
+                ) : (
+                  <span style={{ marginLeft: '10px', fontSize: '10px', color: '#888' }}>Role from connection</span>
+                )}
+              </div>
               <STButton onClick={() => removeMessage(msg.id)}>Remove</STButton>
             </div>
             <div style={{ position: 'relative' }}>
@@ -65,7 +81,7 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) 
                 id={msg.id}
                 style={{ top: '50%', transform: 'translateY(-50%)' }}
               />
-              {!isContentConnected(msg.id) ? (
+              {!isConnected(msg.id) ? (
                 <STTextarea
                   className="nodrag"
                   value={msg.content}
