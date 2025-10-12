@@ -569,11 +569,12 @@ export class LowLevelFlowRunner {
     const staticData = parseResult.data;
 
     const template = this.resolveInput(input, staticData, 'template');
-    const data = input.data ?? {};
+    const context = { ...input };
+    delete context.template;
 
     try {
       const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
-      return { result: compiled({ ...input, data }) }; // Make all inputs available
+      return { result: compiled(context) };
     } catch (e: any) {
       throw new Error(`Error executing handlebar template: ${e.message}`);
     }
