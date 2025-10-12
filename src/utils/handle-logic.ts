@@ -15,7 +15,7 @@ export function getHandleSpec(
 
   // Check dynamic handles first
   if (definition.getDynamicHandles) {
-    const dynamicHandles = definition.getDynamicHandles(node.data, allNodes, allEdges);
+    const dynamicHandles = definition.getDynamicHandles(node, allNodes, allEdges);
     const handle = (direction === 'input' ? dynamicHandles.inputs : dynamicHandles.outputs).find(
       (h) => h.id === handleId,
     );

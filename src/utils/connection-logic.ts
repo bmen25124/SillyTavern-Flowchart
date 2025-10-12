@@ -38,13 +38,21 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     return false;
   }
 
+  // Allow connections to/from ANY type
   if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
     return true;
   }
+
+  // Allow PROFILE_ID to be used as a STRING
   if (
     (targetHandleType === FlowDataType.PROFILE_ID && sourceHandleType === FlowDataType.STRING) ||
     (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID)
   ) {
+    return true;
+  }
+
+  // Allow a STRUCTURED_RESULT to be used as an OBJECT for context, etc.
+  if (targetHandleType === FlowDataType.OBJECT && sourceHandleType === FlowDataType.STRUCTURED_RESULT) {
     return true;
   }
 

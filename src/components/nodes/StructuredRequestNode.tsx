@@ -9,6 +9,8 @@ import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import { useIsConnected } from '../../hooks/useIsConnected.js';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
 
@@ -52,23 +54,28 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StructuredRequestNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const allNodes = useFlowStore((state) => state.nodes);
+  const currentNode = useFlowStore((state) => state.nodesMap.get(id));
   const edges = useEdges();
 
   const isMessagesConnected = useIsConnected(id, 'messages');
   const isSchemaConnected = useIsConnected(id, 'schema');
 
-  const schemaFields = useMemo(() => {
-    const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
-    if (!schemaEdge) return [];
+  const outputHandles = useMemo(() => {
+    if (!currentNode) return [];
+    const definition = nodeDefinitionMap.get(currentNode.type!);
+    if (!definition) return [];
 
-    const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode?.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
-      return schemaNode.data.fields;
-    }
-    return [];
-  }, [id, edges, allNodes]);
+    const dynamicHandles = definition.getDynamicHandles
+      ? definition.getDynamicHandles(currentNode, allNodes, edges)
+      : { inputs: [], outputs: [] };
 
-  if (!data) return null;
+    // Combine static and dynamic handles, ensuring dynamic ones override static ones if they share an ID.
+    const staticHandles = definition.handles.outputs.filter(
+      (staticHandle) => !dynamicHandles.outputs.some((dynamicHandle) => dynamicHandle.id === staticHandle.id),
+    );
+
+    return [...staticHandles, ...dynamicHandles.outputs];
+  }, [currentNode, allNodes, edges]);
 
   const dynamicFields = useMemo(
     () =>
@@ -78,7 +85,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             ...field,
             props: {
               ...field.props,
-              initialSelectedProfileId: data.profileId,
+              initialSelectedProfileId: data?.profileId,
               onChange: (profile?: ConnectionProfile) => {
                 updateNodeData(id, { profileId: profile?.id || '' });
               },
@@ -90,14 +97,16 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             ...field,
             props: {
               ...field.props,
-              value: data.promptEngineeringMode ?? PromptEngineeringMode.NATIVE,
+              value: data?.promptEngineeringMode ?? PromptEngineeringMode.NATIVE,
             },
           };
         }
         return field;
       }),
-    [data.profileId, data.promptEngineeringMode, updateNodeData, id],
+    [data?.profileId, data?.promptEngineeringMode, updateNodeData, id],
   );
+
+  if (!data) return null;
 
   return (
     <BaseNode id={id} title="Structured Request" selected={selected}>
@@ -127,29 +136,26 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-          <span>Result (Full Object)</span>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="result"
-            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-          />
-        </div>
-        {schemaFields.map((field: any) => (
-          <div
-            key={field.id}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
-          >
-            <span>{field.name}</span>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={field.name}
-              style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-            />
-          </div>
-        ))}
+        {outputHandles.map((handle) => {
+          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
+          const label = handle.id === 'result' ? 'Result (Full Object)' : handle.id;
+
+          return (
+            <div
+              key={handle.id}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+              title={schemaText}
+            >
+              <span>{label}</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={handle.id!}
+                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+              />
+            </div>
+          );
+        })}
       </div>
     </BaseNode>
   );

@@ -272,7 +272,8 @@ const triggerNodeDefinition: BaseNodeDefinition<TriggerNodeData> = {
   dataSchema: TriggerNodeDataSchema,
   initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED },
   handles: { inputs: [], outputs: [] },
-  getDynamicHandles: (data, _allNodes, _allEdges) => {
+  getDynamicHandles: (node, _allNodes, _allEdges) => {
+    const { data } = node;
     const eventParams = EventNameParameters[data.selectedEventType];
     if (!eventParams) return { inputs: [], outputs: [] };
     const outputs = Object.keys(eventParams).map((paramName) => ({
@@ -343,10 +344,10 @@ const jsonNodeDefinition: BaseNodeDefinition<JsonNodeData> = {
   dataSchema: JsonNodeDataSchema,
   initialData: { items: [], rootType: 'object' },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
-  getDynamicHandles: (data, _allNodes, _allEdges) => {
+  getDynamicHandles: (node, _allNodes, _allEdges) => {
     return {
       inputs: [],
-      outputs: [{ id: null, type: FlowDataType.OBJECT, schema: inferSchemaFromJsonNode(data) }],
+      outputs: [{ id: null, type: FlowDataType.OBJECT, schema: inferSchemaFromJsonNode(node.data) }],
     };
   },
 };
@@ -369,9 +370,9 @@ const ifNodeDefinition: BaseNodeDefinition<IfNodeData> = {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: 'false', type: FlowDataType.ANY }],
   },
-  getDynamicHandles: (data, _allNodes, _allEdges) => ({
+  getDynamicHandles: (node, _allNodes, _allEdges) => ({
     inputs: [],
-    outputs: data.conditions.map((c) => ({ id: c.id, type: FlowDataType.ANY })),
+    outputs: node.data.conditions.map((c) => ({ id: c.id, type: FlowDataType.ANY })),
   }),
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output') {
@@ -478,8 +479,8 @@ const customMessageNodeDefinition: BaseNodeDefinition<CustomMessageNodeData> = {
   dataSchema: CustomMessageNodeDataSchema,
   initialData: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
-  getDynamicHandles: (data, _allNodes, _allEdges) => ({
-    inputs: data.messages.flatMap((m) => [
+  getDynamicHandles: (node, _allNodes, _allEdges) => ({
+    inputs: node.data.messages.flatMap((m) => [
       { id: m.id, type: FlowDataType.STRING },
       { id: `${m.id}_role`, type: FlowDataType.STRING },
     ]),
@@ -503,9 +504,9 @@ const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) ?? false,
-  getDynamicHandles: (data, _allNodes, _allEdges) => {
+  getDynamicHandles: (node, _allNodes, _allEdges) => {
     const inputs = [];
-    for (let i = 0; i < data.inputCount; i++) {
+    for (let i = 0; i < node.data.inputCount; i++) {
       inputs.push({ id: `${MERGE_MESSAGES_HANDLE_PREFIX}${i}`, type: FlowDataType.MESSAGES });
     }
     return { inputs, outputs: [] };
@@ -536,11 +537,11 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
     ],
     outputs: [{ id: 'result', type: FlowDataType.STRUCTURED_RESULT }],
   },
-  getDynamicHandles: (data, allNodes: Node[], allEdges: Edge[]) => {
-    const schemaEdge = allEdges.find(
-      (edge) => edge.target === 'temp-structuredRequestNode' && edge.targetHandle === 'schema',
-    );
-    if (!schemaEdge) return { inputs: [], outputs: [] };
+  getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
+    const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
+    if (!schemaEdge) {
+      return { inputs: [], outputs: [] };
+    }
 
     const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
@@ -548,33 +549,50 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
     }
 
     const schema = buildZodSchemaFromFields(schemaNode.data.fields);
+
+    // The main result object, now with its schema defined.
     const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema };
 
+    // Individual handles for each field in the schema.
     const fieldHandles = (schemaNode.data.fields as FieldDefinition[]).map((field) => ({
       id: field.name,
       type: zodTypeToFlowType(buildZodSchema(field)),
       schema: buildZodSchema(field),
     }));
 
+    // Return both the main result and the destructured fields.
     return { inputs: [], outputs: [resultHandle, ...fieldHandles] };
   },
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
-    if (handleDirection === 'output') {
-      const schemaEdge = edges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-      if (!schemaEdge) return FlowDataType.ANY;
-      const schemaNode = nodes.find((n) => n.id === schemaEdge.source);
-      if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return FlowDataType.ANY;
-
-      if (handleId === 'result') {
-        return FlowDataType.STRUCTURED_RESULT;
-      }
-
-      const field = schemaNode.data.fields.find((f: any) => f.name === handleId);
-      if (!field) return undefined;
-
-      return zodTypeToFlowType(buildZodSchema(field));
+    if (handleDirection !== 'output') {
+      return undefined;
     }
-    return undefined;
+
+    // The 'result' handle is static and always valid. Its schema is inferred dynamically.
+    if (handleId === 'result') {
+      return FlowDataType.STRUCTURED_RESULT;
+    }
+
+    // For any other (dynamic) handle, we must have a valid connected schema.
+    const schemaEdge = edges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
+    if (!schemaEdge) {
+      // A dynamic handle was requested, but no schema is connected.
+      return undefined;
+    }
+
+    const schemaNode = nodes.find((n) => n.id === schemaEdge.source);
+    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
+      // The connected node is not a valid schema node.
+      return undefined;
+    }
+
+    const field = schemaNode.data.fields.find((f: any) => f.name === handleId);
+    if (!field) {
+      // The handle ID does not match any field in the connected schema.
+      return undefined;
+    }
+
+    return zodTypeToFlowType(buildZodSchema(field));
   },
 };
 const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> = {
@@ -670,9 +688,9 @@ const mergeObjectsNodeDefinition: BaseNodeDefinition<MergeObjectsNodeData> = {
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
-  getDynamicHandles: (data, _allNodes, _allEdges) => {
+  getDynamicHandles: (node, _allNodes, _allEdges) => {
     const inputs = [];
-    for (let i = 0; i < data.inputCount; i++) {
+    for (let i = 0; i < node.data.inputCount; i++) {
       inputs.push({ id: `${MERGE_OBJECTS_HANDLE_PREFIX}${i}`, type: FlowDataType.OBJECT });
     }
     return { inputs, outputs: [] };
@@ -752,7 +770,8 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
   },
   getDynamicHandleId: (index: number) => `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX) ?? false,
-  getDynamicHandles: (data, _allNodes, _allEdges) => {
+  getDynamicHandles: (node, _allNodes, _allEdges) => {
+    const { data } = node;
     const inputs = [];
     if (data.operation === 'merge') {
       for (let i = 0; i < (data.inputCount ?? 2); i++) {
