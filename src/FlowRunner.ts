@@ -103,6 +103,7 @@ class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
+  private isExecuting: boolean = false;
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner({
@@ -190,34 +191,45 @@ class FlowRunner {
   }
 
   private async executeFlow(flowId: string, initialInput: Record<string, any>) {
-    const settings = settingsManager.getSettings();
-    const flow = settings.flows[flowId];
-    if (!flow) {
-      console.error(`[FlowChart] Flow with id ${flowId} not found.`);
+    if (this.isExecuting) {
+      console.log(`[FlowChart] Another flow is already running. Ignoring trigger for flow "${flowId}".`);
+      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowId}" was ignored.`);
       return;
     }
+    this.isExecuting = true;
 
-    const runId = crypto.randomUUID();
-    eventEmitter.emit('flow:run:start', { runId });
+    try {
+      const settings = settingsManager.getSettings();
+      const flow = settings.flows[flowId];
+      if (!flow) {
+        console.error(`[FlowChart] Flow with id ${flowId} not found.`);
+        return;
+      }
 
-    const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput);
+      const runId = crypto.randomUUID();
+      eventEmitter.emit('flow:run:start', { runId });
 
-    if (report.error) {
-      st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
-      eventEmitter.emit('flow:run:end', { runId, status: 'error' });
-    } else {
-      eventEmitter.emit('flow:run:end', { runId, status: 'completed' });
+      const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput);
+
+      if (report.error) {
+        st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
+        eventEmitter.emit('flow:run:end', { runId, status: 'error' });
+      } else {
+        eventEmitter.emit('flow:run:end', { runId, status: 'completed' });
+      }
+
+      const sanitizedReport = sanitizeReportForHistory(report);
+      executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
+
+      if (executionHistory.length > MAX_HISTORY_LENGTH) {
+        executionHistory.pop();
+      }
+      saveHistory(executionHistory);
+
+      return report;
+    } finally {
+      this.isExecuting = false;
     }
-
-    const sanitizedReport = sanitizeReportForHistory(report);
-    executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
-
-    if (executionHistory.length > MAX_HISTORY_LENGTH) {
-      executionHistory.pop();
-    }
-    saveHistory(executionHistory);
-
-    return report;
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
