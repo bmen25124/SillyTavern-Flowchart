@@ -72,6 +72,7 @@ describe('LowLevelFlowRunner', () => {
     };
 
     const report = await runner.executeFlow(flow, new Map(), { initial: 'input' });
+    expect(report.error).toBeUndefined();
     expect(report.executedNodes).toHaveLength(2);
     expect(report.executedNodes[0].nodeId).toBe('start');
     expect(report.executedNodes[1].output).toEqual({ value: 'hello' });
@@ -95,6 +96,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(report.executedNodes.length).toBe(2);
     const groupNodeReport = report.executedNodes.find((n) => n.nodeId === 'group');
     expect(groupNodeReport).toBeDefined();
@@ -119,6 +121,7 @@ describe('LowLevelFlowRunner', () => {
     };
 
     const report = await runner.executeFlow(flow, new Map(), { value: 5 });
+    expect(report.error).toBeUndefined();
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
     expect(executedNodeIds).toContain('if');
     expect(executedNodeIds).not.toContain('trueNode');
@@ -147,7 +150,8 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
     const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
     expect(mockCallArgs[0]).toBe('test-profile');
@@ -174,6 +178,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual([
       { role: 'user', content: 'A' },
@@ -194,7 +199,8 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(dependencies.createCharacter).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'New Char', description: 'A description', tags: ['tag1', 'tag2'] }),
     );
@@ -212,7 +218,8 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(dependencies.saveCharacter).toHaveBeenCalledWith({ ...mockCharacter, description: 'New Description' });
   });
 
@@ -222,6 +229,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const charNodeReport = report.executedNodes.find((n) => n.nodeId === 'getChar');
     expect(charNodeReport?.output.name).toBe('Test Character');
     expect(charNodeReport?.output.result.name).toBe('Test Character');
@@ -251,6 +259,7 @@ describe('LowLevelFlowRunner', () => {
     };
 
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const jsonNodeReport = report.executedNodes.find((n) => n.nodeId === 'json');
     expect(jsonNodeReport?.output).toEqual({ name: 'John', age: 30, address: { city: 'New York' } });
   });
@@ -277,6 +286,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual({ a: 99, b: 2 });
   });
@@ -289,12 +299,13 @@ describe('LowLevelFlowRunner', () => {
           type: 'jsonNode',
           data: { items: [{ id: '1', key: 'name', value: 'SillyTavern', type: 'string' }] },
         },
-        { id: 'template', type: 'handlebarNode', data: { template: 'Hello, {{name}}!' } },
+        { id: 'template', type: 'handlebarNode', data: { template: 'Hello, {{data.name}}!' } },
       ],
       edges: [{ id: 'e1', source: 'data', target: 'template', sourceHandle: null, targetHandle: 'data' }],
     };
 
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const handlebarNodeReport = report.executedNodes.find((n) => n.nodeId === 'template');
     expect(handlebarNodeReport?.output).toEqual({ result: 'Hello, SillyTavern!' });
   });
@@ -313,6 +324,7 @@ describe('LowLevelFlowRunner', () => {
     };
 
     const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const customNodeReport = report.executedNodes.find((n) => n.nodeId === 'custom');
     expect(customNodeReport?.output).toEqual([{ role: 'user', content: 'Dynamic Content' }]);
   });
@@ -322,7 +334,8 @@ describe('LowLevelFlowRunner', () => {
       nodes: [{ id: 'create', type: 'createLorebookNode', data: { worldName: 'My Lore' } }],
       edges: [],
     };
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My Lore');
   });
 
@@ -338,7 +351,8 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
       entry: expect.objectContaining({ key: ['key1', 'key2'], content: 'This is the content.' }),
       selectedWorldName: 'My Lore',
@@ -369,7 +383,8 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    await runner.executeFlow(flow, new Map(), {});
+    const report = await runner.executeFlow(flow, new Map(), {});
+    expect(report.error).toBeUndefined();
     const updatedEntry = { ...mockEntry, content: 'New Content' };
     expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
       entry: updatedEntry,
