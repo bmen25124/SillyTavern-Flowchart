@@ -38,6 +38,16 @@ import {
   RegexNodeDataSchema,
   RunSlashCommandNodeDataSchema,
   TypeConverterNodeDataSchema,
+  PickCharacterNodeDataSchema,
+  PickLorebookNodeDataSchema,
+  PickPromptNodeDataSchema,
+  PickMathOperationNodeDataSchema,
+  PickStringToolsOperationNodeDataSchema,
+  PickVariableScopeNodeDataSchema,
+  PickPromptEngineeringModeNodeDataSchema,
+  PickRandomModeNodeDataSchema,
+  PickRegexModeNodeDataSchema,
+  PickTypeConverterTargetNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -205,6 +215,16 @@ export class LowLevelFlowRunner {
       regexNode: this.executeRegexNode.bind(this),
       runSlashCommandNode: this.executeRunSlashCommandNode.bind(this),
       typeConverterNode: this.executeTypeConverterNode.bind(this),
+      pickCharacterNode: this.executePickCharacterNode.bind(this),
+      pickLorebookNode: this.executePickLorebookNode.bind(this),
+      pickPromptNode: this.executePickPromptNode.bind(this),
+      pickMathOperationNode: this.executePickMathOperationNode.bind(this),
+      pickStringToolsOperationNode: this.executePickStringToolsOperationNode.bind(this),
+      pickVariableScopeNode: this.executePickVariableScopeNode.bind(this),
+      pickPromptEngineeringModeNode: this.executePickPromptEngineeringModeNode.bind(this),
+      pickRandomModeNode: this.executePickRandomModeNode.bind(this),
+      pickRegexModeNode: this.executePickRegexModeNode.bind(this),
+      pickTypeConverterTargetNode: this.executePickTypeConverterTargetNode.bind(this),
     };
   }
 
@@ -351,12 +371,12 @@ export class LowLevelFlowRunner {
     return input[key as string] ?? staticData[key];
   }
 
-  private async executeGetPromptNode(node: SpecNode): Promise<any> {
+  private async executeGetPromptNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = GetPromptNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { promptName } = parseResult.data;
+    const promptName = this.resolveInput(input, parseResult.data, 'promptName');
 
-    if (!promptName) throw new Error('Prompt name not selected.');
+    if (!promptName) throw new Error('Prompt name not provided.');
 
     const settings = settingsManager.getSettings();
     const prompt = settings.prompts[promptName];
@@ -373,7 +393,9 @@ export class LowLevelFlowRunner {
   ): Promise<any> {
     const parseResult = SetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { variableName, scope } = parseResult.data;
+
+    const variableName = this.resolveInput(input, parseResult.data, 'variableName');
+    const scope = this.resolveInput(input, parseResult.data, 'scope');
     const value = input.value;
 
     if (!variableName) throw new Error('Variable name is required.');
@@ -386,12 +408,13 @@ export class LowLevelFlowRunner {
 
   private async executeGetVariableNode(
     node: SpecNode,
-    _input: Record<string, any>,
+    input: Record<string, any>,
     context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = GetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { variableName, scope } = parseResult.data;
+    const variableName = this.resolveInput(input, parseResult.data, 'variableName');
+    const scope = this.resolveInput(input, parseResult.data, 'scope');
 
     if (!variableName) throw new Error('Variable name is required.');
 
@@ -602,7 +625,7 @@ export class LowLevelFlowRunner {
     const profileId = this.resolveInput(input, staticData, 'profileId');
     const schemaName = this.resolveInput(input, staticData, 'schemaName');
     const maxResponseToken = this.resolveInput(input, staticData, 'maxResponseToken');
-    const { promptEngineeringMode } = staticData;
+    const promptEngineeringMode = this.resolveInput(input, staticData, 'promptEngineeringMode');
     const { messages, schema } = input;
 
     if (!profileId || !schema || !messages || maxResponseToken === undefined) {
@@ -945,7 +968,7 @@ export class LowLevelFlowRunner {
     const parseResult = RandomNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
-    const mode = staticData.mode;
+    const mode = this.resolveInput(input, staticData, 'mode') ?? 'number';
 
     if (mode === 'number') {
       const min = this.resolveInput(input, staticData, 'min') ?? 0;
@@ -964,7 +987,7 @@ export class LowLevelFlowRunner {
   private async executeStringToolsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = StringToolsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { operation } = parseResult.data;
+    const operation = this.resolveInput(input, parseResult.data, 'operation') ?? 'merge';
     const delimiter = this.resolveInput(input, parseResult.data, 'delimiter') ?? '';
 
     switch (operation) {
@@ -991,7 +1014,7 @@ export class LowLevelFlowRunner {
     const parseResult = MathNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
-    const { operation } = staticData;
+    const operation = this.resolveInput(input, staticData, 'operation') ?? 'add';
     const a = this.resolveInput(input, staticData, 'a') ?? 0;
     const b = this.resolveInput(input, staticData, 'b') ?? 0;
 
@@ -1018,7 +1041,10 @@ export class LowLevelFlowRunner {
   private async executeRegexNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = RegexNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { mode, scriptId, findRegex, replaceString } = parseResult.data;
+    const staticData = parseResult.data;
+    const mode = this.resolveInput(input, staticData, 'mode') ?? 'sillytavern';
+    const scriptId = this.resolveInput(input, staticData, 'scriptId');
+    const { findRegex, replaceString } = staticData;
     const inputString = input.string ?? '';
     if (typeof inputString !== 'string') throw new Error('Input must be a string.');
 
@@ -1027,7 +1053,7 @@ export class LowLevelFlowRunner {
     let finalFindRegex: string | undefined;
 
     if (mode === 'sillytavern') {
-      if (!scriptId) throw new Error('SillyTavern Regex ID is not selected.');
+      if (!scriptId) throw new Error('SillyTavern Regex ID is not provided.');
       const { extensionSettings } = this.dependencies.getSillyTavernContext();
       const script = (extensionSettings.regex ?? []).find((r: any) => r.id === scriptId);
       if (!script) throw new Error(`Regex with ID "${scriptId}" not found.`);
@@ -1078,7 +1104,7 @@ export class LowLevelFlowRunner {
   private async executeTypeConverterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = TypeConverterNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { targetType } = parseResult.data;
+    const targetType = this.resolveInput(input, parseResult.data, 'targetType') ?? 'string';
     const value = input.value;
 
     if (value === undefined) {
@@ -1124,5 +1150,47 @@ export class LowLevelFlowRunner {
     } catch (e: any) {
       throw new Error(`Type conversion failed: ${e.message}`);
     }
+  }
+
+  // Picker Node Executors
+  private async executePickCharacterNode(node: SpecNode): Promise<any> {
+    const data = PickCharacterNodeDataSchema.parse(node.data);
+    return { avatar: data.characterAvatar };
+  }
+  private async executePickLorebookNode(node: SpecNode): Promise<any> {
+    const data = PickLorebookNodeDataSchema.parse(node.data);
+    return { name: data.worldName };
+  }
+  private async executePickPromptNode(node: SpecNode): Promise<any> {
+    const data = PickPromptNodeDataSchema.parse(node.data);
+    return { name: data.promptName };
+  }
+  private async executePickMathOperationNode(node: SpecNode): Promise<any> {
+    const data = PickMathOperationNodeDataSchema.parse(node.data);
+    return { operation: data.operation };
+  }
+  private async executePickStringToolsOperationNode(node: SpecNode): Promise<any> {
+    const data = PickStringToolsOperationNodeDataSchema.parse(node.data);
+    return { operation: data.operation };
+  }
+  private async executePickVariableScopeNode(node: SpecNode): Promise<any> {
+    const data = PickVariableScopeNodeDataSchema.parse(node.data);
+    return { scope: data.scope };
+  }
+  private async executePickPromptEngineeringModeNode(node: SpecNode): Promise<any> {
+    const data = PickPromptEngineeringModeNodeDataSchema.parse(node.data);
+    return { mode: data.mode };
+  }
+  private async executePickRandomModeNode(node: SpecNode): Promise<any> {
+    const data = PickRandomModeNodeDataSchema.parse(node.data);
+    return { mode: data.mode };
+  }
+  private async executePickRegexModeNode(node: SpecNode): Promise<any> {
+    const data = PickRegexModeNodeDataSchema.parse(node.data);
+    return { mode: data.mode };
+  }
+  private async executePickTypeConverterTargetNode(node: SpecNode): Promise<any> {
+    const data = PickTypeConverterTargetNodeDataSchema.parse(node.data);
+    return { type: data.targetType };
   }
 }

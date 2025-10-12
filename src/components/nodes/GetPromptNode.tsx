@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetPromptNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
@@ -17,6 +17,7 @@ export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected }) => {
     }),
     shallow,
   );
+  const edges = useEdges();
 
   const promptOptions = useMemo(() => {
     const prompts = settingsManager.getSettings().prompts;
@@ -25,20 +26,30 @@ export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected }) => {
 
   if (!data) return null;
 
+  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+
   return (
     <BaseNode id={id} title="Get Prompt" selected={selected}>
-      <div>
-        <label>Prompt Name</label>
-        <STFancyDropdown
-          value={[data.promptName ?? '']}
-          onChange={(e) => updateNodeData(id, { promptName: e[0] })}
-          multiple={false}
-          items={promptOptions}
-          inputClasses="nodrag"
-          containerClasses="nodrag"
-          closeOnSelect={true}
-          enableSearch={true}
+      <div style={{ position: 'relative' }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id="promptName"
+          style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
         />
+        <label style={{ marginLeft: '10px' }}>Prompt Name</label>
+        {!isConnected('promptName') && (
+          <STFancyDropdown
+            value={[data.promptName ?? '']}
+            onChange={(e) => updateNodeData(id, { promptName: e[0] })}
+            multiple={false}
+            items={promptOptions}
+            inputClasses="nodrag"
+            containerClasses="nodrag"
+            closeOnSelect={true}
+            enableSearch={true}
+          />
+        )}
       </div>
       <Handle type="source" position={Position.Right} />
     </BaseNode>

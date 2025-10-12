@@ -35,12 +35,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
 
   if (!data) return null;
 
-  const isSchemaConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'schema');
-  const isMessagesConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'messages');
-  const isMaxResponseTokenConnected = edges.some(
-    (edge) => edge.target === id && edge.targetHandle === 'maxResponseToken',
-  );
-  const isProfileIdConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'profileId');
+  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   const handleProfileChange = (profile?: ConnectionProfile) => {
     updateNodeData(id, { profileId: profile?.id || '' });
@@ -57,7 +52,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ transform: 'translateY(-50%)', top: '0.5rem' }}
           />
           <label style={{ marginLeft: '10px' }}>Connection Profile</label>
-          {!isProfileIdConnected && (
+          {!isConnected('profileId') && (
             <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
           )}
         </div>
@@ -70,7 +65,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Messages</label>
-          {!isMessagesConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
+          {!isConnected('messages') && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -81,7 +76,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Schema Name</label>
-          {!isSchemaConnected && (
+          {!isConnected('schema') && (
             <STInput
               className="nodrag"
               value={data.schemaName}
@@ -90,19 +85,27 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
           )}
         </div>
 
-        <div>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="promptEngineeringMode"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
           <label style={{ marginLeft: '10px' }}>Prompt Engineering Mode</label>
-          <STSelect
-            className="nodrag"
-            value={data.promptEngineeringMode}
-            onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value as any })}
-          >
-            {Object.values(PromptEngineeringMode).map((mode) => (
-              <option key={mode} value={mode}>
-                {mode}
-              </option>
-            ))}
-          </STSelect>
+          {!isConnected('promptEngineeringMode') && (
+            <STSelect
+              className="nodrag"
+              value={data.promptEngineeringMode ?? PromptEngineeringMode.NATIVE}
+              onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value as any })}
+            >
+              {Object.values(PromptEngineeringMode).map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </STSelect>
+          )}
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -113,7 +116,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Max Response Token</label>
-          {!isMaxResponseTokenConnected && (
+          {!isConnected('maxResponseToken') && (
             <STInput
               className="nodrag"
               type="number"

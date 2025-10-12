@@ -29,39 +29,60 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
 
   if (!data) return null;
 
-  const isStringConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'string');
+  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+  const mode = data.mode ?? 'sillytavern';
 
   return (
     <BaseNode id={id} title="Regex" selected={selected}>
       <Handle type="target" position={Position.Left} id="string" style={{ top: '25%' }} />
-      {isStringConnected && <label style={{ marginLeft: '10px' }}>Input String</label>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-        <STSelect
-          className="nodrag"
-          value={data.mode}
-          onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
-        >
-          <option value="sillytavern">SillyTavern</option>
-          <option value="custom">Custom</option>
-        </STSelect>
+      {isConnected('string') && <label style={{ marginLeft: '10px' }}>Input String</label>}
 
-        {data.mode === 'sillytavern' && (
-          <div>
-            <label>Regex Script</label>
-            <STFancyDropdown
-              value={[data.scriptId ?? '']}
-              onChange={(e) => updateNodeData(id, { scriptId: e[0] })}
-              multiple={false}
-              items={regexOptions}
-              inputClasses="nodrag"
-              containerClasses="nodrag"
-              closeOnSelect={true}
-              enableSearch={true}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="mode"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Mode</label>
+          {!isConnected('mode') && (
+            <STSelect
+              className="nodrag"
+              value={mode}
+              onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
+            >
+              <option value="sillytavern">SillyTavern</option>
+              <option value="custom">Custom</option>
+            </STSelect>
+          )}
+        </div>
+
+        {mode === 'sillytavern' && (
+          <div style={{ position: 'relative' }}>
+            <Handle
+              type="target"
+              position={Position.Left}
+              id="scriptId"
+              style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
             />
+            <label style={{ marginLeft: '10px' }}>Regex Script</label>
+            {!isConnected('scriptId') && (
+              <STFancyDropdown
+                value={[data.scriptId ?? '']}
+                onChange={(e) => updateNodeData(id, { scriptId: e[0] })}
+                multiple={false}
+                items={regexOptions}
+                inputClasses="nodrag"
+                containerClasses="nodrag"
+                closeOnSelect={true}
+                enableSearch={true}
+              />
+            )}
           </div>
         )}
 
-        {data.mode === 'custom' && (
+        {mode === 'custom' && (
           <>
             <div>
               <label>Find (Regex)</label>

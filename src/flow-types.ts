@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EventNames } from 'sillytavern-utils-lib/types';
+import { PromptEngineeringMode } from './config.js';
 
 // These parameters are ordered method parameters.
 // For example, `{ messageId: z.number() }` means, `function (messageId: number)`
@@ -88,7 +89,7 @@ export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 export const StructuredRequestNodeDataSchema = z.object({
   profileId: z.string().optional(),
   schemaName: z.string().optional(),
-  promptEngineeringMode: z.enum(['native', 'json', 'xml']),
+  promptEngineeringMode: z.nativeEnum(PromptEngineeringMode).optional(),
   maxResponseToken: z.number().optional(),
 });
 export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
@@ -263,21 +264,21 @@ export const DateTimeNodeDataSchema = z.object({
 export type DateTimeNodeData = z.infer<typeof DateTimeNodeDataSchema>;
 
 export const RandomNodeDataSchema = z.object({
-  mode: z.enum(['number', 'array']).default('number'),
+  mode: z.enum(['number', 'array']).optional(),
   min: z.number().optional(),
   max: z.number().optional(),
 });
 export type RandomNodeData = z.infer<typeof RandomNodeDataSchema>;
 
 export const StringToolsNodeDataSchema = z.object({
-  operation: z.enum(['merge', 'split', 'join']).default('merge'),
+  operation: z.enum(['merge', 'split', 'join']).optional(),
   delimiter: z.string().optional(),
   inputCount: z.number().min(1).optional(),
 });
 export type StringToolsNodeData = z.infer<typeof StringToolsNodeDataSchema>;
 
 export const MathNodeDataSchema = z.object({
-  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
+  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).optional(),
   a: z.number().optional(),
   b: z.number().optional(),
 });
@@ -289,19 +290,19 @@ export const GetPromptNodeDataSchema = z.object({
 export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
 
 export const SetVariableNodeDataSchema = z.object({
-  variableName: z.string().default('myVar'),
-  scope: z.enum(['Execution', 'Session']).default('Execution'),
+  variableName: z.string().optional(),
+  scope: z.enum(['Execution', 'Session']).optional(),
 });
 export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 
 export const GetVariableNodeDataSchema = z.object({
-  variableName: z.string().default('myVar'),
-  scope: z.enum(['Execution', 'Session']).default('Execution'),
+  variableName: z.string().optional(),
+  scope: z.enum(['Execution', 'Session']).optional(),
 });
 export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;
 
 export const RegexNodeDataSchema = z.object({
-  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  mode: z.enum(['sillytavern', 'custom']).optional(),
   scriptId: z.string().optional(),
   findRegex: z.string().optional(),
   replaceString: z.string().optional(),
@@ -314,6 +315,57 @@ export const RunSlashCommandNodeDataSchema = z.object({
 export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
 
 export const TypeConverterNodeDataSchema = z.object({
-  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+  targetType: z.enum(['string', 'number', 'object', 'array']).optional(),
 });
 export type TypeConverterNodeData = z.infer<typeof TypeConverterNodeDataSchema>;
+
+// Picker Node Schemas
+export const PickCharacterNodeDataSchema = z.object({
+  characterAvatar: z.string().default(''),
+});
+export type PickCharacterNodeData = z.infer<typeof PickCharacterNodeDataSchema>;
+
+export const PickLorebookNodeDataSchema = z.object({
+  worldName: z.string().default(''),
+});
+export type PickLorebookNodeData = z.infer<typeof PickLorebookNodeDataSchema>;
+
+export const PickPromptNodeDataSchema = z.object({
+  promptName: z.string().default(''),
+});
+export type PickPromptNodeData = z.infer<typeof PickPromptNodeDataSchema>;
+
+export const PickMathOperationNodeDataSchema = z.object({
+  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
+});
+export type PickMathOperationNodeData = z.infer<typeof PickMathOperationNodeDataSchema>;
+
+export const PickStringToolsOperationNodeDataSchema = z.object({
+  operation: z.enum(['merge', 'split', 'join']).default('merge'),
+});
+export type PickStringToolsOperationNodeData = z.infer<typeof PickStringToolsOperationNodeDataSchema>;
+
+export const PickVariableScopeNodeDataSchema = z.object({
+  scope: z.enum(['Execution', 'Session']).default('Execution'),
+});
+export type PickVariableScopeNodeData = z.infer<typeof PickVariableScopeNodeDataSchema>;
+
+export const PickPromptEngineeringModeNodeDataSchema = z.object({
+  mode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+});
+export type PickPromptEngineeringModeNodeData = z.infer<typeof PickPromptEngineeringModeNodeDataSchema>;
+
+export const PickRandomModeNodeDataSchema = z.object({
+  mode: z.enum(['number', 'array']).default('number'),
+});
+export type PickRandomModeNodeData = z.infer<typeof PickRandomModeNodeDataSchema>;
+
+export const PickRegexModeNodeDataSchema = z.object({
+  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+});
+export type PickRegexModeNodeData = z.infer<typeof PickRegexModeNodeDataSchema>;
+
+export const PickTypeConverterTargetNodeDataSchema = z.object({
+  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+});
+export type PickTypeConverterTargetNodeData = z.infer<typeof PickTypeConverterTargetNodeDataSchema>;

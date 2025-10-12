@@ -19,7 +19,17 @@ export type GetHandleTypeParams = {
 export interface NodeDefinition<T extends Node<Record<string, unknown>, string | undefined | any> | any = any> {
   type: string;
   label: string;
-  category: 'Trigger' | 'Logic' | 'Input' | 'API Request' | 'Chat' | 'Character' | 'Lorebook' | 'JSON' | 'Utility';
+  category:
+    | 'Trigger'
+    | 'Logic'
+    | 'Input'
+    | 'Picker'
+    | 'API Request'
+    | 'Chat'
+    | 'Character'
+    | 'Lorebook'
+    | 'JSON'
+    | 'Utility';
   // @ts-ignore
   component: FC<NodeProps<Node<T>>>;
   dataSchema: z.ZodType<T>;

@@ -23,13 +23,14 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
 
   const inputCount = data.inputCount ?? 2;
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+  const operation = data.operation ?? 'merge';
 
   const setInputCount = (count: number) => {
     updateNodeData(id, { inputCount: Math.max(1, count) });
   };
 
   const renderInputs = () => {
-    switch (data.operation) {
+    switch (operation) {
       case 'merge':
         return (
           <>
@@ -77,15 +78,26 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="String Tools" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <STSelect
-          className="nodrag"
-          value={data.operation}
-          onChange={(e) => updateNodeData(id, { operation: e.target.value as any })}
-        >
-          <option value="merge">Merge</option>
-          <option value="split">Split</option>
-          <option value="join">Join</option>
-        </STSelect>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="operation"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Operation</label>
+          {!isConnected('operation') && (
+            <STSelect
+              className="nodrag"
+              value={operation}
+              onChange={(e) => updateNodeData(id, { operation: e.target.value as any })}
+            >
+              <option value="merge">Merge</option>
+              <option value="split">Split</option>
+              <option value="join">Join</option>
+            </STSelect>
+          )}
+        </div>
 
         <div style={{ position: 'relative' }}>
           <Handle type="target" position={Position.Left} id="delimiter" />

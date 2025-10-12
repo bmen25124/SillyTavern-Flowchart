@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { FC } from 'react';
+import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetVariableNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
@@ -16,29 +16,50 @@ export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected }) => {
     }),
     shallow,
   );
+  const edges = useEdges();
 
   if (!data) return null;
 
+  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+
   return (
     <BaseNode id={id} title="Get Variable" selected={selected}>
-      <div>
-        <label>Variable Name</label>
-        <STInput
-          className="nodrag"
-          value={data.variableName}
-          onChange={(e) => updateNodeData(id, { variableName: e.target.value })}
-        />
-      </div>
-      <div style={{ marginTop: '10px' }}>
-        <label>Scope</label>
-        <STSelect
-          className="nodrag"
-          value={data.scope}
-          onChange={(e) => updateNodeData(id, { scope: e.target.value as any })}
-        >
-          <option value="Execution">Flow Execution</option>
-          <option value="Session">SillyTavern Session</option>
-        </STSelect>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="variableName"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Variable Name</label>
+          {!isConnected('variableName') && (
+            <STInput
+              className="nodrag"
+              value={data.variableName ?? ''}
+              onChange={(e) => updateNodeData(id, { variableName: e.target.value })}
+            />
+          )}
+        </div>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="scope"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Scope</label>
+          {!isConnected('scope') && (
+            <STSelect
+              className="nodrag"
+              value={data.scope ?? 'Execution'}
+              onChange={(e) => updateNodeData(id, { scope: e.target.value as any })}
+            >
+              <option value="Execution">Flow Execution</option>
+              <option value="Session">SillyTavern Session</option>
+            </STSelect>
+          )}
+        </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
         <span>Value</span>

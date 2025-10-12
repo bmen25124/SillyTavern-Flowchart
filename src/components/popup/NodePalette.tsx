@@ -57,6 +57,7 @@ export const NodePalette: FC = () => {
       'Trigger',
       'Logic',
       'Input',
+      'Picker',
       'Chat',
       'API Request',
       'Character',

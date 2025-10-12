@@ -80,6 +80,26 @@ import {
   RunSlashCommandNodeDataSchema,
   TypeConverterNodeData,
   TypeConverterNodeDataSchema,
+  PickCharacterNodeData,
+  PickCharacterNodeDataSchema,
+  PickLorebookNodeData,
+  PickLorebookNodeDataSchema,
+  PickPromptNodeData,
+  PickPromptNodeDataSchema,
+  PickMathOperationNodeData,
+  PickMathOperationNodeDataSchema,
+  PickStringToolsOperationNodeData,
+  PickStringToolsOperationNodeDataSchema,
+  PickVariableScopeNodeData,
+  PickVariableScopeNodeDataSchema,
+  PickPromptEngineeringModeNodeData,
+  PickPromptEngineeringModeNodeDataSchema,
+  PickRandomModeNodeData,
+  PickRandomModeNodeDataSchema,
+  PickRegexModeNodeData,
+  PickRegexModeNodeDataSchema,
+  PickTypeConverterTargetNodeData,
+  PickTypeConverterTargetNodeDataSchema,
 } from '../../../flow-types.js';
 import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -420,6 +440,7 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
       { id: 'messages', type: FlowDataType.MESSAGES },
       { id: 'schema', type: FlowDataType.SCHEMA },
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
+      { id: 'promptEngineeringMode', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'result', type: FlowDataType.STRUCTURED_RESULT }],
   },
@@ -597,6 +618,7 @@ const randomNodeDefinition: BaseNodeDefinition<RandomNodeData> = {
   initialData: { mode: 'number', min: 0, max: 100 },
   handles: {
     inputs: [
+      { id: 'mode', type: FlowDataType.STRING },
       { id: 'min', type: FlowDataType.NUMBER },
       { id: 'max', type: FlowDataType.NUMBER },
       { id: 'array', type: FlowDataType.OBJECT },
@@ -611,7 +633,10 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
   dataSchema: StringToolsNodeDataSchema,
   initialData: { operation: 'merge', inputCount: 2, delimiter: '' },
   handles: {
-    inputs: [{ id: 'delimiter', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'operation', type: FlowDataType.STRING },
+      { id: 'delimiter', type: FlowDataType.STRING },
+    ],
     outputs: [{ id: 'result', type: FlowDataType.ANY }],
   },
   getDynamicHandles: (data) => {
@@ -651,6 +676,7 @@ const mathNodeDefinition: BaseNodeDefinition<MathNodeData> = {
   initialData: { operation: 'add', a: 0, b: 0 },
   handles: {
     inputs: [
+      { id: 'operation', type: FlowDataType.STRING },
       { id: 'a', type: FlowDataType.NUMBER },
       { id: 'b', type: FlowDataType.NUMBER },
     ],
@@ -664,7 +690,7 @@ const getPromptNodeDefinition: BaseNodeDefinition<GetPromptNodeData> = {
   dataSchema: GetPromptNodeDataSchema,
   initialData: { promptName: '' },
   handles: {
-    inputs: [],
+    inputs: [{ id: 'promptName', type: FlowDataType.STRING }],
     outputs: [{ id: null, type: FlowDataType.STRING }],
   },
 };
@@ -675,7 +701,11 @@ const setVariableNodeDefinition: BaseNodeDefinition<SetVariableNodeData> = {
   dataSchema: SetVariableNodeDataSchema,
   initialData: { variableName: 'myVar', scope: 'Execution' },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'value', type: FlowDataType.ANY },
+      { id: 'variableName', type: FlowDataType.STRING },
+      { id: 'scope', type: FlowDataType.STRING },
+    ],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
 };
@@ -686,7 +716,10 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   dataSchema: GetVariableNodeDataSchema,
   initialData: { variableName: 'myVar', scope: 'Execution' },
   handles: {
-    inputs: [],
+    inputs: [
+      { id: 'variableName', type: FlowDataType.STRING },
+      { id: 'scope', type: FlowDataType.STRING },
+    ],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
 };
@@ -698,7 +731,11 @@ const regexNodeDefinition: BaseNodeDefinition<RegexNodeData> = {
   dataSchema: RegexNodeDataSchema,
   initialData: { mode: 'sillytavern' },
   handles: {
-    inputs: [{ id: 'string', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'string', type: FlowDataType.STRING },
+      { id: 'mode', type: FlowDataType.STRING },
+      { id: 'scriptId', type: FlowDataType.STRING },
+    ],
     outputs: [
       { id: 'result', type: FlowDataType.STRING },
       { id: 'matches', type: FlowDataType.OBJECT },
@@ -725,7 +762,10 @@ const typeConverterNodeDefinition: BaseNodeDefinition<TypeConverterNodeData> = {
   dataSchema: TypeConverterNodeDataSchema,
   initialData: { targetType: 'string' },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'value', type: FlowDataType.ANY },
+      { id: 'targetType', type: FlowDataType.STRING },
+    ],
     outputs: [{ id: 'result', type: FlowDataType.ANY }],
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
@@ -745,6 +785,88 @@ const typeConverterNodeDefinition: BaseNodeDefinition<TypeConverterNodeData> = {
     }
     return undefined;
   },
+};
+
+// Picker Nodes
+const pickCharacterNodeDefinition: BaseNodeDefinition<PickCharacterNodeData> = {
+  type: 'pickCharacterNode',
+  label: 'Pick Character',
+  category: 'Picker',
+  dataSchema: PickCharacterNodeDataSchema,
+  initialData: { characterAvatar: '' },
+  handles: { inputs: [], outputs: [{ id: 'avatar', type: FlowDataType.STRING }] },
+};
+const pickLorebookNodeDefinition: BaseNodeDefinition<PickLorebookNodeData> = {
+  type: 'pickLorebookNode',
+  label: 'Pick Lorebook',
+  category: 'Picker',
+  dataSchema: PickLorebookNodeDataSchema,
+  initialData: { worldName: '' },
+  handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
+};
+const pickPromptNodeDefinition: BaseNodeDefinition<PickPromptNodeData> = {
+  type: 'pickPromptNode',
+  label: 'Pick Prompt',
+  category: 'Picker',
+  dataSchema: PickPromptNodeDataSchema,
+  initialData: { promptName: '' },
+  handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
+};
+const pickMathOperationNodeDefinition: BaseNodeDefinition<PickMathOperationNodeData> = {
+  type: 'pickMathOperationNode',
+  label: 'Pick Math Operation',
+  category: 'Picker',
+  dataSchema: PickMathOperationNodeDataSchema,
+  initialData: { operation: 'add' },
+  handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
+};
+const pickStringToolsOperationNodeDefinition: BaseNodeDefinition<PickStringToolsOperationNodeData> = {
+  type: 'pickStringToolsOperationNode',
+  label: 'Pick String Operation',
+  category: 'Picker',
+  dataSchema: PickStringToolsOperationNodeDataSchema,
+  initialData: { operation: 'merge' },
+  handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
+};
+const pickVariableScopeNodeDefinition: BaseNodeDefinition<PickVariableScopeNodeData> = {
+  type: 'pickVariableScopeNode',
+  label: 'Pick Variable Scope',
+  category: 'Picker',
+  dataSchema: PickVariableScopeNodeDataSchema,
+  initialData: { scope: 'Execution' },
+  handles: { inputs: [], outputs: [{ id: 'scope', type: FlowDataType.STRING }] },
+};
+const pickPromptEngineeringModeNodeDefinition: BaseNodeDefinition<PickPromptEngineeringModeNodeData> = {
+  type: 'pickPromptEngineeringModeNode',
+  label: 'Pick Prompt Mode',
+  category: 'Picker',
+  dataSchema: PickPromptEngineeringModeNodeDataSchema,
+  initialData: { mode: PromptEngineeringMode.NATIVE },
+  handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+};
+const pickRandomModeNodeDefinition: BaseNodeDefinition<PickRandomModeNodeData> = {
+  type: 'pickRandomModeNode',
+  label: 'Pick Random Mode',
+  category: 'Picker',
+  dataSchema: PickRandomModeNodeDataSchema,
+  initialData: { mode: 'number' },
+  handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+};
+const pickRegexModeNodeDefinition: BaseNodeDefinition<PickRegexModeNodeData> = {
+  type: 'pickRegexModeNode',
+  label: 'Pick Regex Mode',
+  category: 'Picker',
+  dataSchema: PickRegexModeNodeDataSchema,
+  initialData: { mode: 'sillytavern' },
+  handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+};
+const pickTypeConverterTargetNodeDefinition: BaseNodeDefinition<PickTypeConverterTargetNodeData> = {
+  type: 'pickTypeConverterTargetNode',
+  label: 'Pick Conversion Type',
+  category: 'Picker',
+  dataSchema: PickTypeConverterTargetNodeDataSchema,
+  initialData: { targetType: 'string' },
+  handles: { inputs: [], outputs: [{ id: 'type', type: FlowDataType.STRING }] },
 };
 
 export const baseNodeDefinitions: BaseNodeDefinition[] = [
@@ -787,6 +909,16 @@ export const baseNodeDefinitions: BaseNodeDefinition[] = [
   regexNodeDefinition,
   runSlashCommandNodeDefinition,
   typeConverterNodeDefinition,
+  pickCharacterNodeDefinition,
+  pickLorebookNodeDefinition,
+  pickPromptNodeDefinition,
+  pickMathOperationNodeDefinition,
+  pickStringToolsOperationNodeDefinition,
+  pickVariableScopeNodeDefinition,
+  pickPromptEngineeringModeNodeDefinition,
+  pickRandomModeNodeDefinition,
+  pickRegexModeNodeDefinition,
+  pickTypeConverterTargetNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(baseNodeDefinitions.map((def) => [def.type, def]));

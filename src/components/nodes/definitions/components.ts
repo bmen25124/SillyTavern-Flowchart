@@ -58,6 +58,20 @@ import { RegexNode } from '../RegexNode.js';
 import { RunSlashCommandNode } from '../RunSlashCommandNode.js';
 import { TypeConverterNode } from '../TypeConverterNode.js';
 
+// Pickers
+import {
+  PickCharacterNode,
+  PickLorebookNode,
+  PickMathOperationNode,
+  PickPromptEngineeringModeNode,
+  PickPromptNode,
+  PickRandomModeNode,
+  PickRegexModeNode,
+  PickStringToolsOperationNode,
+  PickTypeConverterTargetNode,
+  PickVariableScopeNode,
+} from '../PickerNodes.js';
+
 export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   // Core
   triggerNode: TriggerNode,
@@ -106,4 +120,15 @@ export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   regexNode: RegexNode,
   runSlashCommandNode: RunSlashCommandNode,
   typeConverterNode: TypeConverterNode,
+  // Pickers
+  pickCharacterNode: PickCharacterNode,
+  pickLorebookNode: PickLorebookNode,
+  pickPromptNode: PickPromptNode,
+  pickMathOperationNode: PickMathOperationNode,
+  pickStringToolsOperationNode: PickStringToolsOperationNode,
+  pickVariableScopeNode: PickVariableScopeNode,
+  pickPromptEngineeringModeNode: PickPromptEngineeringModeNode,
+  pickRandomModeNode: PickRandomModeNode,
+  pickRegexModeNode: PickRegexModeNode,
+  pickTypeConverterTargetNode: PickTypeConverterTargetNode,
 };

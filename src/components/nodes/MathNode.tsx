@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import { FC } from 'react';
 import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { MathNodeData } from '../../flow-types.js';
@@ -22,22 +22,33 @@ export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
 
   if (!data) return null;
 
-  const isConnected = (fieldId: 'a' | 'b') => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Math Operation" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <STSelect
-          className="nodrag"
-          value={data.operation}
-          onChange={(e) => updateNodeData(id, { operation: e.target.value as any })}
-        >
-          {operations.map((op) => (
-            <option key={op} value={op} style={{ textTransform: 'capitalize' }}>
-              {op}
-            </option>
-          ))}
-        </STSelect>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="operation"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Operation</label>
+          {!isConnected('operation') && (
+            <STSelect
+              className="nodrag"
+              value={data.operation ?? 'add'}
+              onChange={(e) => updateNodeData(id, { operation: e.target.value as any })}
+            >
+              {operations.map((op) => (
+                <option key={op} value={op} style={{ textTransform: 'capitalize' }}>
+                  {op}
+                </option>
+              ))}
+            </STSelect>
+          )}
+        </div>
         <div style={{ position: 'relative' }}>
           <Handle type="target" position={Position.Left} id="a" style={{ top: '50%', transform: 'translateY(-50%)' }} />
           {!isConnected('a') ? (

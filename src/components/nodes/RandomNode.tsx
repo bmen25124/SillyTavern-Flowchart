@@ -21,20 +21,32 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
   if (!data) return null;
 
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
+  const mode = data.mode ?? 'number';
 
   return (
     <BaseNode id={id} title="Random" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <STSelect
-          className="nodrag"
-          value={data.mode}
-          onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
-        >
-          <option value="number">Number</option>
-          <option value="array">From Array</option>
-        </STSelect>
+        <div style={{ position: 'relative' }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id="mode"
+            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+          />
+          <label style={{ marginLeft: '10px' }}>Mode</label>
+          {!isConnected('mode') && (
+            <STSelect
+              className="nodrag"
+              value={mode}
+              onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
+            >
+              <option value="number">Number</option>
+              <option value="array">From Array</option>
+            </STSelect>
+          )}
+        </div>
 
-        {data.mode === 'number' && (
+        {mode === 'number' && (
           <>
             <div style={{ position: 'relative' }}>
               <Handle type="target" position={Position.Left} id="min" style={{ top: '50%' }} />
@@ -67,7 +79,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
           </>
         )}
 
-        {data.mode === 'array' && (
+        {mode === 'array' && (
           <div style={{ position: 'relative' }}>
             <Handle
               type="target"
