@@ -14,7 +14,6 @@ import {
   ManualTriggerNodeDataSchema,
   GetCharacterNodeDataSchema,
   HandlebarNodeDataSchema,
-  JsonNodeData,
   MergeObjectsNodeDataSchema,
   JsonNodeItem,
   LogNodeDataSchema,
@@ -22,6 +21,9 @@ import {
   CreateLorebookEntryNodeDataSchema,
   EditLorebookEntryNodeDataSchema,
   JsonNodeDataSchema,
+  GetLorebookNodeDataSchema,
+  GetLorebookEntryNodeDataSchema,
+  ExecuteJsNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -58,7 +60,7 @@ export interface FlowRunnerDependencies {
     selectedWorldName: string;
     operation?: 'add' | 'update' | 'auto';
   }) => Promise<{ entry: WIEntry; operation: 'add' | 'update' }>;
-  getWorldInfo: (
+  getWorldInfos: (
     include: ('all' | 'global' | 'character' | 'chat' | 'persona')[],
   ) => Promise<Record<string, WIEntry[]>>;
 }
@@ -137,6 +139,9 @@ export class LowLevelFlowRunner {
       createLorebookNode: this.executeCreateLorebookNode.bind(this),
       createLorebookEntryNode: this.executeCreateLorebookEntryNode.bind(this),
       editLorebookEntryNode: this.executeEditLorebookEntryNode.bind(this),
+      getLorebookNode: this.executeGetLorebookNode.bind(this),
+      getLorebookEntryNode: this.executeGetLorebookEntryNode.bind(this),
+      executeJsNode: this.executeExecuteJsNode.bind(this),
     };
   }
 
@@ -642,7 +647,7 @@ export class LowLevelFlowRunner {
     if (!worldName) throw new Error('World name is required to find the entry.');
     if (entryUid === undefined) throw new Error('Entry UID is required to identify the entry to edit.');
 
-    const allWorlds = await this.dependencies.getWorldInfo(['all']);
+    const allWorlds = await this.dependencies.getWorldInfos(['all']);
     const world = allWorlds[worldName];
     if (!world) throw new Error(`Lorebook "${worldName}" not found.`);
 
@@ -664,5 +669,58 @@ export class LowLevelFlowRunner {
     });
 
     return result.entry;
+  }
+
+  private async executeGetLorebookNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = GetLorebookNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const worldName = input.worldName ?? staticData.worldName;
+    if (!worldName) throw new Error('World name is required.');
+
+    const allWorlds = await this.dependencies.getWorldInfos(['all']);
+    const world = allWorlds[worldName];
+    if (!world) throw new Error(`Lorebook "${worldName}" not found.`);
+
+    return { entries: world };
+  }
+
+  private async executeGetLorebookEntryNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = GetLorebookEntryNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const worldName = input.worldName ?? staticData.worldName;
+    const entryUid = input.entryUid ?? staticData.entryUid;
+
+    if (!worldName) throw new Error('World name is required.');
+    if (entryUid === undefined) throw new Error('Entry UID is required.');
+
+    const allWorlds = await this.dependencies.getWorldInfos(['all']);
+    const world = allWorlds[worldName];
+    if (!world) throw new Error(`Lorebook "${worldName}" not found.`);
+
+    const entry = world.find((e) => e.uid === entryUid);
+    if (!entry) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
+
+    return {
+      entry: entry,
+      key: entry.key.join(', '),
+      content: entry.content,
+      comment: entry.comment,
+    };
+  }
+
+  private async executeExecuteJsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = ExecuteJsNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+
+    try {
+      const func = new Function('input', 'stContext', parseResult.data.code);
+      return func(input, this.dependencies.getSillyTavernContext());
+    } catch (error: any) {
+      throw new Error(`Error executing JS code: ${error.message}`);
+    }
   }
 }

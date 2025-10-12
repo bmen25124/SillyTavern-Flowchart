@@ -33,7 +33,7 @@ describe('LowLevelFlowRunner', () => {
       saveCharacter: jest.fn(),
       st_createNewWorldInfo: jest.fn(),
       applyWorldInfoEntry: jest.fn(),
-      getWorldInfo: jest.fn(),
+      getWorldInfos: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
@@ -43,7 +43,7 @@ describe('LowLevelFlowRunner', () => {
     });
     dependencies.st_createNewWorldInfo.mockResolvedValue(true);
     dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'add' }));
-    dependencies.getWorldInfo.mockResolvedValue({});
+    dependencies.getWorldInfos.mockResolvedValue({});
     runner = new LowLevelFlowRunner(dependencies);
   });
 
@@ -349,7 +349,7 @@ describe('LowLevelFlowRunner', () => {
       disable: false,
       keysecondary: [],
     };
-    dependencies.getWorldInfo.mockResolvedValue({ 'My Lore': [mockEntry] });
+    dependencies.getWorldInfos.mockResolvedValue({ 'My Lore': [mockEntry] });
     dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'update' }));
 
     const flow: SpecFlow = {

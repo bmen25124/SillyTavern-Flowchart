@@ -4,7 +4,7 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { CreateLorebookEntryNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
-import { getWorldInfo } from 'sillytavern-utils-lib';
+import { getWorldInfos } from 'sillytavern-utils-lib';
 import { shallow } from 'zustand/shallow';
 
 export type CreateLorebookEntryNodeProps = NodeProps<Node<CreateLorebookEntryNodeData>>;
@@ -27,7 +27,7 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
 
   useEffect(() => {
-    getWorldInfo(['all']).then((worlds) => {
+    getWorldInfos(['all']).then((worlds) => {
       setLorebookNames(Object.keys(worlds));
     });
   }, []);

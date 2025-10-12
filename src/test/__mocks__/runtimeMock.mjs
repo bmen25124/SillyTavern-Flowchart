@@ -18,7 +18,7 @@ export const st_echo = mockFn;
 export const createCharacter = mockFn;
 export const saveCharacter = mockFn;
 export const applyWorldInfoEntry = mockFn;
-export const getWorldInfo = mockFn;
+export const getWorldInfos = mockFn;
 export const buildPrompt = mockFn;
 export const Generator = class { constructor() { return new Proxy({}, { get: () => mockFn }); } };
 

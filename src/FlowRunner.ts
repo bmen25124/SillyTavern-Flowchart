@@ -4,7 +4,7 @@ import { st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
-import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfo } from 'sillytavern-utils-lib';
+import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { FlowData } from './constants.js';
 import { SpecFlow } from './flow-spec.js';
 import { eventEmitter } from './events.js';
@@ -37,7 +37,7 @@ class FlowRunner {
       saveCharacter: (character) => saveCharacter(character, true),
       st_createNewWorldInfo: (worldName) => st_createNewWorldInfo(worldName, { interactive: true }),
       applyWorldInfoEntry,
-      getWorldInfo,
+      getWorldInfos,
     });
   }
 

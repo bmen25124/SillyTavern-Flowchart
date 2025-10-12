@@ -1,25 +1,21 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
-import { EditLorebookEntryNodeData } from '../../flow-types.js';
+import { GetLorebookEntryNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
-import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { shallow } from 'zustand/shallow';
 
-export type EditLorebookEntryNodeProps = NodeProps<Node<EditLorebookEntryNodeData>>;
+export type GetLorebookEntryNodeProps = NodeProps<Node<GetLorebookEntryNodeData>>;
 
-const optionalFields = [
-  { id: 'key', label: 'New Keys (comma-separated)', component: STInput, props: { type: 'text' } },
-  { id: 'comment', label: 'New Comment (Title)', component: STInput, props: { type: 'text' } },
-  { id: 'content', label: 'New Content', component: STTextarea, props: { rows: 2 } },
-] as const;
+const outputFields = ['key', 'content', 'comment'] as const;
 
-export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, selected }) => {
+export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, selected }) => {
   const { data, updateNodeData } = useFlowStore(
     (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as EditLorebookEntryNodeData,
+      data: state.nodes.find((n) => n.id === id)?.data as GetLorebookEntryNodeData,
       updateNodeData: state.updateNodeData,
     }),
     shallow,
@@ -51,7 +47,7 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
-    <BaseNode id={id} title="Edit Lorebook Entry" selected={selected}>
+    <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ position: 'relative' }}>
           <Handle
@@ -81,7 +77,7 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
             id="entryUid"
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
-          <label style={{ marginLeft: '10px' }}>Entry to Edit</label>
+          <label style={{ marginLeft: '10px' }}>Entry</label>
           {!isConnected('entryUid') && (
             <STFancyDropdown
               value={[String(data.entryUid ?? '')]}
@@ -96,29 +92,32 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
             />
           )}
         </div>
-        <hr />
-        <p style={{ margin: 0, textAlign: 'center' }}>Fields to Update (Optional)</p>
-        {optionalFields.map((field) => (
-          <div key={field.id} style={{ position: 'relative' }}>
+      </div>
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+          <span>Entry (Full Object)</span>
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="entry"
+            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+          />
+        </div>
+        {outputFields.map((field) => (
+          <div
+            key={field}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+          >
+            <span style={{ textTransform: 'capitalize' }}>{field.replace('_', ' ')}</span>
             <Handle
-              type="target"
-              position={Position.Left}
-              id={field.id}
-              style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+              type="source"
+              position={Position.Right}
+              id={field}
+              style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
             />
-            <label style={{ marginLeft: '10px' }}>{field.label}</label>
-            {!isConnected(field.id) &&
-              React.createElement(field.component as any, {
-                className: 'nodrag',
-                value: data[field.id] ?? '',
-                onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  updateNodeData(id, { [field.id]: e.target.value }),
-                ...field.props,
-              })}
           </div>
         ))}
       </div>
-      <Handle type="source" position={Position.Right} />
     </BaseNode>
   );
 };

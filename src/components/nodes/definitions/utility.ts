@@ -1,4 +1,6 @@
 import {
+  ExecuteJsNodeData,
+  ExecuteJsNodeDataSchema,
   GroupNodeData,
   GroupNodeDataSchema,
   HandlebarNodeData,
@@ -8,6 +10,7 @@ import {
   MergeObjectsNodeData,
   MergeObjectsNodeDataSchema,
 } from '../../../flow-types.js';
+import { ExecuteJsNode } from '../ExecuteJsNode.js';
 import { GroupNode } from '../GroupNode.js';
 import { HandlebarNode } from '../HandlebarNode.js';
 import { LogNode } from '../LogNode.js';
@@ -73,5 +76,18 @@ export const groupNodeDefinition: NodeDefinition<GroupNodeData> = {
   handles: {
     inputs: [],
     outputs: [],
+  },
+};
+
+export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
+  type: 'executeJsNode',
+  label: 'Execute JS Code',
+  category: 'Utility',
+  component: ExecuteJsNode,
+  dataSchema: ExecuteJsNodeDataSchema,
+  initialData: { code: 'return input;' },
+  handles: {
+    inputs: [{ id: null, type: FlowDataType.ANY }],
+    outputs: [{ id: null, type: FlowDataType.ANY }],
   },
 };

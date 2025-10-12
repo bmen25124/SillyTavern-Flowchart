@@ -210,7 +210,23 @@ export const EditLorebookEntryNodeDataSchema = z.object({
 });
 export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
 
+export const GetLorebookNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+});
+export type GetLorebookNodeData = z.infer<typeof GetLorebookNodeDataSchema>;
+
+export const GetLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  entryUid: z.number().optional(),
+});
+export type GetLorebookEntryNodeData = z.infer<typeof GetLorebookEntryNodeDataSchema>;
+
 export const GroupNodeDataSchema = z.object({
   label: z.string().default('Group'),
 });
 export type GroupNodeData = z.infer<typeof GroupNodeDataSchema>;
+
+export const ExecuteJsNodeDataSchema = z.object({
+  code: z.string().default('return input;'),
+});
+export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;

@@ -7,6 +7,8 @@ import {
   createLorebookNodeDefinition,
   createLorebookEntryNodeDefinition,
   editLorebookEntryNodeDefinition,
+  getLorebookEntryNodeDefinition,
+  getLorebookNodeDefinition,
 } from './lorebook.js';
 import {
   createMessagesNodeDefinition,
@@ -21,6 +23,7 @@ import {
   handlebarNodeDefinition,
   mergeObjectsNodeDefinition,
   groupNodeDefinition,
+  executeJsNodeDefinition,
 } from './utility.js';
 
 export const allNodeDefinitions: NodeDefinition[] = [
@@ -43,6 +46,8 @@ export const allNodeDefinitions: NodeDefinition[] = [
   createCharacterNodeDefinition,
   editCharacterNodeDefinition,
   // Lorebook
+  getLorebookNodeDefinition,
+  getLorebookEntryNodeDefinition,
   createLorebookNodeDefinition,
   createLorebookEntryNodeDefinition,
   editLorebookEntryNodeDefinition,
@@ -54,6 +59,7 @@ export const allNodeDefinitions: NodeDefinition[] = [
   handlebarNodeDefinition,
   mergeObjectsNodeDefinition,
   groupNodeDefinition,
+  executeJsNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, NodeDefinition>(allNodeDefinitions.map((def) => [def.type, def]));

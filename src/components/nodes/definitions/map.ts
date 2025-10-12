@@ -14,9 +14,15 @@ import {
   EditCharacterNodeDataSchema,
   EditLorebookEntryNodeData,
   EditLorebookEntryNodeDataSchema,
+  ExecuteJsNodeData,
+  ExecuteJsNodeDataSchema,
   FlowDataType,
   GetCharacterNodeData,
   GetCharacterNodeDataSchema,
+  GetLorebookEntryNodeData,
+  GetLorebookEntryNodeDataSchema,
+  GetLorebookNodeData,
+  GetLorebookNodeDataSchema,
   GroupNodeData,
   GroupNodeDataSchema,
   HandlebarNodeData,
@@ -246,6 +252,36 @@ const editLorebookEntryNodeDefinition: BaseNodeDefinition<EditLorebookEntryNodeD
     outputs: [{ id: null, type: FlowDataType.OBJECT }],
   },
 };
+const getLorebookNodeDefinition: BaseNodeDefinition<GetLorebookNodeData> = {
+  type: 'getLorebookNode',
+  label: 'Get Lorebook',
+  category: 'Lorebook',
+  dataSchema: GetLorebookNodeDataSchema,
+  initialData: { worldName: '' },
+  handles: {
+    inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
+    outputs: [{ id: 'entries', type: FlowDataType.OBJECT }],
+  },
+};
+const getLorebookEntryNodeDefinition: BaseNodeDefinition<GetLorebookEntryNodeData> = {
+  type: 'getLorebookEntryNode',
+  label: 'Get Lorebook Entry',
+  category: 'Lorebook',
+  dataSchema: GetLorebookEntryNodeDataSchema,
+  initialData: { worldName: '', entryUid: undefined },
+  handles: {
+    inputs: [
+      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'entryUid', type: FlowDataType.NUMBER },
+    ],
+    outputs: [
+      { id: 'entry', type: FlowDataType.OBJECT },
+      { id: 'key', type: FlowDataType.STRING },
+      { id: 'content', type: FlowDataType.STRING },
+      { id: 'comment', type: FlowDataType.STRING },
+    ],
+  },
+};
 
 // from messaging.ts
 const createMessagesNodeDefinition: BaseNodeDefinition<CreateMessagesNodeData> = {
@@ -378,6 +414,17 @@ const groupNodeDefinition: BaseNodeDefinition<GroupNodeData> = {
   initialData: { label: 'Group' },
   handles: { inputs: [], outputs: [] },
 };
+const executeJsNodeDefinition: BaseNodeDefinition<ExecuteJsNodeData> = {
+  type: 'executeJsNode',
+  label: 'Execute JS Code',
+  category: 'Utility',
+  dataSchema: ExecuteJsNodeDataSchema,
+  initialData: { code: 'return input;' },
+  handles: {
+    inputs: [{ id: null, type: FlowDataType.ANY }],
+    outputs: [{ id: null, type: FlowDataType.ANY }],
+  },
+};
 
 const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   triggerNodeDefinition,
@@ -393,6 +440,8 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   getCharacterNodeDefinition,
   createCharacterNodeDefinition,
   editCharacterNodeDefinition,
+  getLorebookNodeDefinition,
+  getLorebookEntryNodeDefinition,
   createLorebookNodeDefinition,
   createLorebookEntryNodeDefinition,
   editLorebookEntryNodeDefinition,
@@ -402,6 +451,7 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   handlebarNodeDefinition,
   mergeObjectsNodeDefinition,
   groupNodeDefinition,
+  executeJsNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(
