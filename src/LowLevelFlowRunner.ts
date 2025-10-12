@@ -747,9 +747,19 @@ export class LowLevelFlowRunner {
     if (!entryToEdit) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
 
     const newKeys = this.resolveInput(input, staticData, 'key');
-    if (newKeys !== undefined) entryToEdit.key = newKeys.split(',').map((k: string) => k.trim());
-    entryToEdit.content = this.resolveInput(input, { ...staticData, content: entryToEdit.content }, 'content')!;
-    entryToEdit.comment = this.resolveInput(input, { ...staticData, comment: entryToEdit.comment }, 'comment')!;
+    if (newKeys) {
+      entryToEdit.key = newKeys.split(',').map((k: string) => k.trim());
+    }
+
+    const newContent = this.resolveInput(input, staticData, 'content');
+    if (newContent) {
+      entryToEdit.content = newContent;
+    }
+
+    const newComment = this.resolveInput(input, staticData, 'comment');
+    if (newComment) {
+      entryToEdit.comment = newComment;
+    }
 
     const result = await this.dependencies.applyWorldInfoEntry({
       entry: entryToEdit,
