@@ -57,6 +57,7 @@ import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { settingsManager } from './config.js';
 import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
+import { NodeReport } from './components/popup/flowRunStore.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -227,8 +228,8 @@ export class LowLevelFlowRunner {
     this.reportSanitizers = {};
   }
 
-  public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
-    console.log(`[FlowChart] Executing flow with args`, initialInput);
+  public async executeFlow(runId: string, flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
+    console.log(`[FlowChart] Executing flow (runId: ${runId}) with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
     const executionVariables = new Map<string, any>();
@@ -259,23 +260,32 @@ export class LowLevelFlowRunner {
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
 
-        const output = await this.executeNode(node, inputs, { flow, executionVariables });
+        eventEmitter.emit('node:run:start', { runId, nodeId });
+        const nodeReport: NodeReport = { status: 'completed', input: inputs, output: {}, error: undefined };
+        try {
+          const output = await this.executeNode(node, inputs, { flow, executionVariables });
+          nodeReport.output = output;
+        } catch (error: any) {
+          nodeReport.status = 'error';
+          nodeReport.error = error.message;
+          nodeReport.output = null; // No output on error
+        }
 
-        nodeOutputs[nodeId] = output;
+        nodeOutputs[nodeId] = nodeReport.output;
+        report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: nodeReport.output });
+        eventEmitter.emit('node:run:end', { runId, nodeId: node.id, report: nodeReport });
 
-        const sanitizer = this.reportSanitizers[node.type];
-        const sanitizedInput = sanitizer?.input ? sanitizer.input(inputs) : inputs;
-        const sanitizedOutput = sanitizer?.output ? sanitizer.output(output) : output;
-
-        const nodeReport = { nodeId: node.id, type: node.type, input: sanitizedInput, output: sanitizedOutput };
-        report.executedNodes.push(nodeReport);
-        eventEmitter.emit('node:end', nodeReport);
+        if (nodeReport.status === 'error') {
+          const enhancedError = new Error(nodeReport.error);
+          (enhancedError as any).nodeId = node.id;
+          throw enhancedError;
+        }
 
         const outgoingEdges = adj.get(nodeId) || [];
         let edgesToFollow = outgoingEdges;
 
-        if (node.type === 'ifNode' && output.activatedHandle) {
-          edgesToFollow = outgoingEdges.filter((edge) => edge.sourceHandle === output.activatedHandle);
+        if (node.type === 'ifNode' && nodeReport.output?.activatedHandle) {
+          edgesToFollow = outgoingEdges.filter((edge) => edge.sourceHandle === nodeReport.output.activatedHandle);
         }
 
         for (const edge of edgesToFollow) {
@@ -348,7 +358,6 @@ export class LowLevelFlowRunner {
     const executor = this.nodeExecutors[node.type];
     if (executor) {
       console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
-      eventEmitter.emit('node:start', node.id);
       try {
         return await executor(node, input, context);
       } catch (error) {

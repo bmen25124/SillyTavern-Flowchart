@@ -6,6 +6,7 @@ import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
 import { settingsManager, st_updateMessageBlock } from './config.js';
+import { useFlowRunStore } from './components/popup/flowRunStore.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -101,6 +102,7 @@ export function clearExecutionHistory() {
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
   private lowLevelRunner: LowLevelFlowRunner;
+  private isListeningToEvents: boolean = false;
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner({
@@ -119,6 +121,19 @@ class FlowRunner {
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
     });
+
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    if (this.isListeningToEvents) return;
+    eventEmitter.on('flow:run:start', ({ runId }) => useFlowRunStore.getState().startRun(runId));
+    eventEmitter.on('node:run:start', ({ runId, nodeId }) => useFlowRunStore.getState().setActiveNode(runId, nodeId)); // <-- ADDED
+    eventEmitter.on('node:run:end', ({ runId, nodeId, report }) =>
+      useFlowRunStore.getState().addNodeReport(runId, nodeId, report),
+    );
+    eventEmitter.on('flow:run:end', ({ runId, status }) => useFlowRunStore.getState().endRun(runId, status));
+    this.isListeningToEvents = true;
   }
 
   reinitialize() {
@@ -182,12 +197,16 @@ class FlowRunner {
       return;
     }
 
-    eventEmitter.emit('flow:start');
-    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
+    const runId = crypto.randomUUID();
+    eventEmitter.emit('flow:run:start', { runId });
+
+    const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput);
 
     if (report.error) {
       st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
-      eventEmitter.emit('flow:error', report.error);
+      eventEmitter.emit('flow:run:end', { runId, status: 'error' });
+    } else {
+      eventEmitter.emit('flow:run:end', { runId, status: 'completed' });
     }
 
     const sanitizedReport = sanitizeReportForHistory(report);
@@ -197,7 +216,6 @@ class FlowRunner {
       executionHistory.pop();
     }
     saveHistory(executionHistory);
-    eventEmitter.emit('flow:end', sanitizedReport);
 
     return report;
   }

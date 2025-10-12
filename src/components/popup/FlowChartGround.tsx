@@ -24,7 +24,7 @@ import { validateFlow } from '../../validator.js';
 import { createDefaultFlow, settingsManager } from '../../config.js';
 import { toPng } from 'html-to-image';
 import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
-import { useDebugStore } from './DebugPanel.js';
+import { useFlowRunStore } from './flowRunStore.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 
@@ -156,7 +156,11 @@ const FlowCanvas: FC<{
   } | null>(null);
   const debouncedSearchTerm = useDebounce(contextMenu?.searchTerm ?? '', 200);
   const wasConnectionSuccessful = useRef(false);
-  const activeNodeId = useDebugStore((state) => state.activeNodeId);
+  const { isVisualizationVisible, nodeReports, activeNodeId } = useFlowRunStore((state) => ({
+    isVisualizationVisible: state.isVisualizationVisible,
+    nodeReports: state.nodeReports,
+    activeNodeId: state.activeNodeId,
+  }));
 
   const isValidConnection = useCallback(
     (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), edges),
@@ -271,14 +275,21 @@ const FlowCanvas: FC<{
       nodes.map((node) => {
         const classNames = [];
         if (invalidNodeIds.has(node.id)) classNames.push('flow-node-invalid');
-        if (node.id === activeNodeId) classNames.push('flow-node-executing');
+
+        if (node.id === activeNodeId) {
+          classNames.push('flow-node-executing');
+        } else if (isVisualizationVisible && nodeReports.has(node.id)) {
+          const report = nodeReports.get(node.id);
+          classNames.push(report?.status === 'error' ? 'flow-node-error' : 'flow-node-success');
+        }
+
         return {
           ...node,
           className: classNames.join(' '),
           zIndex: node.type === 'groupNode' ? -1 : 1,
         };
       }),
-    [nodes, invalidNodeIds, activeNodeId],
+    [nodes, invalidNodeIds, isVisualizationVisible, nodeReports, activeNodeId],
   );
 
   const filteredMenuOptions = useMemo(() => {
@@ -350,6 +361,7 @@ const FlowManager: FC = () => {
   const copyBuffer = useRef<Node[]>([]);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const flowWrapperRef = useRef<HTMLDivElement>(null);
+  const { isVisualizationVisible, runId, toggleVisualization, clearRun } = useFlowRunStore();
 
   // Track mouse position relative to the flow wrapper for accurate pasting
   useEffect(() => {
@@ -509,6 +521,7 @@ const FlowManager: FC = () => {
       st_echo('error', 'Cannot run an invalid flow. Please fix the errors first.');
       return;
     }
+    clearRun();
     flowRunner.runManualTriggers(settings.activeFlow);
   };
 
@@ -595,6 +608,18 @@ const FlowManager: FC = () => {
           enableDelete
         />
         <div style={{ flex: 1 }}></div>
+
+        {runId && (
+          <>
+            <STButton onClick={toggleVisualization}>
+              {isVisualizationVisible ? 'Hide Last Run' : 'Show Last Run'}
+            </STButton>
+            <STButton color="secondary" onClick={clearRun}>
+              Clear Run
+            </STButton>
+          </>
+        )}
+
         {!isValid && (
           <STButton color="danger" onClick={handleClearInvalid} title={errors.join('\n')}>
             Fix Errors ({errors.length})

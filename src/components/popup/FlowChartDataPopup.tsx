@@ -5,9 +5,8 @@ import { st_echo } from 'sillytavern-utils-lib/config';
 import { DEFAULT_SETTINGS, settingsManager } from '../../config.js';
 import { FlowChartGround } from './FlowChartGround.js';
 import { FlowHistory } from './FlowHistory.js';
-import { DebugPanel } from './DebugPanel.js';
 
-type Tab = 'prompts' | 'ground' | 'history' | 'debug';
+type Tab = 'prompts' | 'ground' | 'history';
 
 interface FlowChartDataPopupProps {
   onSave: () => void;
@@ -51,14 +50,12 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
           <STButton onClick={() => setActiveTab('ground')}>Ground</STButton>
           <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('history')}>History</STButton>
-          <STButton onClick={() => setActiveTab('debug')}>Debug</STButton>
         </div>
       </div>
       <div className="flowchart-popup-content">
         {activeTab === 'ground' && <FlowChartGround key={`ground-${importKey}`} />}
         {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'history' && <FlowHistory />}
-        {activeTab === 'debug' && <DebugPanel />}
       </div>
       <div className="flowchart-popup-footer">
         <STButton onClick={handleResetAll} color="danger">

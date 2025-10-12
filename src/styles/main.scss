@@ -311,14 +311,26 @@
   box-shadow: 0 0 5px var(--warning);
 }
 
-// Styles for debug execution
-@keyframes pulse {
+// Styles for run execution
+.react-flow__node .run-completed,
+.react-flow__node.flow-node-success > div {
+  box-shadow: 0 0 10px var(--success);
+}
+
+.react-flow__node .run-error,
+.react-flow__node.flow-node-error > div {
+  box-shadow: 0 0 10px var(--danger);
+}
+
+@keyframes pulse-blue {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-color, #007bff) 70%, transparent);
   }
+
   70% {
     box-shadow: 0 0 10px 10px transparent;
   }
+
   100% {
     box-shadow: 0 0 0 0 transparent;
   }
@@ -326,7 +338,7 @@
 
 .react-flow__node.flow-node-executing > div {
   border-color: var(--primary-color, #007bff) !important;
-  animation: pulse 1.5s infinite;
+  animation: pulse-blue 1.5s infinite;
 }
 
 // Styles for history tab
@@ -360,9 +372,11 @@
       padding: 8px;
       border-radius: 4px;
       margin-top: 5px;
+
       strong {
         color: var(--warning);
       }
+
       pre {
         margin-top: 5px;
         background-color: color-mix(in srgb, var(--warning) 5%, transparent);
@@ -433,6 +447,7 @@
       color: var(--grey50);
       text-align: center;
       padding: 12px;
+
       &:hover {
         background: transparent;
         color: var(--grey50);
@@ -488,5 +503,69 @@
       opacity: 1;
       background: var(--black50a);
     }
+  }
+}
+
+// In-Node Run Report
+.node-run-report {
+  margin-top: 10px;
+  border-top: 1px solid #555;
+  padding-top: 5px;
+
+  summary {
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+
+    .status-completed {
+      color: var(--success);
+      font-weight: bold;
+    }
+
+    .status-error {
+      color: var(--danger);
+      font-weight: bold;
+    }
+  }
+
+  .report-content {
+    margin-top: 5px;
+  }
+
+  .report-error {
+    background: var(--danger-transparent);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    padding: 5px;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    font-size: 0.85em;
+  }
+
+  .report-tabs {
+    display: flex;
+    gap: 5px;
+    margin: 5px 0;
+
+    button {
+      padding: 2px 8px;
+      font-size: 11px;
+
+      &.active {
+        background: var(--primary-color);
+        color: var(--text-color-black);
+      }
+    }
+  }
+
+  .report-data {
+    background: #2a2a2a;
+    padding: 5px;
+    border-radius: 3px;
+    max-height: 150px;
+    overflow: auto;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 }
