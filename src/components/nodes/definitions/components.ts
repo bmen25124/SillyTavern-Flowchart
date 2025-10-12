@@ -56,6 +56,7 @@ import { SetVariableNode } from '../SetVariableNode.js';
 import { GetVariableNode } from '../GetVariableNode.js';
 import { RegexNode } from '../RegexNode.js';
 import { RunSlashCommandNode } from '../RunSlashCommandNode.js';
+import { TypeConverterNode } from '../TypeConverterNode.js';
 
 export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   // Core
@@ -104,4 +105,5 @@ export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   getVariableNode: GetVariableNode,
   regexNode: RegexNode,
   runSlashCommandNode: RunSlashCommandNode,
+  typeConverterNode: TypeConverterNode,
 };

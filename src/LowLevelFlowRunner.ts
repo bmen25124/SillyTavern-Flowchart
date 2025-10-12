@@ -37,6 +37,7 @@ import {
   GetVariableNodeDataSchema,
   RegexNodeDataSchema,
   RunSlashCommandNodeDataSchema,
+  TypeConverterNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -199,6 +200,7 @@ export class LowLevelFlowRunner {
       getVariableNode: this.executeGetVariableNode.bind(this),
       regexNode: this.executeRegexNode.bind(this),
       runSlashCommandNode: this.executeRunSlashCommandNode.bind(this),
+      typeConverterNode: this.executeTypeConverterNode.bind(this),
     };
   }
 
@@ -563,7 +565,7 @@ export class LowLevelFlowRunner {
 
     try {
       const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
-      return { result: compiled(data) };
+      return { result: compiled({ ...input, data }) }; // Make all inputs available
     } catch (e: any) {
       throw new Error(`Error executing handlebar template: ${e.message}`);
     }
@@ -1062,5 +1064,56 @@ export class LowLevelFlowRunner {
     }
 
     return { result: result.pipe ?? '' };
+  }
+
+  private async executeTypeConverterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = TypeConverterNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { targetType } = parseResult.data;
+    const value = input.value;
+
+    if (value === undefined) {
+      // Handle undefined input gracefully for each type
+      switch (targetType) {
+        case 'string':
+          return { result: '' };
+        case 'number':
+          return { result: 0 };
+        case 'object':
+          return { result: {} };
+        case 'array':
+          return { result: [] };
+      }
+    }
+
+    try {
+      switch (targetType) {
+        case 'string':
+          if (typeof value === 'object' && value !== null) {
+            return { result: JSON.stringify(value, null, 2) };
+          }
+          return { result: String(value) };
+        case 'number':
+          const num = parseFloat(value);
+          if (isNaN(num)) throw new Error(`'${value}' cannot be converted to a number.`);
+          return { result: num };
+        case 'object':
+        case 'array':
+          if (typeof value === 'object') return { result: value }; // It's already an object/array
+          if (typeof value !== 'string') throw new Error('Input must be a JSON string to convert to object/array.');
+          const parsed = JSON.parse(value);
+          if (targetType === 'array' && !Array.isArray(parsed)) {
+            throw new Error('Parsed JSON is not an array.');
+          }
+          if (targetType === 'object' && (Array.isArray(parsed) || typeof parsed !== 'object')) {
+            throw new Error('Parsed JSON is not an object.');
+          }
+          return { result: parsed };
+        default:
+          throw new Error(`Unsupported target type: ${targetType}`);
+      }
+    } catch (e: any) {
+      throw new Error(`Type conversion failed: ${e.message}`);
+    }
   }
 }

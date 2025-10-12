@@ -312,3 +312,8 @@ export const RunSlashCommandNodeDataSchema = z.object({
   command: z.string().optional(),
 });
 export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
+
+export const TypeConverterNodeDataSchema = z.object({
+  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+});
+export type TypeConverterNodeData = z.infer<typeof TypeConverterNodeDataSchema>;

@@ -78,6 +78,8 @@ import {
   RegexNodeDataSchema,
   RunSlashCommandNodeData,
   RunSlashCommandNodeDataSchema,
+  TypeConverterNodeData,
+  TypeConverterNodeDataSchema,
 } from '../../../flow-types.js';
 import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -716,6 +718,35 @@ const runSlashCommandNodeDefinition: BaseNodeDefinition<RunSlashCommandNodeData>
   },
 };
 
+const typeConverterNodeDefinition: BaseNodeDefinition<TypeConverterNodeData> = {
+  type: 'typeConverterNode',
+  label: 'Type Converter',
+  category: 'Utility',
+  dataSchema: TypeConverterNodeDataSchema,
+  initialData: { targetType: 'string' },
+  handles: {
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+  },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'output' && handleId === 'result') {
+      const data = node.data as TypeConverterNodeData;
+      switch (data.targetType) {
+        case 'string':
+          return FlowDataType.STRING;
+        case 'number':
+          return FlowDataType.NUMBER;
+        case 'object':
+        case 'array':
+          return FlowDataType.OBJECT; // Both are objects in JS
+        default:
+          return FlowDataType.ANY;
+      }
+    }
+    return undefined;
+  },
+};
+
 export const baseNodeDefinitions: BaseNodeDefinition[] = [
   triggerNodeDefinition,
   manualTriggerNodeDefinition,
@@ -755,6 +786,7 @@ export const baseNodeDefinitions: BaseNodeDefinition[] = [
   getVariableNodeDefinition,
   regexNodeDefinition,
   runSlashCommandNodeDefinition,
+  typeConverterNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(baseNodeDefinitions.map((def) => [def.type, def]));
