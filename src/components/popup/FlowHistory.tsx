@@ -1,6 +1,8 @@
 import { FC, useState } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
+import { st_echo } from 'sillytavern-utils-lib/config';
 import { clearExecutionHistory, executionHistory } from '../../FlowRunner.js';
+import { safeJsonStringify } from '../../utils/safeJsonStringify.js';
 
 export const FlowHistory: FC = () => {
   const [history, setHistory] = useState([...executionHistory]);
@@ -8,6 +10,19 @@ export const FlowHistory: FC = () => {
   const clear = () => {
     clearExecutionHistory();
     setHistory([]);
+  };
+
+  const handleCopy = (data: any) => {
+    const jsonString = safeJsonStringify(data, 2);
+    navigator.clipboard
+      .writeText(jsonString)
+      .then(() => {
+        st_echo('info', 'History JSON copied to clipboard.');
+      })
+      .catch((err) => {
+        st_echo('error', 'Failed to copy history JSON.');
+        console.error('Failed to copy text: ', err);
+      });
   };
 
   return (
@@ -27,10 +42,29 @@ export const FlowHistory: FC = () => {
             return (
               <li key={index}>
                 <details>
-                  <summary style={{ color: hasError ? 'var(--danger)' : 'inherit' }}>
-                    Flow: <strong>{report.flowId}</strong> at {new Date(report.timestamp).toLocaleString()} (
-                    {report.executedNodes.length} nodes executed)
-                    {hasError && ' - FAILED'}
+                  <summary
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '10px',
+                      color: hasError ? 'var(--danger)' : 'inherit',
+                    }}
+                  >
+                    <span style={{ flexGrow: 1 }}>
+                      Flow: <strong>{report.flowId}</strong> at {new Date(report.timestamp).toLocaleString()} (
+                      {report.executedNodes.length} nodes executed)
+                      {hasError && ' - FAILED'}
+                    </span>
+                    <STButton
+                      className="fa-solid fa-copy"
+                      onClick={(e) => {
+                        e.preventDefault(); // Prevent details from toggling
+                        handleCopy(report);
+                      }}
+                      title="Copy JSON"
+                      style={{ flexShrink: 0 }}
+                    />
                   </summary>
                   {hasError && (
                     <div className="flow-history-error">
@@ -38,7 +72,7 @@ export const FlowHistory: FC = () => {
                       <pre>{report.error?.message}</pre>
                     </div>
                   )}
-                  <pre>{JSON.stringify(report.executedNodes, null, 2)}</pre>
+                  <pre>{safeJsonStringify(report.executedNodes, 2)}</pre>
                 </details>
               </li>
             );
