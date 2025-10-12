@@ -5,7 +5,7 @@ import { MergeObjectsNodeData } from '../../flow-types.js';
 import { useFlowStore } from '../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
-import { MERGE_OBJECTS_HANDLE_PREFIX } from '../../constants.js';
+import { nodeDefinitionMap } from './definitions/index.js';
 
 export type MergeObjectsNodeProps = NodeProps<Node<MergeObjectsNodeData>>;
 
@@ -20,6 +20,7 @@ export const MergeObjectsNode: FC<MergeObjectsNodeProps> = ({ id, selected }) =>
 
   if (!data) return null;
 
+  const definition = nodeDefinitionMap.get('mergeObjectsNode')!;
   const inputCount = data.inputCount ?? 2;
 
   const setInputCount = (count: number) => {
@@ -31,7 +32,7 @@ export const MergeObjectsNode: FC<MergeObjectsNodeProps> = ({ id, selected }) =>
       <Handle
         type="target"
         position={Position.Left}
-        id={`${MERGE_OBJECTS_HANDLE_PREFIX}${i}`}
+        id={definition.getDynamicHandleId!(i)}
         style={{ top: '50%', transform: 'translateY(-50%)' }}
       />
       <label style={{ marginLeft: '10px' }}>Object {i + 1}</label>

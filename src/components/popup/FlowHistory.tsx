@@ -1,12 +1,12 @@
 import { FC, useState } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
-import { executionHistory } from '../../FlowRunner.js';
+import { clearExecutionHistory, executionHistory } from '../../FlowRunner.js';
 
 export const FlowHistory: FC = () => {
   const [history, setHistory] = useState([...executionHistory]);
 
-  const clearHistory = () => {
-    executionHistory.length = 0;
+  const clear = () => {
+    clearExecutionHistory();
     setHistory([]);
   };
 
@@ -14,7 +14,7 @@ export const FlowHistory: FC = () => {
     <div className="flowchart-popup-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <h3>Run History</h3>
-        <STButton onClick={clearHistory} color="danger">
+        <STButton onClick={clear} color="danger">
           Clear History
         </STButton>
       </div>
@@ -28,7 +28,7 @@ export const FlowHistory: FC = () => {
               <li key={index}>
                 <details>
                   <summary style={{ color: hasError ? 'var(--danger)' : 'inherit' }}>
-                    Flow: <strong>{report.flowId}</strong> at {report.timestamp.toLocaleString()} (
+                    Flow: <strong>{report.flowId}</strong> at {new Date(report.timestamp).toLocaleString()} (
                     {report.executedNodes.length} nodes executed)
                     {hasError && ' - FAILED'}
                   </summary>

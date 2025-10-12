@@ -7,7 +7,38 @@ import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } fr
 import { eventEmitter } from './events.js';
 import { settingsManager, st_updateMessageBlock } from './config.js';
 
-export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
+const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
+const MAX_HISTORY_LENGTH = 50;
+
+type StoredExecutionReport = ExecutionReport & { flowId: string; timestamp: string };
+
+function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[] {
+  try {
+    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!saved) return [];
+    const parsed: StoredExecutionReport[] = JSON.parse(saved);
+    return parsed.map((item) => ({ ...item, timestamp: new Date(item.timestamp) }));
+  } catch (e) {
+    console.error('[FlowChart] Failed to load execution history:', e);
+    return [];
+  }
+}
+
+function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Date })[]) {
+  try {
+    const storable = history.map((item) => ({ ...item, timestamp: item.timestamp.toISOString() }));
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(storable));
+  } catch (e) {
+    console.error('[FlowChart] Failed to save execution history:', e);
+  }
+}
+
+export let executionHistory = loadHistory();
+
+export function clearExecutionHistory() {
+  executionHistory = [];
+  localStorage.removeItem(HISTORY_STORAGE_KEY);
+}
 
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
@@ -104,9 +135,10 @@ class FlowRunner {
     }
 
     executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
-    if (executionHistory.length > 50) {
+    if (executionHistory.length > MAX_HISTORY_LENGTH) {
       executionHistory.pop();
     }
+    saveHistory(executionHistory);
     eventEmitter.emit('flow:end', report);
 
     return report;

@@ -5,7 +5,7 @@ import { StringToolsNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect, STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
-import { STRING_TOOLS_MERGE_HANDLE_PREFIX } from '../../constants.js';
+import { nodeDefinitionMap } from './definitions/index.js';
 
 export type StringToolsNodeProps = NodeProps<Node<StringToolsNodeData>>;
 
@@ -21,6 +21,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
 
   if (!data) return null;
 
+  const definition = nodeDefinitionMap.get('stringToolsNode')!;
   const inputCount = data.inputCount ?? 2;
   const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
   const operation = data.operation ?? 'merge';
@@ -42,7 +43,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
                 <Handle
                   type="target"
                   position={Position.Left}
-                  id={`${STRING_TOOLS_MERGE_HANDLE_PREFIX}${i}`}
+                  id={definition.getDynamicHandleId!(i)}
                   style={{ top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <label style={{ marginLeft: '10px' }}>String {i + 1}</label>

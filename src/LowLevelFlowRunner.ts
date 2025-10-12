@@ -57,11 +57,7 @@ import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { settingsManager } from './config.js';
-import {
-  MERGE_MESSAGES_HANDLE_PREFIX,
-  MERGE_OBJECTS_HANDLE_PREFIX,
-  STRING_TOOLS_MERGE_HANDLE_PREFIX,
-} from './constants.js';
+import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -242,17 +238,16 @@ export class LowLevelFlowRunner {
     const report: ExecutionReport = { executedNodes: [] };
 
     const inDegree: Record<string, number> = {};
-    const adj: Record<string, string[]> = {};
+    const adj = new Map<string, SpecEdge[]>(flow.nodes.map((node) => [node.id, []]));
     const nodesById = new Map(flow.nodes.map((node) => [node.id, node]));
 
     for (const node of flow.nodes) {
       inDegree[node.id] = 0;
-      adj[node.id] = [];
     }
     for (const edge of flow.edges) {
       if (nodesById.has(edge.source) && nodesById.has(edge.target)) {
         inDegree[edge.target]++;
-        adj[edge.source].push(edge.target);
+        adj.get(edge.source)!.push(edge);
       }
     }
 
@@ -274,23 +269,19 @@ export class LowLevelFlowRunner {
         report.executedNodes.push(nodeReport);
         eventEmitter.emit('node:end', nodeReport);
 
-        // For `ifNode`, only queue the next node on the taken branch
-        if (node.type === 'ifNode' && output.nextNodeId) {
-          const nextNodeId = output.nextNodeId as string;
-          if (inDegree[nextNodeId] !== undefined) {
-            inDegree[nextNodeId]--;
-            if (inDegree[nextNodeId] === 0) {
-              queue.push(nextNodeId);
-            }
-          }
-        } else {
-          // For all other nodes, queue up their successors
-          for (const neighborId of adj[nodeId]) {
-            if (inDegree[neighborId] !== undefined) {
-              inDegree[neighborId]--;
-              if (inDegree[neighborId] === 0) {
-                queue.push(neighborId);
-              }
+        const outgoingEdges = adj.get(nodeId) || [];
+        let edgesToFollow = outgoingEdges;
+
+        if (node.type === 'ifNode' && output.activatedHandle) {
+          edgesToFollow = outgoingEdges.filter((edge) => edge.sourceHandle === output.activatedHandle);
+        }
+
+        for (const edge of edgesToFollow) {
+          const neighborId = edge.target;
+          if (inDegree[neighborId] !== undefined) {
+            inDegree[neighborId]--;
+            if (inDegree[neighborId] === 0) {
+              queue.push(neighborId);
             }
           }
         }
@@ -473,26 +464,22 @@ export class LowLevelFlowRunner {
 
   private async executeMergeMessagesNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = MergeMessagesNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const definition = nodeDefinitionMap.get('mergeMessagesNode')!;
 
     return Object.keys(input)
-      .filter((key) => key.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) && Array.isArray(input[key]))
+      .filter((key) => definition.isDynamicHandle!(key) && Array.isArray(input[key]))
       .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
       .flatMap((key) => input[key]);
   }
 
   private async executeMergeObjectsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = MergeObjectsNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const definition = nodeDefinitionMap.get('mergeObjectsNode')!;
 
     const objectsToMerge = Object.keys(input)
-      .filter(
-        (key) => key.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) && typeof input[key] === 'object' && input[key] !== null,
-      )
+      .filter((key) => definition.isDynamicHandle!(key) && typeof input[key] === 'object' && input[key] !== null)
       .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
       .map((key) => input[key]);
 
@@ -508,24 +495,21 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    const { flow, executionVariables, sessionVariables } = context;
-
+    const { executionVariables, sessionVariables } = context;
     const variables = { ...Object.fromEntries(sessionVariables), ...Object.fromEntries(executionVariables) };
 
     for (const condition of parseResult.data.conditions) {
       try {
         const func = new Function('input', 'variables', 'stContext', condition.code);
         if (func(input, variables, this.dependencies.getSillyTavernContext())) {
-          const edge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === condition.id);
-          return { nextNodeId: edge?.target ?? null };
+          return { activatedHandle: condition.id };
         }
       } catch (error: any) {
         throw new Error(`Error executing condition code: ${error.message}`);
       }
     }
 
-    const elseEdge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === 'false');
-    return { nextNodeId: elseEdge?.target ?? null };
+    return { activatedHandle: 'false' };
   }
 
   private async executeStringNode(node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -991,11 +975,12 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const operation = this.resolveInput(input, parseResult.data, 'operation') ?? 'merge';
     const delimiter = this.resolveInput(input, parseResult.data, 'delimiter') ?? '';
+    const definition = nodeDefinitionMap.get('stringToolsNode')!;
 
     switch (operation) {
       case 'merge':
         const strings = Object.keys(input)
-          .filter((key) => key.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX))
+          .filter((key) => definition.isDynamicHandle!(key))
           .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
           .map((key) => String(input[key]));
         return { result: strings.join(delimiter) };

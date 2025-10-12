@@ -14,6 +14,7 @@ import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 type FlowState = {
   nodes: Node[];
   edges: Edge[];
+  nodesMap: Map<string, Node>;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
@@ -63,12 +64,33 @@ const fromSpecEdge = (specEdge: SpecEdge): Edge => ({
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
-  setNodes: (nodes) => set({ nodes }),
+  nodesMap: new Map(),
+  setNodes: (nodes) => {
+    set({ nodes, nodesMap: new Map(nodes.map((n) => [n.id, n])) });
+  },
   setEdges: (edges) => set({ edges }),
   onNodesChange: (changes) => {
-    set({
-      nodes: applyNodeChanges(changes, get().nodes),
+    const newNodes = applyNodeChanges(changes, get().nodes);
+    const newNodesMap = new Map(get().nodesMap);
+
+    // Manually apply changes to the map for consistency
+    changes.forEach((change) => {
+      if (change.type === 'remove') {
+        newNodesMap.delete(change.id);
+      } else if (change.type === 'add') {
+        newNodesMap.set(change.item.id, change.item);
+      } else {
+        const node = newNodesMap.get(change.id);
+        if (node) {
+          const updatedNode = newNodes.find((n) => n.id === change.id);
+          if (updatedNode) {
+            newNodesMap.set(change.id, updatedNode);
+          }
+        }
+      }
     });
+
+    set({ nodes: newNodes, nodesMap: newNodesMap });
   },
   onEdgesChange: (changes) => {
     set({
@@ -81,19 +103,32 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     });
   },
   updateNodeData: (nodeId, newData) => {
-    set({
-      nodes: get().nodes.map((node) => {
-        if (node.id === nodeId) {
-          return { ...node, data: { ...node.data, ...newData } };
-        }
-        return node;
-      }),
+    set((state) => {
+      const nodeToUpdate = state.nodesMap.get(nodeId);
+      if (!nodeToUpdate) {
+        return state;
+      }
+
+      const updatedNode = { ...nodeToUpdate, data: { ...nodeToUpdate.data, ...newData } };
+
+      const newNodesMap = new Map(state.nodesMap);
+      newNodesMap.set(nodeId, updatedNode);
+
+      const nodeIndex = state.nodes.findIndex((n) => n.id === nodeId);
+      const newNodes = [...state.nodes];
+      if (nodeIndex !== -1) {
+        newNodes[nodeIndex] = updatedNode;
+      }
+
+      return { nodes: newNodes, nodesMap: newNodesMap };
     });
   },
   loadFlow: (flowData) => {
+    const nodes = (flowData.nodes || []).map(fromSpecNode);
     set({
-      nodes: (flowData.nodes || []).map(fromSpecNode),
+      nodes: nodes,
       edges: (flowData.edges || []).map(fromSpecEdge),
+      nodesMap: new Map(nodes.map((n) => [n.id, n])),
     });
   },
   getSpecFlow: () => {
@@ -104,12 +139,17 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   addNode: (node) => {
     const newNode = { ...node, id: crypto.randomUUID() };
-    set({ nodes: [...get().nodes, newNode] });
+    set((state) => {
+      const newNodes = [...state.nodes, newNode];
+      const newNodesMap = new Map(state.nodesMap);
+      newNodesMap.set(newNode.id, newNode);
+      return { nodes: newNodes, nodesMap: newNodesMap };
+    });
     return newNode;
   },
   duplicateNode: (nodeId) => {
-    const { nodes } = get();
-    const nodeToDuplicate = nodes.find((n) => n.id === nodeId);
+    const { nodesMap } = get();
+    const nodeToDuplicate = nodesMap.get(nodeId);
     if (!nodeToDuplicate) return;
 
     const newNode: Node = {
@@ -121,6 +161,12 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       },
       selected: false,
     };
-    set({ nodes: [...nodes, newNode] });
+
+    set((state) => {
+      const newNodes = [...state.nodes, newNode];
+      const newNodesMap = new Map(state.nodesMap);
+      newNodesMap.set(newNode.id, newNode);
+      return { nodes: newNodes, nodesMap: newNodesMap };
+    });
   },
 }));

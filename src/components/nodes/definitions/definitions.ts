@@ -107,11 +107,10 @@ import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { PromptEngineeringMode } from '../../../config.js';
 import { z } from 'zod';
-import {
-  MERGE_MESSAGES_HANDLE_PREFIX,
-  MERGE_OBJECTS_HANDLE_PREFIX,
-  STRING_TOOLS_MERGE_HANDLE_PREFIX,
-} from '../../../constants.js';
+
+const MERGE_MESSAGES_HANDLE_PREFIX = 'messages_';
+const MERGE_OBJECTS_HANDLE_PREFIX = 'object_';
+const STRING_TOOLS_MERGE_HANDLE_PREFIX = 'string_';
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
@@ -418,6 +417,8 @@ const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
   dataSchema: MergeMessagesNodeDataSchema,
   initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
+  getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,
+  isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) ?? false,
   getDynamicHandles: (data) => {
     const inputs = [];
     for (let i = 0; i < data.inputCount; i++) {
@@ -566,6 +567,8 @@ const mergeObjectsNodeDefinition: BaseNodeDefinition<MergeObjectsNodeData> = {
   dataSchema: MergeObjectsNodeDataSchema,
   initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
+  getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,
+  isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
   getDynamicHandles: (data) => {
     const inputs = [];
     for (let i = 0; i < data.inputCount; i++) {
@@ -646,6 +649,8 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
     ],
     outputs: [{ id: 'result', type: FlowDataType.ANY }],
   },
+  getDynamicHandleId: (index: number) => `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${index}`,
+  isDynamicHandle: (handleId: string | null) => handleId?.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX) ?? false,
   getDynamicHandles: (data) => {
     const inputs = [];
     if (data.operation === 'merge') {

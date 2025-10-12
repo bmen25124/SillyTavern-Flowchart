@@ -1,7 +1,3 @@
-export const MERGE_MESSAGES_HANDLE_PREFIX = 'messages_';
-export const MERGE_OBJECTS_HANDLE_PREFIX = 'object_';
-export const STRING_TOOLS_MERGE_HANDLE_PREFIX = 'string_';
-
 export const DEFAULT_PROMPT_JSON = `You are a highly specialized AI assistant. Your SOLE purpose is to generate a single, valid JSON object that strictly adheres to the provided JSON schema.
 
 **CRITICAL INSTRUCTIONS:**
