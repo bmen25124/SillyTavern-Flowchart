@@ -39,7 +39,7 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(({ nodeI
             {!isConnected &&
               React.createElement(field.component, {
                 className: 'nodrag',
-                value: field.formatValue ? field.formatValue(data[field.id]) : data[field.id] ?? '',
+                value: field.formatValue ? field.formatValue(data[field.id]) : (data[field.id] ?? ''),
                 onChange: handleChange,
                 ...field.props,
               })}
