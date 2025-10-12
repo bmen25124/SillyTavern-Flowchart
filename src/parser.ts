@@ -59,15 +59,13 @@ export function parseResponse(content: string, format: 'xml' | 'json', options: 
         throw new Error(`Unsupported format specified: ${format}`);
     }
   } catch (error: any) {
-    console.error(`Error parsing response in format '${format}':`, error);
-    console.error('Raw content received:', content);
-
-    if (format === 'xml' && error.message.includes('Invalid XML')) {
+    if (format === 'xml') {
       throw new Error('Model response is not valid XML.');
-    } else if (format === 'json' && error instanceof SyntaxError) {
-      throw new Error('Model response is not valid JSON.');
-    } else {
-      throw new Error(`Failed to parse response as ${format}: ${error.message}`);
     }
+    if (format === 'json') {
+      throw new Error('Model response is not valid JSON.');
+    }
+    // Fallback for other potential errors (e.g., unsupported format)
+    throw new Error(`Failed to parse response as ${format}: ${error.message}`);
   }
 }
