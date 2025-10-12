@@ -12,6 +12,8 @@ import {
   CustomMessageNodeDataSchema,
   EditCharacterNodeData,
   EditCharacterNodeDataSchema,
+  EditChatMessageNodeData,
+  EditChatMessageNodeDataSchema,
   EditLorebookEntryNodeData,
   EditLorebookEntryNodeDataSchema,
   ExecuteJsNodeData,
@@ -19,6 +21,8 @@ import {
   FlowDataType,
   GetCharacterNodeData,
   GetCharacterNodeDataSchema,
+  GetChatMessageNodeData,
+  GetChatMessageNodeDataSchema,
   GetLorebookEntryNodeData,
   GetLorebookEntryNodeDataSchema,
   GetLorebookNodeData,
@@ -43,20 +47,33 @@ import {
   NumberNodeDataSchema,
   ProfileIdNodeData,
   ProfileIdNodeDataSchema,
+  RemoveChatMessageNodeData,
+  RemoveChatMessageNodeDataSchema,
   SchemaNodeData,
   SchemaNodeDataSchema,
+  SendChatMessageNodeData,
+  SendChatMessageNodeDataSchema,
   StringNodeData,
   StringNodeDataSchema,
   StructuredRequestNodeData,
   StructuredRequestNodeDataSchema,
   TriggerNodeData,
   TriggerNodeDataSchema,
+  EventNameParameters,
 } from '../../../flow-types.js';
 import { NodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { PromptEngineeringMode } from '../../../config.js';
+import { z } from 'zod';
 
 type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;
+
+function zodTypeToFlowType(type: z.ZodType): FlowDataType {
+  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
+  if (type instanceof z.ZodString) return FlowDataType.STRING;
+  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
+  return FlowDataType.ANY;
+}
 
 // from character.ts
 const getCharacterNodeDefinition: BaseNodeDefinition<GetCharacterNodeData> = {
@@ -127,6 +144,16 @@ const triggerNodeDefinition: BaseNodeDefinition<TriggerNodeData> = {
   dataSchema: TriggerNodeDataSchema,
   initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED },
   handles: { inputs: [], outputs: [] },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'output') {
+      const { selectedEventType } = node.data as TriggerNodeData;
+      const eventParams = EventNameParameters[selectedEventType];
+      if (eventParams && handleId && eventParams[handleId]) {
+        return zodTypeToFlowType(eventParams[handleId]);
+      }
+    }
+    return undefined;
+  },
 };
 const manualTriggerNodeDefinition: BaseNodeDefinition<ManualTriggerNodeData> = {
   type: 'manualTriggerNode',
@@ -367,6 +394,64 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
     return undefined;
   },
 };
+const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> = {
+  type: 'getChatMessageNode',
+  label: 'Get Chat Message',
+  category: 'Messaging',
+  dataSchema: GetChatMessageNodeDataSchema,
+  initialData: { messageId: 'last' },
+  handles: {
+    inputs: [{ id: 'messageId', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'id', type: FlowDataType.NUMBER },
+      { id: 'result', type: FlowDataType.OBJECT },
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'mes', type: FlowDataType.STRING },
+      { id: 'is_user', type: FlowDataType.BOOLEAN },
+      { id: 'is_system', type: FlowDataType.BOOLEAN },
+    ],
+  },
+};
+const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData> = {
+  type: 'editChatMessageNode',
+  label: 'Edit Chat Message',
+  category: 'Messaging',
+  dataSchema: EditChatMessageNodeDataSchema,
+  initialData: {},
+  handles: {
+    inputs: [
+      { id: 'messageId', type: FlowDataType.NUMBER },
+      { id: 'message', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: 'messageObject', type: FlowDataType.OBJECT }],
+  },
+};
+const sendChatMessageNodeDefinition: BaseNodeDefinition<SendChatMessageNodeData> = {
+  type: 'sendChatMessageNode',
+  label: 'Send Chat Message',
+  category: 'Messaging',
+  dataSchema: SendChatMessageNodeDataSchema,
+  initialData: { message: '', role: 'assistant' },
+  handles: {
+    inputs: [
+      { id: 'message', type: FlowDataType.STRING },
+      { id: 'role', type: FlowDataType.STRING },
+      { id: 'name', type: FlowDataType.STRING },
+    ],
+    outputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
+  },
+};
+const removeChatMessageNodeDefinition: BaseNodeDefinition<RemoveChatMessageNodeData> = {
+  type: 'removeChatMessageNode',
+  label: 'Remove Chat Message',
+  category: 'Messaging',
+  dataSchema: RemoveChatMessageNodeDataSchema,
+  initialData: {},
+  handles: {
+    inputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
+    outputs: [],
+  },
+};
 
 // from utility.ts
 const logNodeDefinition: BaseNodeDefinition<LogNodeData> = {
@@ -437,6 +522,10 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   customMessageNodeDefinition,
   mergeMessagesNodeDefinition,
   structuredRequestNodeDefinition,
+  getChatMessageNodeDefinition,
+  editChatMessageNodeDefinition,
+  sendChatMessageNodeDefinition,
+  removeChatMessageNodeDefinition,
   getCharacterNodeDefinition,
   createCharacterNodeDefinition,
   editCharacterNodeDefinition,

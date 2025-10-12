@@ -427,7 +427,8 @@ const FlowManager: FC = () => {
           backgroundColor: '#202124',
           width: imageWidth,
           height: imageHeight,
-          filter: (node: HTMLElement) => !node.classList?.contains('react-flow__controls'),
+          filter: (node: HTMLElement) =>
+            !node.classList?.contains('react-flow__controls') && !node.classList?.contains('react-flow__minimap'),
           skipFonts: true,
           pixelRatio: 2,
         });

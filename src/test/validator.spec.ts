@@ -38,24 +38,6 @@ describe('validateFlow', () => {
     expect(errors).toContain('Trigger Node [start] cannot have incoming connections.');
   });
 
-  it('should invalidate an event trigger node with an outgoing edge', () => {
-    const flow: FlowData = {
-      nodes: [
-        {
-          id: 'start',
-          type: 'triggerNode',
-          position: { x: 0, y: 0 },
-          data: { selectedEventType: 'user_message_rendered' },
-        },
-        { id: 'end', type: 'stringNode', position: { x: 0, y: 0 }, data: { value: 'hello' } },
-      ],
-      edges: [{ id: 'e1', source: 'start', target: 'end', sourceHandle: null, targetHandle: null }],
-    };
-    const { isValid, errors } = validateFlow(flow);
-    expect(isValid).toBe(false);
-    expect(errors).toContain('Event Trigger Node [start] cannot have outgoing connections.');
-  });
-
   it('should allow a manual trigger node to have an outgoing edge', () => {
     const flow: FlowData = {
       nodes: [

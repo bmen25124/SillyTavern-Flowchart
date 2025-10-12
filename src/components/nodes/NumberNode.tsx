@@ -26,12 +26,12 @@ export const NumberNode: FC<NumberNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Number" selected={selected}>
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} id="value" />
       <div>
         <label>Value</label>
         <STInput className="nodrag" type="number" value={data.value} onChange={handleValueChange} />
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} id="value" />
     </BaseNode>
   );
 };

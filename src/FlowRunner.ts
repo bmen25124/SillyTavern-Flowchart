@@ -1,6 +1,6 @@
 import { settingsManager } from './components/Settings.js';
 import { EventNameParameters } from './flow-types.js';
-import { st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
+import { sendChatMessage, st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
@@ -8,6 +8,7 @@ import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } fr
 import { FlowData } from './constants.js';
 import { SpecFlow } from './flow-spec.js';
 import { eventEmitter } from './events.js';
+import { st_updateMessageBlock } from './config.js';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 
@@ -38,6 +39,10 @@ class FlowRunner {
       st_createNewWorldInfo: (worldName) => st_createNewWorldInfo(worldName, { interactive: true }),
       applyWorldInfoEntry,
       getWorldInfos,
+      sendChatMessage: (message, role, name) => sendChatMessage(message, role, name),
+      deleteMessage: (messageId) => SillyTavern.getContext().deleteMessage(messageId),
+      saveChat: () => SillyTavern.getContext().saveChat(),
+      st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
     });
   }
 

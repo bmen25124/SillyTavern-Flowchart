@@ -13,7 +13,11 @@ import {
 import {
   createMessagesNodeDefinition,
   customMessageNodeDefinition,
+  editChatMessageNodeDefinition,
+  getChatMessageNodeDefinition,
   mergeMessagesNodeDefinition,
+  removeChatMessageNodeDefinition,
+  sendChatMessageNodeDefinition,
   structuredRequestNodeDefinition,
 } from './messaging.js';
 
@@ -41,6 +45,10 @@ export const allNodeDefinitions: NodeDefinition[] = [
   customMessageNodeDefinition,
   mergeMessagesNodeDefinition,
   structuredRequestNodeDefinition,
+  getChatMessageNodeDefinition,
+  editChatMessageNodeDefinition,
+  sendChatMessageNodeDefinition,
+  removeChatMessageNodeDefinition,
   // Character
   getCharacterNodeDefinition,
   createCharacterNodeDefinition,

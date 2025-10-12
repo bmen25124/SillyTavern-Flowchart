@@ -24,6 +24,10 @@ import {
   GetLorebookNodeDataSchema,
   GetLorebookEntryNodeDataSchema,
   ExecuteJsNodeDataSchema,
+  GetChatMessageNodeDataSchema,
+  EditChatMessageNodeDataSchema,
+  SendChatMessageNodeDataSchema,
+  RemoveChatMessageNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -31,6 +35,7 @@ import Handlebars from 'handlebars';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
+import { ChatMessage } from 'sillytavern-utils-lib/types';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -63,6 +68,10 @@ export interface FlowRunnerDependencies {
   getWorldInfos: (
     include: ('all' | 'global' | 'character' | 'chat' | 'persona')[],
   ) => Promise<Record<string, WIEntry[]>>;
+  sendChatMessage: (message: string, role: 'user' | 'assistant' | 'system', name?: string) => Promise<void>;
+  deleteMessage: (messageId: number) => Promise<void>;
+  saveChat: () => Promise<void>;
+  st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
 }
 
 type NodeExecutor = (node: SpecNode, input: Record<string, any>, flow: SpecFlow) => Promise<any>;
@@ -142,6 +151,10 @@ export class LowLevelFlowRunner {
       getLorebookNode: this.executeGetLorebookNode.bind(this),
       getLorebookEntryNode: this.executeGetLorebookEntryNode.bind(this),
       executeJsNode: this.executeExecuteJsNode.bind(this),
+      getChatMessageNode: this.executeGetChatMessageNode.bind(this),
+      editChatMessageNode: this.executeEditChatMessageNode.bind(this),
+      sendChatMessageNode: this.executeSendChatMessageNode.bind(this),
+      removeChatMessageNode: this.executeRemoveChatMessageNode.bind(this),
     };
   }
 
@@ -722,5 +735,97 @@ export class LowLevelFlowRunner {
     } catch (error: any) {
       throw new Error(`Error executing JS code: ${error.message}`);
     }
+  }
+
+  private async executeGetChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = GetChatMessageNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const messageIdInput = input.messageId ?? staticData.messageId;
+    if (messageIdInput === undefined) throw new Error('Message ID is required.');
+
+    const { chat } = this.dependencies.getSillyTavernContext();
+    let message: ChatMessage | undefined;
+    let messageIndex: number;
+
+    if (typeof messageIdInput === 'number') {
+      messageIndex = chat.findIndex((_, i) => i === messageIdInput);
+    } else {
+      const idStr = String(messageIdInput).toLowerCase().trim();
+      if (idStr === 'last') {
+        messageIndex = chat.length - 1;
+      } else if (idStr === 'first') {
+        messageIndex = 0;
+      } else if (idStr.startsWith('last')) {
+        const offset = parseInt(idStr.replace('last', '').trim(), 10) || 0;
+        messageIndex = chat.length - 1 + offset;
+      } else {
+        messageIndex = parseInt(idStr, 10);
+      }
+    }
+
+    if (isNaN(messageIndex) || messageIndex < 0 || messageIndex >= chat.length) {
+      throw new Error(`Message with ID/Index "${messageIdInput}" not found or invalid.`);
+    }
+
+    message = chat[messageIndex];
+
+    return {
+      id: messageIndex,
+      result: message,
+      name: message.name,
+      mes: message.mes,
+      is_user: !!message.is_user,
+      is_system: !!message.is_system,
+    };
+  }
+
+  private async executeEditChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = EditChatMessageNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const messageId = input.messageId ?? staticData.messageId;
+    const newMessage = input.message ?? staticData.message;
+
+    if (messageId === undefined) throw new Error('Message ID is required.');
+    if (newMessage === undefined) throw new Error('New message content is required.');
+
+    const { chat } = this.dependencies.getSillyTavernContext();
+    const message = chat[messageId];
+    if (!message) throw new Error(`Message with ID ${messageId} not found.`);
+
+    message.mes = newMessage;
+    this.dependencies.st_updateMessageBlock(messageId, message);
+    await this.dependencies.saveChat();
+    return { messageObject: message };
+  }
+
+  private async executeSendChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = SendChatMessageNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const message = input.message ?? staticData.message;
+    const role = input.role ?? staticData.role;
+    const name = input.name ?? staticData.name;
+
+    if (!message) throw new Error('Message content is required.');
+
+    await this.dependencies.sendChatMessage(message, role, name);
+    return { messageSent: true };
+  }
+
+  private async executeRemoveChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = RemoveChatMessageNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+
+    const messageId = input.messageId ?? staticData.messageId;
+    if (messageId === undefined) throw new Error('Message ID is required.');
+
+    await this.dependencies.deleteMessage(messageId);
+    return {};
   }
 }

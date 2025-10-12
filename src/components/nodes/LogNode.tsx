@@ -21,7 +21,7 @@ export const LogNode: React.FC<LogNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Log Message" selected={selected}>
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} id="value" />
       <div>
         <label>Log Prefix</label>
         <STInput
@@ -31,7 +31,7 @@ export const LogNode: React.FC<LogNodeProps> = ({ id, selected }) => {
           placeholder="Prefix for the log message"
         />
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} id="value" />
     </BaseNode>
   );
 };

@@ -10,6 +10,8 @@ export const updateMessageBlock = mockFn;
 export const EventNames = {
     USER_MESSAGE_RENDERED: 'user_message_rendered',
     CHARACTER_MESSAGE_RENDERED: 'character_message_rendered',
+    MESSAGE_UPDATED: 'message_updated',
+    CHAT_CHANGED: 'chat_changed',
 };
 
 // Mock other named exports used throughout the project

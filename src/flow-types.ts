@@ -7,6 +7,8 @@ import { EventNames } from 'sillytavern-utils-lib/types';
 export const EventNameParameters: Record<string, Record<string, z.ZodType>> = {
   [EventNames.USER_MESSAGE_RENDERED]: { messageId: z.number() },
   [EventNames.CHARACTER_MESSAGE_RENDERED]: { messageId: z.number() },
+  [EventNames.MESSAGE_UPDATED]: { messageId: z.number() },
+  [EventNames.CHAT_CHANGED]: {},
 };
 
 export enum FlowDataType {
@@ -230,3 +232,26 @@ export const ExecuteJsNodeDataSchema = z.object({
   code: z.string().default('return input;'),
 });
 export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
+
+export const GetChatMessageNodeDataSchema = z.object({
+  messageId: z.string().optional(), // Can be 'last', 'first', or a number
+});
+export type GetChatMessageNodeData = z.infer<typeof GetChatMessageNodeDataSchema>;
+
+export const EditChatMessageNodeDataSchema = z.object({
+  messageId: z.number().optional(),
+  message: z.string().optional(),
+});
+export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSchema>;
+
+export const SendChatMessageNodeDataSchema = z.object({
+  message: z.string().default(''),
+  role: z.enum(['user', 'assistant', 'system']).default('assistant'),
+  name: z.string().optional(),
+});
+export type SendChatMessageNodeData = z.infer<typeof SendChatMessageNodeDataSchema>;
+
+export const RemoveChatMessageNodeDataSchema = z.object({
+  messageId: z.number().optional(),
+});
+export type RemoveChatMessageNodeData = z.infer<typeof RemoveChatMessageNodeDataSchema>;

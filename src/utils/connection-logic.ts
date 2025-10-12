@@ -29,7 +29,6 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
   if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
     return false;
   }
-  if (sourceNode.type === 'triggerNode') return false;
   if (sourceNode.type === 'groupNode' || targetNode.type === 'groupNode') return false;
 
   const sourceHandleType = getHandleType(sourceNode, connection.sourceHandle ?? null, 'output', nodes, edges);

@@ -102,14 +102,6 @@ export const validateFlow = (flow: FlowData): ValidationResult => {
       errors.push(`Trigger Node [${triggerNode.id}] cannot have incoming connections.`);
       invalidNodeIds.add(triggerNode.id);
     }
-
-    if (triggerNode.type === 'triggerNode') {
-      const hasOutgoingEdge = flow.edges.some((e) => e.source === triggerNode.id);
-      if (hasOutgoingEdge) {
-        errors.push(`Event Trigger Node [${triggerNode.id}] cannot have outgoing connections.`);
-        invalidNodeIds.add(triggerNode.id);
-      }
-    }
   }
 
   return {

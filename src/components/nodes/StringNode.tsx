@@ -25,12 +25,12 @@ export const StringNode: FC<StringNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="String" selected={selected}>
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} id="value" />
       <div>
         <label>Value</label>
         <STInput className="nodrag" value={data.value} onChange={handleValueChange} />
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} id="value" />
     </BaseNode>
   );
 };
