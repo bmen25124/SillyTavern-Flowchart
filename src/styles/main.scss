@@ -20,19 +20,10 @@
   }
 }
 
-.mes details {
-  margin-top: 8px;
-}
-
-.mes details > summary {
-  cursor: pointer;
-  font-weight: bold;
-  color: var(--SmartThemeEmColor);
-  padding: 2px;
-
-  span {
-    font-style: italic;
-  }
+.popup:has(.flowchart-data-popup) {
+    overflow-y: auto;
+    max-width: 70% !important;
+    width: 100%;
 }
 
 // Utility classes for popups
@@ -78,6 +69,10 @@
   flex-direction: column;
   height: 100%;
   gap: 10px;
+
+  button.menu_button.interactable {
+    width: unset;
+  }
 
   .flowchart-popup-header {
     border-bottom: 1px solid var(--SmartThemeBorderColor);
@@ -129,7 +124,6 @@
 
   .flowchart-popup-footer {
     border-top: 1px solid var(--SmartThemeBorderColor);
-    padding-top: 10px;
     text-align: right;
     display: flex;
     justify-content: flex-end;
