@@ -299,7 +299,7 @@ const manualTriggerNodeDefinition: BaseNodeDefinition<ManualTriggerNodeData> = {
   label: 'Manual Trigger',
   category: 'Trigger',
   dataSchema: ManualTriggerNodeDataSchema,
-  initialData: { payload: '{\n  "name": "World"\n}' },
+  initialData: { payload: '{\n}' },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
 };
 

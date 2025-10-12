@@ -78,11 +78,11 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
           return { ...field, props: { ...field.props, items: lorebookOptions } };
         }
         if (field.id === 'entryUid') {
-          return { ...field, props: { ...field.props, items: entryOptions, disabled: !data.worldName } };
+          return { ...field, props: { ...field.props, items: entryOptions, disabled: !data?.worldName } };
         }
         return field;
       }),
-    [lorebookOptions, entryOptions, data.worldName],
+    [lorebookOptions, entryOptions, data?.worldName],
   );
 
   if (!data) return null;

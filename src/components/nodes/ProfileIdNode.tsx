@@ -25,8 +25,6 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ProfileIdNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
-  if (!data) return null;
-
   const dynamicFields = useMemo(
     () =>
       fields.map((field) => {
@@ -35,7 +33,7 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
             ...field,
             props: {
               ...field.props,
-              initialSelectedProfileId: data.profileId,
+              initialSelectedProfileId: data?.profileId,
               onChange: (profile?: ConnectionProfile) => {
                 updateNodeData(id, { profileId: profile?.id || '' });
               },
@@ -44,8 +42,10 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
         }
         return field;
       }),
-    [data.profileId, updateNodeData, id],
+    [data?.profileId, updateNodeData, id],
   );
+
+  if (!data) return null;
 
   return (
     <BaseNode id={id} title="Profile ID" selected={selected}>

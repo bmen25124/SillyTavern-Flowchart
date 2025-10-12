@@ -71,8 +71,6 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
     }));
   }, [data?.worldName, allWorldsData]);
 
-  if (!data || !definition) return null;
-
   const dynamicFields = useMemo(
     () =>
       fields.map((field) => {
@@ -80,12 +78,14 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
           return { ...field, props: { ...field.props, items: lorebookOptions } };
         }
         if (field.id === 'entryUid') {
-          return { ...field, props: { ...field.props, items: entryOptions, disabled: !data.worldName } };
+          return { ...field, props: { ...field.props, items: entryOptions, disabled: !data?.worldName } };
         }
         return field;
       }),
-    [lorebookOptions, entryOptions, data.worldName],
+    [lorebookOptions, entryOptions, data?.worldName],
   );
+
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
