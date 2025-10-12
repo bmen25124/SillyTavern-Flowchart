@@ -79,6 +79,11 @@ import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { PromptEngineeringMode } from '../../../config.js';
 import { z } from 'zod';
+import {
+  MERGE_MESSAGES_HANDLE_PREFIX,
+  MERGE_OBJECTS_HANDLE_PREFIX,
+  STRING_TOOLS_MERGE_HANDLE_PREFIX,
+} from '../../../constants.js';
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
@@ -383,12 +388,12 @@ const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
   getDynamicHandles: (data) => {
     const inputs = [];
     for (let i = 0; i < data.inputCount; i++) {
-      inputs.push({ id: `messages_${i}`, type: FlowDataType.MESSAGES });
+      inputs.push({ id: `${MERGE_MESSAGES_HANDLE_PREFIX}${i}`, type: FlowDataType.MESSAGES });
     }
     return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection }) => {
-    if (handleDirection === 'input' && handleId?.startsWith('messages_')) return FlowDataType.MESSAGES;
+    if (handleDirection === 'input' && handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX)) return FlowDataType.MESSAGES;
     return undefined;
   },
 };
@@ -530,12 +535,12 @@ const mergeObjectsNodeDefinition: BaseNodeDefinition<MergeObjectsNodeData> = {
   getDynamicHandles: (data) => {
     const inputs = [];
     for (let i = 0; i < data.inputCount; i++) {
-      inputs.push({ id: `object_${i}`, type: FlowDataType.OBJECT });
+      inputs.push({ id: `${MERGE_OBJECTS_HANDLE_PREFIX}${i}`, type: FlowDataType.OBJECT });
     }
     return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection }) => {
-    if (handleDirection === 'input' && handleId?.startsWith('object_')) return FlowDataType.OBJECT;
+    if (handleDirection === 'input' && handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX)) return FlowDataType.OBJECT;
     return undefined;
   },
 };
@@ -607,7 +612,7 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
     const inputs = [];
     if (data.operation === 'merge') {
       for (let i = 0; i < (data.inputCount ?? 2); i++) {
-        inputs.push({ id: `string_${i}`, type: FlowDataType.STRING });
+        inputs.push({ id: `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${i}`, type: FlowDataType.STRING });
       }
     } else if (data.operation === 'split') {
       inputs.push({ id: 'string', type: FlowDataType.STRING });
@@ -619,7 +624,8 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'input') {
       const data = node.data as StringToolsNodeData;
-      if (data.operation === 'merge' && handleId?.startsWith('string_')) return FlowDataType.STRING;
+      if (data.operation === 'merge' && handleId?.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX))
+        return FlowDataType.STRING;
       if (data.operation === 'split' && handleId === 'string') return FlowDataType.STRING;
       if (data.operation === 'join' && handleId === 'array') return FlowDataType.OBJECT;
     }
@@ -661,7 +667,7 @@ const setVariableNodeDefinition: BaseNodeDefinition<SetVariableNodeData> = {
   label: 'Set Variable',
   category: 'Utility',
   dataSchema: SetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar' },
+  initialData: { variableName: 'myVar', scope: 'Execution' },
   handles: {
     inputs: [{ id: 'value', type: FlowDataType.ANY }],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
@@ -672,7 +678,7 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   label: 'Get Variable',
   category: 'Utility',
   dataSchema: GetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar' },
+  initialData: { variableName: 'myVar', scope: 'Execution' },
   handles: {
     inputs: [],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],

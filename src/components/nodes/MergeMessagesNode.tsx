@@ -5,6 +5,7 @@ import { MergeMessagesNodeData } from '../../flow-types.js';
 import { useFlowStore } from '../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
+import { MERGE_MESSAGES_HANDLE_PREFIX } from '../../constants.js';
 
 export type MergeMessagesNodeProps = NodeProps<Node<MergeMessagesNodeData>>;
 
@@ -30,7 +31,7 @@ export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected }) 
       <Handle
         type="target"
         position={Position.Left}
-        id={`messages_${i}`}
+        id={`${MERGE_MESSAGES_HANDLE_PREFIX}${i}`}
         style={{ top: '50%', transform: 'translateY(-50%)' }}
       />
       <label style={{ marginLeft: '10px' }}>Messages {i + 1}</label>

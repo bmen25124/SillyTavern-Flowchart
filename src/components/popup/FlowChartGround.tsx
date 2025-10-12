@@ -285,7 +285,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
 };
 
 const FlowManager: FC = () => {
-  const { nodes, edges, loadFlow, getFlowData, addNode } = useFlowStore();
+  const { nodes, edges, loadFlow, getSpecFlow, addNode, setNodes, setEdges } = useFlowStore();
   const { getNodes, setViewport, getViewport, screenToFlowPosition } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
@@ -324,7 +324,7 @@ const FlowManager: FC = () => {
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      const currentFlowData = getFlowData();
+      const currentFlowData = getSpecFlow();
       settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
       settingsManager.saveSettings();
       flowRunner.reinitialize();
@@ -335,7 +335,7 @@ const FlowManager: FC = () => {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [nodes, edges, settings.activeFlow, getFlowData]);
+  }, [nodes, edges, settings.activeFlow, getSpecFlow]);
 
   // Copy/Paste effect
   useEffect(() => {
@@ -393,7 +393,7 @@ const FlowManager: FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [getNodes, addNode, screenToFlowPosition]);
 
-  const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow({ nodes, edges }), [nodes, edges]);
+  const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
 
   const presetItems = useMemo(
     () => Object.keys(settings.flows).map((key) => ({ value: key, label: key })),
@@ -454,12 +454,11 @@ const FlowManager: FC = () => {
   };
 
   const handleClearInvalid = () => {
-    // Only remove nodes, ReactFlow handles edge removal automatically
     const newNodes = nodes.filter((node) => !invalidNodeIds.has(node.id));
-    loadFlow({
-      nodes: newNodes,
-      edges: edges.filter((e) => newNodes.some((n) => n.id === e.source) && newNodes.some((n) => n.id === e.target)),
-    });
+    const newNodeIds = new Set(newNodes.map((n) => n.id));
+    const newEdges = edges.filter((e) => newNodeIds.has(e.source) && newNodeIds.has(e.target));
+    setNodes(newNodes);
+    setEdges(newEdges);
   };
 
   const handleRunFlow = () => {
@@ -472,7 +471,7 @@ const FlowManager: FC = () => {
 
   const handleCopyFlow = async () => {
     try {
-      const flowData = getFlowData();
+      const flowData = getSpecFlow();
       const jsonString = JSON.stringify(flowData, null, 2);
       await navigator.clipboard.writeText(jsonString);
       st_echo('info', `Flow "${settings.activeFlow}" copied to clipboard as JSON.`);

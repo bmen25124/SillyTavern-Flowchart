@@ -42,8 +42,12 @@ import Handlebars from 'handlebars';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
-import { ChatMessage } from 'sillytavern-utils-lib/types';
 import { settingsManager } from './components/Settings.js';
+import {
+  MERGE_MESSAGES_HANDLE_PREFIX,
+  MERGE_OBJECTS_HANDLE_PREFIX,
+  STRING_TOOLS_MERGE_HANDLE_PREFIX,
+} from './constants.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -85,8 +89,11 @@ export interface FlowRunnerDependencies {
 type NodeExecutor = (
   node: SpecNode,
   input: Record<string, any>,
-  flow: SpecFlow,
-  variables: Map<string, any>,
+  context: {
+    flow: SpecFlow;
+    executionVariables: Map<string, any>;
+    sessionVariables: Map<string, any>;
+  },
 ) => Promise<any>;
 
 function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
@@ -178,11 +185,15 @@ export class LowLevelFlowRunner {
     };
   }
 
-  public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
+  public async executeFlow(
+    flow: SpecFlow,
+    sessionVariables: Map<string, any>,
+    initialInput: Record<string, any>,
+  ): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
-    const flowVariables = new Map<string, any>();
+    const executionVariables = new Map<string, any>();
     const report: ExecutionReport = { executedNodes: [] };
 
     const inDegree: Record<string, number> = {};
@@ -211,7 +222,7 @@ export class LowLevelFlowRunner {
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
 
-        const output = await this.executeNode(node, inputs, flow, flowVariables);
+        const output = await this.executeNode(node, inputs, { flow, executionVariables, sessionVariables });
 
         nodeOutputs[nodeId] = output;
         const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
@@ -286,8 +297,11 @@ export class LowLevelFlowRunner {
   private async executeNode(
     node: SpecNode,
     input: Record<string, any>,
-    flow: SpecFlow,
-    variables: Map<string, any>,
+    context: {
+      flow: SpecFlow;
+      executionVariables: Map<string, any>;
+      sessionVariables: Map<string, any>;
+    },
   ): Promise<any> {
     if (node.type === 'groupNode') return {};
 
@@ -296,7 +310,7 @@ export class LowLevelFlowRunner {
       console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
       eventEmitter.emit('node:start', node.id);
       try {
-        const result = await executor(node, input, flow, variables);
+        const result = await executor(node, input, context);
         return result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -304,6 +318,10 @@ export class LowLevelFlowRunner {
       }
     }
     return {};
+  }
+
+  private resolveInput<T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] {
+    return input[key as string] ?? staticData[key];
   }
 
   private async executeGetPromptNode(node: SpecNode): Promise<any> {
@@ -324,34 +342,41 @@ export class LowLevelFlowRunner {
   private async executeSetVariableNode(
     node: SpecNode,
     input: Record<string, any>,
-    _flow: SpecFlow,
-    variables: Map<string, any>,
+    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = SetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { variableName } = parseResult.data;
+    const { variableName, scope } = parseResult.data;
     const value = input.value;
 
     if (!variableName) throw new Error('Variable name is required.');
 
-    variables.set(variableName, value);
+    const targetMap = scope === 'Session' ? context.sessionVariables : context.executionVariables;
+    targetMap.set(variableName, value);
+
     return { value }; // Passthrough
   }
 
   private async executeGetVariableNode(
     node: SpecNode,
     _input: Record<string, any>,
-    _flow: SpecFlow,
-    variables: Map<string, any>,
+    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = GetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { variableName } = parseResult.data;
+    const { variableName, scope } = parseResult.data;
 
     if (!variableName) throw new Error('Variable name is required.');
-    if (!variables.has(variableName)) throw new Error(`Variable "${variableName}" not found.`);
 
-    return { value: variables.get(variableName) };
+    if (scope === 'Session') {
+      if (!context.sessionVariables.has(variableName)) throw new Error(`Session variable "${variableName}" not found.`);
+      return { value: context.sessionVariables.get(variableName) };
+    } else {
+      // Execution scope check
+      if (!context.executionVariables.has(variableName))
+        throw new Error(`Execution variable "${variableName}" not found.`);
+      return { value: context.executionVariables.get(variableName) };
+    }
   }
 
   private async executeTriggerNode(_node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -372,17 +397,14 @@ export class LowLevelFlowRunner {
 
   private async executeCreateMessagesNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateMessagesNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
 
-    const { profileId: staticProfileId, lastMessageId: staticLastMessageId } = parseResult.data;
-    const profileId = input.profileId ?? staticProfileId;
-    const lastMessageId = input.lastMessageId ?? staticLastMessageId;
+    const profileId = this.resolveInput(input, staticData, 'profileId');
+    const lastMessageId = this.resolveInput(input, staticData, 'lastMessageId');
 
-    if (!profileId) {
-      throw new Error(`Profile ID not provided.`);
-    }
+    if (!profileId) throw new Error(`Profile ID not provided.`);
+
     return this.dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
   }
 
@@ -393,7 +415,7 @@ export class LowLevelFlowRunner {
     }
     return parseResult.data.messages.map(({ id, role, content }) => ({
       role,
-      content: input[id] ?? content,
+      content: this.resolveInput(input, { [id]: content }, id),
     }));
   }
 
@@ -404,7 +426,7 @@ export class LowLevelFlowRunner {
     }
 
     return Object.keys(input)
-      .filter((key) => key.startsWith('messages_') && Array.isArray(input[key]))
+      .filter((key) => key.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) && Array.isArray(input[key]))
       .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
       .flatMap((key) => input[key]);
   }
@@ -416,7 +438,9 @@ export class LowLevelFlowRunner {
     }
 
     const objectsToMerge = Object.keys(input)
-      .filter((key) => key.startsWith('object_') && typeof input[key] === 'object' && input[key] !== null)
+      .filter(
+        (key) => key.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) && typeof input[key] === 'object' && input[key] !== null,
+      )
       .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
       .map((key) => input[key]);
 
@@ -426,20 +450,20 @@ export class LowLevelFlowRunner {
   private async executeIfNode(
     node: SpecNode,
     input: Record<string, any>,
-    flow: SpecFlow,
-    variables: Map<string, any>,
+    context: { flow: SpecFlow; executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = IfNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
+    const { flow, executionVariables, sessionVariables } = context;
 
-    const flowVariables = Object.fromEntries(variables);
+    const variables = { ...Object.fromEntries(sessionVariables), ...Object.fromEntries(executionVariables) };
 
     for (const condition of parseResult.data.conditions) {
       try {
         const func = new Function('input', 'variables', 'stContext', condition.code);
-        if (func(input, flowVariables, this.dependencies.getSillyTavernContext())) {
+        if (func(input, variables, this.dependencies.getSillyTavernContext())) {
           const edge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === condition.id);
           return { nextNodeId: edge?.target ?? null };
         }
@@ -457,8 +481,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    // Prefer connected input value over static value in the node.
-    return { value: input.value !== undefined ? String(input.value) : parseResult.data.value };
+    const value = this.resolveInput(input, parseResult.data, 'value');
+    return { value: String(value) };
   }
 
   private async executeNumberNode(node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -466,8 +490,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    // Prefer connected input value over static value in the node.
-    return { value: input.value !== undefined ? Number(input.value) : parseResult.data.value };
+    const value = this.resolveInput(input, parseResult.data, 'value');
+    return { value: Number(value) };
   }
 
   private async executeLogNode(node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -514,12 +538,12 @@ export class LowLevelFlowRunner {
 
   private async executeHandlebarNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = HandlebarNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
 
-    const template = input.template ?? parseResult.data.template;
+    const template = this.resolveInput(input, staticData, 'template');
     const data = input.data ?? {};
+
     try {
       const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
       return { result: compiled(data) };
@@ -530,56 +554,43 @@ export class LowLevelFlowRunner {
 
   private async executeGetCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = GetCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
 
-    const characterAvatar = input.characterAvatar ?? parseResult.data.characterAvatar;
-    if (!characterAvatar) {
-      throw new Error('No character avatar provided.');
-    }
+    const characterAvatar = this.resolveInput(input, parseResult.data, 'characterAvatar');
+    if (!characterAvatar) throw new Error('No character avatar provided.');
 
     const stContext = this.dependencies.getSillyTavernContext();
     const character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
-    if (!character) {
-      throw new Error(`Character with avatar ${characterAvatar} not found.`);
-    }
+    if (!character) throw new Error(`Character with avatar ${characterAvatar} not found.`);
+
     return { ...character, result: character };
   }
 
   private async executeStructuredRequestNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = StructuredRequestNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
 
-    const {
-      profileId: staticProfileId,
-      schemaName,
-      promptEngineeringMode,
-      maxResponseToken: staticMaxResponseToken,
-    } = parseResult.data;
+    const profileId = this.resolveInput(input, staticData, 'profileId');
+    const schemaName = this.resolveInput(input, staticData, 'schemaName');
+    const maxResponseToken = this.resolveInput(input, staticData, 'maxResponseToken');
+    const { promptEngineeringMode } = staticData;
+    const { messages, schema } = input;
 
-    const profileId = input.profileId ?? staticProfileId;
-    const schema = input.schema;
-    const maxResponseToken = input.maxResponseToken ?? staticMaxResponseToken;
-    const messages = input.messages;
-
-    if (profileId && schema && messages && maxResponseToken !== undefined) {
-      const result = await this.dependencies.makeStructuredRequest(
-        profileId,
-        messages,
-        schema,
-        schemaName || 'response',
-        promptEngineeringMode as any,
-        maxResponseToken,
-      );
-      return { ...result, result };
-    } else {
+    if (!profileId || !schema || !messages || maxResponseToken === undefined) {
       throw new Error(
         `Missing required inputs. Check connections for profileId, schema, messages, and maxResponseToken.`,
       );
     }
+    const result = await this.dependencies.makeStructuredRequest(
+      profileId,
+      messages,
+      schema,
+      schemaName || 'response',
+      promptEngineeringMode,
+      maxResponseToken,
+    );
+    return { ...result, result };
   }
 
   private async executeSchemaNode(node: SpecNode): Promise<any> {
@@ -601,24 +612,20 @@ export class LowLevelFlowRunner {
 
   private async executeCreateCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const name = input.name ?? staticData.name;
-    if (!name) {
-      throw new Error(`Character name is required.`);
-    }
+    const name = this.resolveInput(input, staticData, 'name');
+    if (!name) throw new Error(`Character name is required.`);
 
-    const tagsStr = input.tags ?? staticData.tags ?? '';
+    const tagsStr = this.resolveInput(input, staticData, 'tags') ?? '';
     const charData: FullExportData = {
       name,
-      description: input.description ?? staticData.description ?? '',
-      first_mes: input.first_mes ?? staticData.first_mes ?? '',
-      scenario: input.scenario ?? staticData.scenario ?? '',
-      personality: input.personality ?? staticData.personality ?? '',
-      mes_example: input.mes_example ?? staticData.mes_example ?? '',
+      description: this.resolveInput(input, staticData, 'description') ?? '',
+      first_mes: this.resolveInput(input, staticData, 'first_mes') ?? '',
+      scenario: this.resolveInput(input, staticData, 'scenario') ?? '',
+      personality: this.resolveInput(input, staticData, 'personality') ?? '',
+      mes_example: this.resolveInput(input, staticData, 'mes_example') ?? '',
       tags: tagsStr
         .split(',')
         .map((t: string) => t.trim())
@@ -644,21 +651,15 @@ export class LowLevelFlowRunner {
 
   private async executeEditCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = EditCharacterNodeDataSchema.safeParse(node.data);
-    if (!parseResult.success) {
-      throw new Error(`Invalid data: ${parseResult.error.message}`);
-    }
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const characterAvatar = input.characterAvatar ?? staticData.characterAvatar;
-    if (!characterAvatar) {
-      throw new Error(`Character avatar is required.`);
-    }
+    const characterAvatar = this.resolveInput(input, staticData, 'characterAvatar');
+    if (!characterAvatar) throw new Error(`Character avatar is required.`);
 
     const stContext = this.dependencies.getSillyTavernContext();
     const existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
-    if (!existingChar) {
-      throw new Error(`Character with avatar "${characterAvatar}" not found.`);
-    }
+    if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
 
     const updatedChar: Character = { ...existingChar };
     const fields: (keyof typeof staticData)[] = [
@@ -671,14 +672,14 @@ export class LowLevelFlowRunner {
     ];
 
     fields.forEach((field) => {
-      const value = input[field] ?? staticData[field];
+      const value = this.resolveInput(input, staticData, field);
       if (value) {
         // @ts-ignore
         updatedChar[field] = value;
       }
     });
 
-    const tagsStr = input.tags ?? staticData.tags;
+    const tagsStr = this.resolveInput(input, staticData, 'tags');
     if (tagsStr) {
       updatedChar.tags = tagsStr
         .split(',')
@@ -693,9 +694,7 @@ export class LowLevelFlowRunner {
   private async executeCreateLorebookNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = CreateLorebookNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const staticData = parseResult.data;
-
-    const worldName = input.worldName ?? staticData.worldName;
+    const worldName = this.resolveInput(input, parseResult.data, 'worldName');
     if (!worldName) throw new Error(`World name is required.`);
 
     const success = await this.dependencies.st_createNewWorldInfo(worldName);
@@ -708,19 +707,16 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const worldName = input.worldName ?? staticData.worldName;
-    const keys = input.key ?? staticData.key ?? '';
-    const content = input.content ?? staticData.content ?? '';
-    const comment = input.comment ?? staticData.comment ?? '';
-
+    const worldName = this.resolveInput(input, staticData, 'worldName');
+    const keys = this.resolveInput(input, staticData, 'key') ?? '';
     if (!worldName) throw new Error('World name is required.');
     if (!keys) throw new Error('Key(s) are required.');
 
     const newEntry: WIEntry = {
       uid: -1, // SillyTavern will assign a new UID
       key: keys.split(',').map((k: string) => k.trim()),
-      content,
-      comment,
+      content: this.resolveInput(input, staticData, 'content') ?? '',
+      comment: this.resolveInput(input, staticData, 'comment') ?? '',
       disable: false,
       keysecondary: [],
     };
@@ -730,7 +726,6 @@ export class LowLevelFlowRunner {
       selectedWorldName: worldName,
       operation: 'add',
     });
-
     return result.entry;
   }
 
@@ -739,9 +734,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const worldName = input.worldName ?? staticData.worldName;
-    const entryUid = input.entryUid ?? staticData.entryUid;
-
+    const worldName = this.resolveInput(input, staticData, 'worldName');
+    const entryUid = this.resolveInput(input, staticData, 'entryUid');
     if (!worldName) throw new Error('World name is required to find the entry.');
     if (entryUid === undefined) throw new Error('Entry UID is required to identify the entry to edit.');
 
@@ -752,35 +746,28 @@ export class LowLevelFlowRunner {
     const entryToEdit = world.find((entry) => entry.uid === entryUid);
     if (!entryToEdit) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
 
-    const newKeys = input.key ?? staticData.key;
-    const newContent = input.content ?? staticData.content;
-    const newComment = input.comment ?? staticData.comment;
-
+    const newKeys = this.resolveInput(input, staticData, 'key');
     if (newKeys !== undefined) entryToEdit.key = newKeys.split(',').map((k: string) => k.trim());
-    if (newContent !== undefined) entryToEdit.content = newContent;
-    if (newComment !== undefined) entryToEdit.comment = newComment;
+    entryToEdit.content = this.resolveInput(input, { ...staticData, content: entryToEdit.content }, 'content')!;
+    entryToEdit.comment = this.resolveInput(input, { ...staticData, comment: entryToEdit.comment }, 'comment')!;
 
     const result = await this.dependencies.applyWorldInfoEntry({
       entry: entryToEdit,
       selectedWorldName: worldName,
       operation: 'update',
     });
-
     return result.entry;
   }
 
   private async executeGetLorebookNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = GetLorebookNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const staticData = parseResult.data;
-
-    const worldName = input.worldName ?? staticData.worldName;
+    const worldName = this.resolveInput(input, parseResult.data, 'worldName');
     if (!worldName) throw new Error('World name is required.');
 
     const allWorlds = await this.dependencies.getWorldInfos(['all']);
     const world = allWorlds[worldName];
     if (!world) throw new Error(`Lorebook "${worldName}" not found.`);
-
     return { entries: world };
   }
 
@@ -789,9 +776,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const worldName = input.worldName ?? staticData.worldName;
-    const entryUid = input.entryUid ?? staticData.entryUid;
-
+    const worldName = this.resolveInput(input, staticData, 'worldName');
+    const entryUid = this.resolveInput(input, staticData, 'entryUid');
     if (!worldName) throw new Error('World name is required.');
     if (entryUid === undefined) throw new Error('Entry UID is required.');
 
@@ -802,28 +788,21 @@ export class LowLevelFlowRunner {
     const entry = world.find((e) => e.uid === entryUid);
     if (!entry) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
 
-    return {
-      entry: entry,
-      key: entry.key.join(', '),
-      content: entry.content,
-      comment: entry.comment,
-    };
+    return { entry, key: entry.key.join(', '), content: entry.content, comment: entry.comment };
   }
 
   private async executeExecuteJsNode(
     node: SpecNode,
     input: Record<string, any>,
-    _flow: SpecFlow,
-    variables: Map<string, any>,
+    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = ExecuteJsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-
-    const flowVariables = Object.fromEntries(variables);
-
+    const { executionVariables, sessionVariables } = context;
+    const variables = { ...Object.fromEntries(sessionVariables), ...Object.fromEntries(executionVariables) };
     try {
       const func = new Function('input', 'variables', 'stContext', parseResult.data.code);
-      return func(input, flowVariables, this.dependencies.getSillyTavernContext());
+      return func(input, variables, this.dependencies.getSillyTavernContext());
     } catch (error: any) {
       throw new Error(`Error executing JS code: ${error.message}`);
     }
@@ -832,37 +811,28 @@ export class LowLevelFlowRunner {
   private async executeGetChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = GetChatMessageNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const staticData = parseResult.data;
-
-    const messageIdInput = input.messageId ?? staticData.messageId;
+    const messageIdInput = this.resolveInput(input, parseResult.data, 'messageId');
     if (messageIdInput === undefined) throw new Error('Message ID is required.');
 
     const { chat } = this.dependencies.getSillyTavernContext();
-    let message: ChatMessage | undefined;
     let messageIndex: number;
 
     if (typeof messageIdInput === 'number') {
       messageIndex = chat.findIndex((_, i) => i === messageIdInput);
     } else {
       const idStr = String(messageIdInput).toLowerCase().trim();
-      if (idStr === 'last') {
-        messageIndex = chat.length - 1;
-      } else if (idStr === 'first') {
-        messageIndex = 0;
-      } else if (idStr.startsWith('last')) {
+      if (idStr === 'last') messageIndex = chat.length - 1;
+      else if (idStr === 'first') messageIndex = 0;
+      else if (idStr.startsWith('last')) {
         const offset = parseInt(idStr.replace('last', '').trim(), 10) || 0;
         messageIndex = chat.length - 1 + offset;
-      } else {
-        messageIndex = parseInt(idStr, 10);
-      }
+      } else messageIndex = parseInt(idStr, 10);
     }
 
     if (isNaN(messageIndex) || messageIndex < 0 || messageIndex >= chat.length) {
       throw new Error(`Message with ID/Index "${messageIdInput}" not found or invalid.`);
     }
-
-    message = chat[messageIndex];
-
+    const message = chat[messageIndex];
     return {
       id: messageIndex,
       result: message,
@@ -878,9 +848,8 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const messageId = input.messageId ?? staticData.messageId;
-    const newMessage = input.message ?? staticData.message;
-
+    const messageId = this.resolveInput(input, staticData, 'messageId');
+    const newMessage = this.resolveInput(input, staticData, 'message');
     if (messageId === undefined) throw new Error('Message ID is required.');
     if (newMessage === undefined) throw new Error('New message content is required.');
 
@@ -899,12 +868,11 @@ export class LowLevelFlowRunner {
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
 
-    const message = input.message ?? staticData.message;
-    const role = input.role ?? staticData.role;
-    const name = input.name ?? staticData.name;
-
+    const message = this.resolveInput(input, staticData, 'message');
     if (!message) throw new Error('Message content is required.');
 
+    const role = this.resolveInput(input, staticData, 'role');
+    const name = this.resolveInput(input, staticData, 'name');
     await this.dependencies.sendChatMessage(message, role, name);
     return { messageSent: true };
   }
@@ -912,9 +880,7 @@ export class LowLevelFlowRunner {
   private async executeRemoveChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = RemoveChatMessageNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const staticData = parseResult.data;
-
-    const messageId = input.messageId ?? staticData.messageId;
+    const messageId = this.resolveInput(input, parseResult.data, 'messageId');
     if (messageId === undefined) throw new Error('Message ID is required.');
 
     await this.dependencies.deleteMessage(messageId);
@@ -924,13 +890,12 @@ export class LowLevelFlowRunner {
   private async executeDateTimeNode(node: SpecNode): Promise<any> {
     const parseResult = DateTimeNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-
     const now = new Date();
     return {
       iso: now.toISOString(),
       timestamp: now.getTime(),
       year: now.getFullYear(),
-      month: now.getMonth() + 1, // 1-indexed
+      month: now.getMonth() + 1,
       day: now.getDate(),
       hour: now.getHours(),
       minute: now.getMinutes(),
@@ -945,21 +910,16 @@ export class LowLevelFlowRunner {
     const mode = staticData.mode;
 
     if (mode === 'number') {
-      const min = input.min ?? staticData.min ?? 0;
-      const max = input.max ?? staticData.max ?? 100;
-      const result = Math.random() * (max - min) + min;
-      return { result };
+      const min = this.resolveInput(input, staticData, 'min') ?? 0;
+      const max = this.resolveInput(input, staticData, 'max') ?? 100;
+      return { result: Math.random() * (max - min) + min };
     }
-
     if (mode === 'array') {
       const arr = input.array;
-      if (!Array.isArray(arr) || arr.length === 0) {
-        throw new Error('Input is not a non-empty array.');
-      }
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error('Input is not a non-empty array.');
       const randomIndex = Math.floor(Math.random() * arr.length);
       return { result: arr[randomIndex] };
     }
-
     throw new Error(`Unknown random mode: ${mode}`);
   }
 
@@ -967,26 +927,23 @@ export class LowLevelFlowRunner {
     const parseResult = StringToolsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const { operation } = parseResult.data;
-    const delimiter = input.delimiter ?? parseResult.data.delimiter ?? '';
+    const delimiter = this.resolveInput(input, parseResult.data, 'delimiter') ?? '';
 
     switch (operation) {
       case 'merge':
         const strings = Object.keys(input)
-          .filter((key) => key.startsWith('string_'))
+          .filter((key) => key.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX))
           .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
           .map((key) => String(input[key]));
         return { result: strings.join(delimiter) };
-
       case 'split':
         const strToSplit = input.string;
         if (typeof strToSplit !== 'string') throw new Error('Input for split must be a string.');
         return { result: strToSplit.split(delimiter) };
-
       case 'join':
         const arrToJoin = input.array;
         if (!Array.isArray(arrToJoin)) throw new Error('Input for join must be an array.');
         return { result: arrToJoin.join(delimiter) };
-
       default:
         throw new Error(`Unknown string operation: ${operation}`);
     }
@@ -996,13 +953,11 @@ export class LowLevelFlowRunner {
     const parseResult = MathNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const staticData = parseResult.data;
-    const operation = staticData.operation;
-    const a = input.a ?? staticData.a ?? 0;
-    const b = input.b ?? staticData.b ?? 0;
+    const { operation } = staticData;
+    const a = this.resolveInput(input, staticData, 'a') ?? 0;
+    const b = this.resolveInput(input, staticData, 'b') ?? 0;
 
-    if (typeof a !== 'number' || typeof b !== 'number') {
-      throw new Error('Both inputs must be numbers.');
-    }
+    if (typeof a !== 'number' || typeof b !== 'number') throw new Error('Both inputs must be numbers.');
 
     switch (operation) {
       case 'add':

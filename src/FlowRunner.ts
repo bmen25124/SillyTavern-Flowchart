@@ -5,29 +5,16 @@ import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
-import { FlowData } from './constants.js';
 import { SpecFlow } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { st_updateMessageBlock } from './config.js';
 
 export const executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
 
-function convertToSpec(flow: FlowData): SpecFlow {
-  return {
-    nodes: flow.nodes.map((n) => ({ id: n.id, type: n.type ?? 'unknown', data: n.data })),
-    edges: flow.edges.map((e) => ({
-      id: e.id,
-      source: e.source,
-      sourceHandle: e.sourceHandle ?? null,
-      target: e.target,
-      targetHandle: e.targetHandle ?? null,
-    })),
-  };
-}
-
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
   private lowLevelRunner: LowLevelFlowRunner;
+  private sessionVariables: Map<string, any> = new Map();
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner({
@@ -55,6 +42,7 @@ class FlowRunner {
       eventSource.removeListener(eventType, listener);
     }
     this.registeredListeners.clear();
+    this.sessionVariables.clear();
 
     const settings = settingsManager.getSettings();
     const allFlows = settings.flows;
@@ -108,8 +96,7 @@ class FlowRunner {
     }
     eventEmitter.emit('flow:start');
     try {
-      const specFlow = convertToSpec(flow);
-      const report = await this.lowLevelRunner.executeFlow(specFlow, initialInput);
+      const report = await this.lowLevelRunner.executeFlow(flow, this.sessionVariables, initialInput);
 
       if (report) {
         executionHistory.unshift({ ...report, flowId, timestamp: new Date() });

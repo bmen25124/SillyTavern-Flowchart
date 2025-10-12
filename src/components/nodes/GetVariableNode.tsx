@@ -3,7 +3,7 @@ import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetVariableNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
 
 export type GetVariableNodeProps = NodeProps<Node<GetVariableNodeData>>;
@@ -28,6 +28,17 @@ export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected }) => {
           value={data.variableName}
           onChange={(e) => updateNodeData(id, { variableName: e.target.value })}
         />
+      </div>
+      <div style={{ marginTop: '10px' }}>
+        <label>Scope</label>
+        <STSelect
+          className="nodrag"
+          value={data.scope}
+          onChange={(e) => updateNodeData(id, { scope: e.target.value as any })}
+        >
+          <option value="Execution">Flow Execution</option>
+          <option value="Session">SillyTavern Session</option>
+        </STSelect>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
         <span>Value</span>

@@ -1,4 +1,4 @@
-import { FlowData } from './constants.js';
+import { SpecFlow } from './flow-spec.js';
 import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
 
 export interface ValidationResult {
@@ -8,7 +8,7 @@ export interface ValidationResult {
   invalidEdgeIds: Set<string>;
 }
 
-export const validateFlow = (flow: FlowData): ValidationResult => {
+export const validateFlow = (flow: SpecFlow): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();

@@ -1,8 +1,8 @@
 // @ts-ignore
 import { updateMessageBlock } from '../../../../../script.js';
 
-import { Node, Edge } from '@xyflow/react';
-import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML, FlowData } from './constants.js';
+import { SpecFlow, SpecNode } from './flow-spec.js';
+import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
 
 export enum PromptEngineeringMode {
   NATIVE = 'native',
@@ -18,7 +18,7 @@ export interface ExtensionSettings {
   formatVersion: string;
   enabled: boolean;
   prompts: Record<string, string>;
-  flows: Record<string, FlowData>;
+  flows: Record<string, SpecFlow>;
   activeFlow: string;
 }
 
@@ -32,11 +32,11 @@ const FORMAT_VERSION = 'F_1.0';
  * Generates a valid default flow with unique IDs.
  * This prevents state conflicts and ensures the initial state is always valid.
  */
-export function createDefaultFlow(): FlowData {
+export function createDefaultFlow(): SpecFlow {
   const triggerNodeId = crypto.randomUUID();
   const ifNodeId = crypto.randomUUID();
 
-  const nodes: Node[] = [
+  const nodes: SpecNode[] = [
     {
       id: triggerNodeId,
       type: 'triggerNode',
@@ -51,11 +51,7 @@ export function createDefaultFlow(): FlowData {
     },
   ];
 
-  // The default flow starts with no edges to ensure it is always valid.
-  // A trigger node cannot have outgoing connections.
-  const edges: Edge[] = [];
-
-  return { nodes, edges };
+  return { nodes, edges: [] };
 }
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {

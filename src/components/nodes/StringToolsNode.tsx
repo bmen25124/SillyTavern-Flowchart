@@ -5,6 +5,7 @@ import { StringToolsNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect, STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
+import { STRING_TOOLS_MERGE_HANDLE_PREFIX } from '../../constants.js';
 
 export type StringToolsNodeProps = NodeProps<Node<StringToolsNodeData>>;
 
@@ -40,7 +41,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
                 <Handle
                   type="target"
                   position={Position.Left}
-                  id={`string_${i}`}
+                  id={`${STRING_TOOLS_MERGE_HANDLE_PREFIX}${i}`}
                   style={{ top: '50%', transform: 'translateY(-50%)' }}
                 />
                 <label style={{ marginLeft: '10px' }}>String {i + 1}</label>

@@ -9,7 +9,7 @@ import {
   addEdge,
   Connection,
 } from '@xyflow/react';
-import { FlowData } from '../../constants.js';
+import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 
 type FlowState = {
   nodes: Node[];
@@ -18,13 +18,47 @@ type FlowState = {
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   updateNodeData: (nodeId: string, data: object) => void;
-  loadFlow: (flowData: FlowData) => void;
-  getFlowData: () => FlowData;
+  loadFlow: (flowData: SpecFlow) => void;
+  getSpecFlow: () => SpecFlow;
   addNode: (node: Omit<Node, 'id'>) => Node;
   duplicateNode: (nodeId: string) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
 };
+
+const toSpecNode = (node: Node): SpecNode => ({
+  id: node.id,
+  type: node.type!,
+  position: node.position,
+  data: node.data,
+  width: node.width,
+  height: node.height,
+});
+
+const fromSpecNode = (specNode: SpecNode): Node => ({
+  id: specNode.id,
+  type: specNode.type,
+  position: specNode.position,
+  data: specNode.data,
+  width: specNode.width || undefined,
+  height: specNode.height || undefined,
+});
+
+const toSpecEdge = (edge: Edge): SpecEdge => ({
+  id: edge.id,
+  source: edge.source,
+  sourceHandle: edge.sourceHandle ?? null,
+  target: edge.target,
+  targetHandle: edge.targetHandle ?? null,
+});
+
+const fromSpecEdge = (specEdge: SpecEdge): Edge => ({
+  id: specEdge.id,
+  source: specEdge.source,
+  sourceHandle: specEdge.sourceHandle,
+  target: specEdge.target,
+  targetHandle: specEdge.targetHandle,
+});
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
@@ -57,10 +91,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     });
   },
   loadFlow: (flowData) => {
-    set({ nodes: flowData.nodes || [], edges: flowData.edges || [] });
+    set({
+      nodes: (flowData.nodes || []).map(fromSpecNode),
+      edges: (flowData.edges || []).map(fromSpecEdge),
+    });
   },
-  getFlowData: () => {
-    return { nodes: get().nodes, edges: get().edges };
+  getSpecFlow: () => {
+    return {
+      nodes: get().nodes.map(toSpecNode),
+      edges: get().edges.map(toSpecEdge),
+    };
   },
   addNode: (node) => {
     const newNode = { ...node, id: crypto.randomUUID() };

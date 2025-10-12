@@ -290,10 +290,12 @@ export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
 
 export const SetVariableNodeDataSchema = z.object({
   variableName: z.string().default('myVar'),
+  scope: z.enum(['Execution', 'Session']).default('Execution'),
 });
 export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 
 export const GetVariableNodeDataSchema = z.object({
   variableName: z.string().default('myVar'),
+  scope: z.enum(['Execution', 'Session']).default('Execution'),
 });
 export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;
