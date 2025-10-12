@@ -48,7 +48,6 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
   return (
     <div className="flowchart-data-popup">
       <div className="flowchart-popup-header">
-        <h2>Customize FlowChart Data</h2>
         <div className="flowchart-popup-tabs">
           <STButton onClick={() => setActiveTab('ground')}>Ground</STButton>
           <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
