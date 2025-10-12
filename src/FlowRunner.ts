@@ -94,24 +94,22 @@ class FlowRunner {
       console.error(`[FlowChart] Flow with id ${flowId} not found.`);
       return;
     }
-    eventEmitter.emit('flow:start');
-    try {
-      const report = await this.lowLevelRunner.executeFlow(flow, this.sessionVariables, initialInput);
 
-      if (report) {
-        executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
-        if (executionHistory.length > 50) {
-          executionHistory.pop();
-        }
-        eventEmitter.emit('flow:end', report);
-      }
-      return report;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      st_echo('error', `Flow "${flowId}" failed: ${errorMessage}`);
-      eventEmitter.emit('flow:error', error);
-      return undefined;
+    eventEmitter.emit('flow:start');
+    const report = await this.lowLevelRunner.executeFlow(flow, this.sessionVariables, initialInput);
+
+    if (report.error) {
+      st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
+      eventEmitter.emit('flow:error', report.error);
     }
+
+    executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
+    if (executionHistory.length > 50) {
+      executionHistory.pop();
+    }
+    eventEmitter.emit('flow:end', report);
+
+    return report;
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {

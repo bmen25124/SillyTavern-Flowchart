@@ -22,17 +22,27 @@ export const FlowHistory: FC = () => {
         <p>No flow executions recorded yet.</p>
       ) : (
         <ul className="flowchart-history-list">
-          {history.map((report, index) => (
-            <li key={index}>
-              <details>
-                <summary>
-                  Flow: <strong>{report.flowId}</strong> at {report.timestamp.toLocaleString()} (
-                  {report.executedNodes.length} nodes executed)
-                </summary>
-                <pre>{JSON.stringify(report.executedNodes, null, 2)}</pre>
-              </details>
-            </li>
-          ))}
+          {history.map((report, index) => {
+            const hasError = !!report.error;
+            return (
+              <li key={index}>
+                <details>
+                  <summary style={{ color: hasError ? 'var(--danger)' : 'inherit' }}>
+                    Flow: <strong>{report.flowId}</strong> at {report.timestamp.toLocaleString()} (
+                    {report.executedNodes.length} nodes executed)
+                    {hasError && ' - FAILED'}
+                  </summary>
+                  {hasError && (
+                    <div className="flow-history-error">
+                      <strong>Error at Node {report.error?.nodeId}:</strong>
+                      <pre>{report.error?.message}</pre>
+                    </div>
+                  )}
+                  <pre>{JSON.stringify(report.executedNodes, null, 2)}</pre>
+                </details>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

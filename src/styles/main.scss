@@ -377,6 +377,22 @@
         font-size: 0.85em;
       }
     }
+
+    .flow-history-error {
+      background-color: rgba(255, 0, 0, 0.1);
+      border: 1px solid var(--danger);
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 5px;
+      strong {
+        color: var(--danger);
+      }
+      pre {
+        margin-top: 5px;
+        background-color: rgba(0, 0, 0, 0.2);
+        max-height: 100px;
+      }
+    }
   }
 }
 

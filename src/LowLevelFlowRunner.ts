@@ -59,6 +59,10 @@ export interface ExecutionReport {
     input: Record<string, any>;
     output: any;
   }[];
+  error?: {
+    nodeId: string;
+    message: string;
+  };
 }
 
 export interface SlashCommandClosureResult {
@@ -269,9 +273,12 @@ export class LowLevelFlowRunner {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[FlowChart] Flow execution aborted due to an error.', error);
-      throw error;
+      report.error = {
+        nodeId: error.nodeId || 'unknown',
+        message: error.message || String(error),
+      };
     }
 
     console.log('[FlowChart] Flow execution finished.');
@@ -329,11 +336,12 @@ export class LowLevelFlowRunner {
       console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
       eventEmitter.emit('node:start', node.id);
       try {
-        const result = await executor(node, input, context);
-        return result;
+        return await executor(node, input, context);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
+        const enhancedError = new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
+        (enhancedError as any).nodeId = node.id;
+        throw enhancedError;
       }
     }
     return {};
