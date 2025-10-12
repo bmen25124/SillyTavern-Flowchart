@@ -8,10 +8,10 @@ import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { nodeDefinitionMap } from './definitions/index.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type GetLorebookEntryNodeProps = NodeProps<Node<GetLorebookEntryNodeData>>;
-
-const outputFields = ['key', 'content', 'comment'] as const;
 
 const fields = [
   createFieldConfig({
@@ -50,6 +50,7 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookEntryNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allWorldsData, setAllWorldsData] = useState<Record<string, WIEntry[]>>({});
+  const definition = nodeDefinitionMap.get('getLorebookEntryNode');
 
   useEffect(() => {
     getWorldInfos(['all']).then((worlds) => {
@@ -70,7 +71,7 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
     }));
   }, [data?.worldName, allWorldsData]);
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   const dynamicFields = useMemo(
     () =>
@@ -90,29 +91,25 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
     <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
       <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-          <span>Entry (Full Object)</span>
-          <Handle
-            type="source"
-            position={Position.Right}
-            id="entry"
-            style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-          />
-        </div>
-        {outputFields.map((field) => (
-          <div
-            key={field}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
-          >
-            <span style={{ textTransform: 'capitalize' }}>{field.replace('_', ' ')}</span>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={field}
-              style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-            />
-          </div>
-        ))}
+        {definition.handles.outputs.map((handle) => {
+          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
+          const label = (handle.id ?? 'Result').replace('_', ' ');
+          return (
+            <div
+              key={handle.id}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+              title={schemaText}
+            >
+              <span style={{ textTransform: 'capitalize' }}>{label}</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={handle.id}
+                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+              />
+            </div>
+          );
+        })}
       </div>
     </BaseNode>
   );

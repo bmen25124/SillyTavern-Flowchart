@@ -6,6 +6,7 @@ import { FlowDataType } from '../../../flow-types.js';
 export type HandleSpec = {
   id: string | null;
   type: FlowDataType;
+  schema?: z.ZodType;
 };
 
 export type GetHandleTypeParams = {

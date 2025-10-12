@@ -7,6 +7,8 @@ import { STTextarea } from 'sillytavern-utils-lib/components';
 import { useIsConnected } from '../../hooks/useIsConnected.js';
 import { NodeFieldRenderer } from './NodeFieldRenderer.js';
 import { createFieldConfig } from './fieldConfig.js';
+import { useInputSchema } from '../../hooks/useInputSchema.js';
+import { schemaToText } from '../../utils/schema-inspector.js';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
 
@@ -23,6 +25,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const isDataConnected = useIsConnected(id, 'data');
+  const inputSchema = useInputSchema(id, 'data');
 
   if (!data) return null;
 
@@ -39,6 +42,22 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
           />
           <label style={{ marginLeft: '10px' }}>Data (Context)</label>
           {!isDataConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
+          {isDataConnected && inputSchema && (
+            <div style={{ fontSize: '10px', color: '#aaa', marginTop: '5px', marginLeft: '10px' }}>
+              <b>Available properties in `data`:</b>
+              <pre
+                style={{
+                  margin: '2px 0 0 0',
+                  background: '#2a2a2a',
+                  padding: '4px',
+                  borderRadius: '3px',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {schemaToText(inputSchema)}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>

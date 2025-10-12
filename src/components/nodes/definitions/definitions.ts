@@ -105,6 +105,7 @@ import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { PromptEngineeringMode } from '../../../config.js';
 import { z } from 'zod';
+import { ChatMessageSchema, WIEntryListSchema, WIEntrySchema } from '../../../schemas.js';
 
 const MERGE_MESSAGES_HANDLE_PREFIX = 'messages_';
 const MERGE_OBJECTS_HANDLE_PREFIX = 'object_';
@@ -117,6 +118,18 @@ function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   return FlowDataType.ANY;
 }
 
+// Define reusable schemas
+const CharacterDataSchema = z.object({
+  name: z.string().describe("The character's name."),
+  avatar: z.string().describe("The character's avatar filename."),
+  description: z.string().describe("The character's description."),
+  first_mes: z.string().describe("The character's first message."),
+  scenario: z.string().describe('The scenario.'),
+  personality: z.string().describe("The character's personality."),
+  mes_example: z.string().describe('Example messages.'),
+  tags: z.array(z.string()).describe('A list of tags.'),
+});
+
 // from character.ts
 const getCharacterNodeDefinition: BaseNodeDefinition<GetCharacterNodeData> = {
   type: 'getCharacterNode',
@@ -127,14 +140,14 @@ const getCharacterNodeDefinition: BaseNodeDefinition<GetCharacterNodeData> = {
   handles: {
     inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
     outputs: [
-      { id: 'result', type: FlowDataType.OBJECT },
+      { id: 'result', type: FlowDataType.OBJECT, schema: CharacterDataSchema },
       { id: 'name', type: FlowDataType.STRING },
       { id: 'description', type: FlowDataType.STRING },
       { id: 'first_mes', type: FlowDataType.STRING },
       { id: 'scenario', type: FlowDataType.STRING },
       { id: 'personality', type: FlowDataType.STRING },
       { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.OBJECT },
+      { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
   },
 };
@@ -193,6 +206,7 @@ const triggerNodeDefinition: BaseNodeDefinition<TriggerNodeData> = {
     const outputs = Object.keys(eventParams).map((paramName) => ({
       id: paramName,
       type: zodTypeToFlowType(eventParams[paramName]),
+      schema: eventParams[paramName],
     }));
     return { inputs: [], outputs };
   },
@@ -319,7 +333,7 @@ const createLorebookEntryNodeDefinition: BaseNodeDefinition<CreateLorebookEntryN
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }],
+    outputs: [{ id: null, type: FlowDataType.OBJECT, schema: WIEntrySchema }],
   },
 };
 const editLorebookEntryNodeDefinition: BaseNodeDefinition<EditLorebookEntryNodeData> = {
@@ -336,7 +350,7 @@ const editLorebookEntryNodeDefinition: BaseNodeDefinition<EditLorebookEntryNodeD
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT }],
+    outputs: [{ id: null, type: FlowDataType.OBJECT, schema: WIEntrySchema }],
   },
 };
 const getLorebookNodeDefinition: BaseNodeDefinition<GetLorebookNodeData> = {
@@ -347,7 +361,7 @@ const getLorebookNodeDefinition: BaseNodeDefinition<GetLorebookNodeData> = {
   initialData: { worldName: '' },
   handles: {
     inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
-    outputs: [{ id: 'entries', type: FlowDataType.OBJECT }],
+    outputs: [{ id: 'entries', type: FlowDataType.OBJECT, schema: WIEntryListSchema }],
   },
 };
 const getLorebookEntryNodeDefinition: BaseNodeDefinition<GetLorebookEntryNodeData> = {
@@ -362,7 +376,7 @@ const getLorebookEntryNodeDefinition: BaseNodeDefinition<GetLorebookEntryNodeDat
       { id: 'entryUid', type: FlowDataType.NUMBER },
     ],
     outputs: [
-      { id: 'entry', type: FlowDataType.OBJECT },
+      { id: 'entry', type: FlowDataType.OBJECT, schema: WIEntrySchema },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
@@ -483,7 +497,7 @@ const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> =
     inputs: [{ id: 'messageId', type: FlowDataType.ANY }],
     outputs: [
       { id: 'id', type: FlowDataType.NUMBER },
-      { id: 'result', type: FlowDataType.OBJECT },
+      { id: 'result', type: FlowDataType.OBJECT, schema: ChatMessageSchema },
       { id: 'name', type: FlowDataType.STRING },
       { id: 'mes', type: FlowDataType.STRING },
       { id: 'is_user', type: FlowDataType.BOOLEAN },
@@ -502,7 +516,7 @@ const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData>
       { id: 'messageId', type: FlowDataType.NUMBER },
       { id: 'message', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'messageObject', type: FlowDataType.OBJECT }],
+    outputs: [{ id: 'messageObject', type: FlowDataType.OBJECT, schema: ChatMessageSchema }],
   },
 };
 const sendChatMessageNodeDefinition: BaseNodeDefinition<SendChatMessageNodeData> = {
@@ -744,7 +758,7 @@ const regexNodeDefinition: BaseNodeDefinition<RegexNodeData> = {
     ],
     outputs: [
       { id: 'result', type: FlowDataType.STRING },
-      { id: 'matches', type: FlowDataType.OBJECT },
+      { id: 'matches', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
   },
 };
