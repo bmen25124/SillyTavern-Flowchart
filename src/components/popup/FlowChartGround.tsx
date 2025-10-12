@@ -27,19 +27,11 @@ import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/defin
 import { useDebugStore } from './DebugPanel.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
 
-type AddNodeContextMenu = {
-  x: number;
-  y: number;
-  options: {
-    label: string;
-    action: () => void;
-  }[];
-};
-
 type CompatibilityInfo = {
   nodeType: string;
   nodeLabel: string;
-  connectToHandle: string | null;
+  sourceHandle: string | null;
+  targetHandle: string | null;
 };
 
 // Pre-computes which nodes can connect to which other nodes
@@ -47,7 +39,6 @@ function computeCompatibilityMap() {
   const sourceCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
   const targetCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
 
-  // Create temporary mock nodes for validity checking
   const mockNodes: Node[] = allNodeDefinitions.map((def) => ({
     id: `temp-${def.type}`,
     type: def.type,
@@ -55,10 +46,10 @@ function computeCompatibilityMap() {
     data: structuredClone(def.initialData),
   }));
 
+  // --- Source Compatibility (Dragging from an output) ---
   for (const sourceDef of allNodeDefinitions) {
     const sourceMap = new Map<string | null, CompatibilityInfo[]>();
     const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
-
     const sourceHandles = [
       ...sourceDef.handles.outputs,
       ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode.data).outputs : []),
@@ -86,11 +77,11 @@ function computeCompatibilityMap() {
               [],
             )
           ) {
-            const label = targetHandle.id ? `${targetDef.label} (to ${targetHandle.id})` : targetDef.label;
             compatibleTargets.push({
               nodeType: targetDef.type,
-              nodeLabel: label,
-              connectToHandle: targetHandle.id,
+              nodeLabel: targetHandle.id ? `${targetDef.label} (${targetHandle.id})` : targetDef.label,
+              sourceHandle: sourceHandle.id, // Store the full context
+              targetHandle: targetHandle.id, // Store the full context
             });
           }
         }
@@ -100,11 +91,10 @@ function computeCompatibilityMap() {
     sourceCompatibilityMap.set(sourceDef.type, sourceMap);
   }
 
-  // Repeat for target compatibility
+  // --- Target Compatibility (Dragging from an input) ---
   for (const targetDef of allNodeDefinitions) {
     const targetMap = new Map<string | null, CompatibilityInfo[]>();
     const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
-
     const targetHandles = [
       ...targetDef.handles.inputs,
       ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode.data).inputs : []),
@@ -132,11 +122,11 @@ function computeCompatibilityMap() {
               [],
             )
           ) {
-            const label = sourceHandle.id ? `${sourceDef.label} (from ${sourceHandle.id})` : sourceDef.label;
             compatibleSources.push({
               nodeType: sourceDef.type,
-              nodeLabel: label,
-              connectToHandle: sourceHandle.id,
+              nodeLabel: sourceHandle.id ? `${sourceDef.label} (${sourceHandle.id})` : sourceDef.label,
+              sourceHandle: sourceHandle.id,
+              targetHandle: targetHandle.id,
             });
           }
         }
@@ -225,7 +215,7 @@ const FlowCanvas: FC<{
       const menuX = clientX - bounds.left;
       const menuY = clientY - bounds.top;
 
-      const createAndConnectNode = (nodeType: string, connectToHandle: string | null) => {
+      const createAndConnectNode = (nodeType: string, sourceHandle: string | null, targetHandle: string | null) => {
         const nodeDef = nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
@@ -238,15 +228,16 @@ const FlowCanvas: FC<{
         });
         const connection =
           handleType === 'source'
-            ? { source: startNodeId, sourceHandle: startHandleId, target: newNode.id, targetHandle: connectToHandle }
-            : { source: newNode.id, sourceHandle: connectToHandle, target: startNodeId, targetHandle: startHandleId };
+            ? { source: startNodeId, sourceHandle: sourceHandle, target: newNode.id, targetHandle: targetHandle }
+            : { source: newNode.id, sourceHandle: sourceHandle, target: startNodeId, targetHandle: targetHandle };
 
         // @ts-ignore
         setTimeout(() => onConnect(connection), 10);
       };
 
       if (compatibleNodes.length === 1) {
-        createAndConnectNode(compatibleNodes[0].nodeType, compatibleNodes[0].connectToHandle);
+        const { nodeType, sourceHandle, targetHandle } = compatibleNodes[0];
+        createAndConnectNode(nodeType, sourceHandle, targetHandle);
       } else {
         let finalMenuX = menuX;
         let finalMenuY = menuY;
@@ -256,10 +247,10 @@ const FlowCanvas: FC<{
         setContextMenu({
           x: finalMenuX,
           y: finalMenuY,
-          options: compatibleNodes.map(({ nodeType, nodeLabel, connectToHandle }) => ({
+          options: compatibleNodes.map(({ nodeType, nodeLabel, sourceHandle, targetHandle }) => ({
             label: nodeLabel,
             action: () => {
-              createAndConnectNode(nodeType, connectToHandle);
+              createAndConnectNode(nodeType, sourceHandle, targetHandle);
               setContextMenu(null);
             },
           })),

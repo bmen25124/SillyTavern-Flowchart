@@ -415,7 +415,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--text-color-main);
-    transition: background-color 150ms ease-out, color 150ms ease-out;
+    transition:
+      background-color 150ms ease-out,
+      color 150ms ease-out;
 
     &:not(:last-child) {
       margin-bottom: 2px;
