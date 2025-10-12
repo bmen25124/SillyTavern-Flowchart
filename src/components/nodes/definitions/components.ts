@@ -54,6 +54,8 @@ import { MathNode } from '../MathNode.js';
 import { GetPromptNode } from '../GetPromptNode.js';
 import { SetVariableNode } from '../SetVariableNode.js';
 import { GetVariableNode } from '../GetVariableNode.js';
+import { RegexNode } from '../RegexNode.js';
+import { RunSlashCommandNode } from '../RunSlashCommandNode.js';
 
 export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   // Core
@@ -100,4 +102,6 @@ export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   getPromptNode: GetPromptNode,
   setVariableNode: SetVariableNode,
   getVariableNode: GetVariableNode,
+  regexNode: RegexNode,
+  runSlashCommandNode: RunSlashCommandNode,
 };

@@ -74,6 +74,10 @@ import {
   GetVariableNodeDataSchema,
   SetVariableNodeData,
   SetVariableNodeDataSchema,
+  RegexNodeData,
+  RegexNodeDataSchema,
+  RunSlashCommandNodeData,
+  RunSlashCommandNodeDataSchema,
 } from '../../../flow-types.js';
 import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -685,6 +689,33 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   },
 };
 
+const regexNodeDefinition: BaseNodeDefinition<RegexNodeData> = {
+  type: 'regexNode',
+  label: 'Regex',
+  category: 'Utility',
+  dataSchema: RegexNodeDataSchema,
+  initialData: { mode: 'sillytavern' },
+  handles: {
+    inputs: [{ id: 'string', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'result', type: FlowDataType.STRING },
+      { id: 'matches', type: FlowDataType.OBJECT },
+    ],
+  },
+};
+
+const runSlashCommandNodeDefinition: BaseNodeDefinition<RunSlashCommandNodeData> = {
+  type: 'runSlashCommandNode',
+  label: 'Run Slash Command',
+  category: 'Utility',
+  dataSchema: RunSlashCommandNodeDataSchema,
+  initialData: { command: '' },
+  handles: {
+    inputs: [{ id: 'command', type: FlowDataType.STRING }],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+  },
+};
+
 export const baseNodeDefinitions: BaseNodeDefinition[] = [
   triggerNodeDefinition,
   manualTriggerNodeDefinition,
@@ -722,6 +753,8 @@ export const baseNodeDefinitions: BaseNodeDefinition[] = [
   getPromptNodeDefinition,
   setVariableNodeDefinition,
   getVariableNodeDefinition,
+  regexNodeDefinition,
+  runSlashCommandNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(baseNodeDefinitions.map((def) => [def.type, def]));

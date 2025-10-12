@@ -35,6 +35,8 @@ import {
   GetPromptNodeDataSchema,
   SetVariableNodeDataSchema,
   GetVariableNodeDataSchema,
+  RegexNodeDataSchema,
+  RunSlashCommandNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -56,6 +58,17 @@ export interface ExecutionReport {
     input: Record<string, any>;
     output: any;
   }[];
+}
+
+export interface SlashCommandClosureResult {
+  interrupt: boolean;
+  pipe?: string;
+  isBreak: boolean;
+  isAborted: boolean;
+  isQuietlyAborted: boolean;
+  abortReason?: string;
+  isError: boolean;
+  errorMessage?: string;
 }
 
 export interface FlowRunnerDependencies {
@@ -84,6 +97,8 @@ export interface FlowRunnerDependencies {
   deleteMessage: (messageId: number) => Promise<void>;
   saveChat: () => Promise<void>;
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
+  st_runRegexScript: (script: any, content: string) => string;
+  executeSlashCommandsWithOptions: (text: string, options?: any) => Promise<SlashCommandClosureResult>;
 }
 
 type NodeExecutor = (
@@ -182,6 +197,8 @@ export class LowLevelFlowRunner {
       getPromptNode: this.executeGetPromptNode.bind(this),
       setVariableNode: this.executeSetVariableNode.bind(this),
       getVariableNode: this.executeGetVariableNode.bind(this),
+      regexNode: this.executeRegexNode.bind(this),
+      runSlashCommandNode: this.executeRunSlashCommandNode.bind(this),
     };
   }
 
@@ -985,5 +1002,65 @@ export class LowLevelFlowRunner {
       default:
         throw new Error(`Unknown math operation: ${operation}`);
     }
+  }
+
+  private async executeRegexNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = RegexNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { mode, scriptId, findRegex, replaceString } = parseResult.data;
+    const inputString = input.string ?? '';
+    if (typeof inputString !== 'string') throw new Error('Input must be a string.');
+
+    let result = inputString;
+    let matches: string[] | null = null;
+    let finalFindRegex: string | undefined;
+
+    if (mode === 'sillytavern') {
+      if (!scriptId) throw new Error('SillyTavern Regex ID is not selected.');
+      const { extensionSettings } = this.dependencies.getSillyTavernContext();
+      const script = (extensionSettings.regex ?? []).find((r: any) => r.id === scriptId);
+      if (!script) throw new Error(`Regex with ID "${scriptId}" not found.`);
+      result = this.dependencies.st_runRegexScript(script, inputString);
+      finalFindRegex = script.findRegex;
+    } else {
+      // custom mode
+      if (findRegex === undefined) throw new Error('Find Regex is required for custom mode.');
+      try {
+        const regex = new RegExp(findRegex, 'g');
+        result = inputString.replace(regex, replaceString ?? '');
+        finalFindRegex = findRegex;
+      } catch (e: any) {
+        throw new Error(`Invalid custom regex: ${e.message}`);
+      }
+    }
+
+    if (finalFindRegex) {
+      try {
+        matches = inputString.match(new RegExp(finalFindRegex, 'g'));
+      } catch (e: any) {
+        // Ignore match error if regex is invalid
+      }
+    }
+
+    return { result, matches: matches ?? [] };
+  }
+
+  private async executeRunSlashCommandNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = RunSlashCommandNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const command = this.resolveInput(input, parseResult.data, 'command');
+
+    if (!command || typeof command !== 'string') throw new Error('Command input must be a valid string.');
+
+    const result = await this.dependencies.executeSlashCommandsWithOptions(command);
+
+    if (result.isError) {
+      throw new Error(`Slash command failed: ${result.errorMessage}`);
+    }
+    if (result.isAborted) {
+      throw new Error(`Slash command aborted: ${result.abortReason}`);
+    }
+
+    return { result: result.pipe ?? '' };
   }
 }

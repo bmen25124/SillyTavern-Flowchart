@@ -1,5 +1,5 @@
 import { EventNameParameters } from './flow-types.js';
-import { sendChatMessage, st_createNewWorldInfo, st_echo } from 'sillytavern-utils-lib/config';
+import { sendChatMessage, st_createNewWorldInfo, st_echo, st_runRegexScript } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
@@ -28,6 +28,8 @@ class FlowRunner {
       deleteMessage: (messageId) => SillyTavern.getContext().deleteMessage(messageId),
       saveChat: () => SillyTavern.getContext().saveChat(),
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
+      st_runRegexScript: (script, content) => st_runRegexScript(script, content),
+      executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
     });
   }
 

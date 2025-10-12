@@ -22,6 +22,8 @@ export const saveCharacter = mockFn;
 export const applyWorldInfoEntry = mockFn;
 export const getWorldInfos = mockFn;
 export const buildPrompt = mockFn;
+export const st_runRegexScript = mockFn;
+export const executeSlashCommandsWithOptions = mockFn;
 export const Generator = class { constructor() { return new Proxy({}, { get: () => mockFn }); } };
 export const ExtensionSettingsManager = class { constructor() { return new Proxy({}, { get: () => mockFn }); } };
 

@@ -299,3 +299,16 @@ export const GetVariableNodeDataSchema = z.object({
   scope: z.enum(['Execution', 'Session']).default('Execution'),
 });
 export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;
+
+export const RegexNodeDataSchema = z.object({
+  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  scriptId: z.string().optional(),
+  findRegex: z.string().optional(),
+  replaceString: z.string().optional(),
+});
+export type RegexNodeData = z.infer<typeof RegexNodeDataSchema>;
+
+export const RunSlashCommandNodeDataSchema = z.object({
+  command: z.string().optional(),
+});
+export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
