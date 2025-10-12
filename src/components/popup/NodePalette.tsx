@@ -98,7 +98,6 @@ export const NodePalette: FC = () => {
               <span className="fa-solid fa-chevron-right"></span>
             </div>
             <div className="category-nodes">
-              <div className="category-nodes-header">{category} Nodes</div>
               <div className="category-nodes-list">
                 {nodes.map((node) => (
                   <div

@@ -252,15 +252,6 @@
       max-height: 400px;
       overflow-y: auto;
 
-      .category-nodes-header {
-        padding: 8px 10px;
-        background: var(--SmartThemeHeadersBackgroundColor);
-        border-bottom: 1px solid var(--SmartThemeBorderColor);
-        font-weight: bold;
-        font-size: 0.9em;
-        opacity: 0.8;
-      }
-
       .category-nodes-list {
         padding: 5px;
         display: flex;
