@@ -1,27 +1,20 @@
 import { FC } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { HandlebarNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STTextarea } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
 
 export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as HandlebarNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isTemplateConnected = useIsConnected(id, 'template');
+  const isDataConnected = useIsConnected(id, 'data');
 
   if (!data) return null;
-
-  const isTemplateConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'template');
-  const isDataConnected = edges.some((edge) => edge.target === id && edge.targetHandle === 'data');
 
   return (
     <BaseNode id={id} title="Handlebar Template" selected={selected}>

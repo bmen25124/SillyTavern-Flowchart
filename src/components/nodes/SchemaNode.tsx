@@ -4,7 +4,6 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { SchemaNodeData, FieldDefinition, SchemaTypeDefinition } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
 
 export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
@@ -130,13 +129,8 @@ const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemov
 };
 
 export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as SchemaNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SchemaNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

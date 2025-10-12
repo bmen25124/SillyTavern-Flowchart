@@ -5,18 +5,12 @@ import { EventNames } from 'sillytavern-utils-lib/types';
 import { useFlowStore } from '../popup/flowStore.js';
 import { BaseNode } from './BaseNode.js';
 import { TriggerNodeData, EventNameParameters } from '../../flow-types.js';
-import { shallow } from 'zustand/shallow';
 
 export type TriggerNodeProps = NodeProps<Node<TriggerNodeData>>;
 
 export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as TriggerNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as TriggerNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   const outputHandles = useMemo(() => {
     if (!data?.selectedEventType) return null;

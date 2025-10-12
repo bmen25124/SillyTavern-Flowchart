@@ -4,7 +4,6 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { BaseNode } from './BaseNode.js';
 import { STFancyDropdown, STSelect } from 'sillytavern-utils-lib/components';
 import { settingsManager } from '../../config.js';
-import { shallow } from 'zustand/shallow';
 import {
   PickCharacterNodeData,
   PickLorebookNodeData,
@@ -55,13 +54,8 @@ const EnumPicker: FC<{
 };
 
 export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickCharacterNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickCharacterNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
   if (!data) return null;
   return (
@@ -90,13 +84,8 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
 };
 
 export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickLorebookNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickLorebookNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
   useEffect(() => {
     setLorebookNames(world_names);
@@ -129,13 +118,8 @@ export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id
 };
 
 export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickPromptNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickPromptNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const promptOptions = useMemo(() => {
     const prompts = settingsManager.getSettings().prompts;
     return Object.keys(prompts).map((name) => ({ value: name, label: name }));
@@ -167,13 +151,8 @@ export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, se
 };
 
 export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickRegexScriptNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRegexScriptNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
   useEffect(() => {
     setAllRegexes(SillyTavern.getContext().extensionSettings.regex ?? []);
@@ -206,13 +185,8 @@ export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> =
 };
 
 export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickMathOperationNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickMathOperationNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -237,13 +211,8 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
   id,
   selected,
 }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickStringToolsOperationNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickStringToolsOperationNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -263,13 +232,8 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
 };
 
 export const PickVariableScopeNode: FC<NodeProps<Node<PickVariableScopeNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickVariableScopeNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickVariableScopeNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -291,13 +255,8 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
   id,
   selected,
 }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickPromptEngineeringModeNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickPromptEngineeringModeNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -313,13 +272,8 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
 };
 
 export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickRandomModeNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRandomModeNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -338,13 +292,8 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
 };
 
 export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickRegexModeNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRegexModeNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker
@@ -363,13 +312,8 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
 };
 
 export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTargetNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as PickTypeConverterTargetNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickTypeConverterTargetNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   if (!data) return null;
   return (
     <EnumPicker

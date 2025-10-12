@@ -1,26 +1,20 @@
 import React, { FC } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { EditChatMessageNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type EditChatMessageNodeProps = NodeProps<Node<EditChatMessageNodeData>>;
 
 export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as EditChatMessageNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditChatMessageNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isIdConnected = useIsConnected(id, 'messageId');
+  const isMessageConnected = useIsConnected(id, 'message');
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Edit Chat Message" selected={selected}>
@@ -33,7 +27,7 @@ export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Message ID</label>
-          {!isConnected('messageId') && (
+          {!isIdConnected && (
             <STInput
               className="nodrag"
               type="number"
@@ -50,7 +44,7 @@ export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>New Message Content</label>
-          {!isConnected('message') && (
+          {!isMessageConnected && (
             <STTextarea
               className="nodrag"
               rows={3}

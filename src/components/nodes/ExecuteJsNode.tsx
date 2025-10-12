@@ -5,18 +5,12 @@ import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../popup/flowStore.js';
 import { BaseNode } from './BaseNode.js';
 import { ExecuteJsNodeData } from '../../flow-types.js';
-import { shallow } from 'zustand/shallow';
 
 export type ExecuteJsNodeProps = NodeProps<Node<ExecuteJsNodeData>>;
 
 export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as ExecuteJsNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ExecuteJsNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

@@ -1,26 +1,20 @@
 import { FC } from 'react';
-import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetVariableNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type GetVariableNodeProps = NodeProps<Node<GetVariableNodeData>>;
 
 export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as GetVariableNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetVariableNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isNameConnected = useIsConnected(id, 'variableName');
+  const isScopeConnected = useIsConnected(id, 'scope');
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Get Variable" selected={selected}>
@@ -33,7 +27,7 @@ export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected }) => {
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Variable Name</label>
-          {!isConnected('variableName') && (
+          {!isNameConnected && (
             <STInput
               className="nodrag"
               value={data.variableName ?? ''}
@@ -49,7 +43,7 @@ export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected }) => {
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Scope</label>
-          {!isConnected('scope') && (
+          {!isScopeConnected && (
             <STSelect
               className="nodrag"
               value={data.scope ?? 'Execution'}

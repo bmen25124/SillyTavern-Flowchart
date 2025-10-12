@@ -1,28 +1,21 @@
 import React, { FC } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetChatMessageNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type GetChatMessageNodeProps = NodeProps<Node<GetChatMessageNodeData>>;
 
 const outputFields = ['id', 'name', 'mes', 'is_user', 'is_system'] as const;
 
 export const GetChatMessageNode: FC<GetChatMessageNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as GetChatMessageNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetChatMessageNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isMessageIdConnected = useIsConnected(id, 'messageId');
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Get Chat Message" selected={selected}>
@@ -34,7 +27,7 @@ export const GetChatMessageNode: FC<GetChatMessageNodeProps> = ({ id, selected }
           style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
         />
         <label style={{ marginLeft: '10px' }}>Message ID (e.g., last, first, 123)</label>
-        {!isConnected('messageId') && (
+        {!isMessageIdConnected && (
           <STInput
             className="nodrag"
             value={data.messageId ?? ''}

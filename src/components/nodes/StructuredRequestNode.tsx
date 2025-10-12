@@ -6,21 +6,21 @@ import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { PromptEngineeringMode } from '../../config.js';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
 
 export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData, allNodes } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as StructuredRequestNodeData,
-      updateNodeData: state.updateNodeData,
-      allNodes: state.nodes,
-    }),
-    shallow,
-  );
-
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StructuredRequestNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const allNodes = useFlowStore((state) => state.nodes);
   const edges = useEdges();
+
+  const isProfileIdConnected = useIsConnected(id, 'profileId');
+  const isMessagesConnected = useIsConnected(id, 'messages');
+  const isSchemaConnected = useIsConnected(id, 'schema');
+  const isModeConnected = useIsConnected(id, 'promptEngineeringMode');
+  const isMaxTokensConnected = useIsConnected(id, 'maxResponseToken');
 
   const schemaFields = useMemo(() => {
     const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
@@ -34,8 +34,6 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
   }, [id, edges, allNodes]);
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   const handleProfileChange = (profile?: ConnectionProfile) => {
     updateNodeData(id, { profileId: profile?.id || '' });
@@ -52,7 +50,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ transform: 'translateY(-50%)', top: '0.5rem' }}
           />
           <label style={{ marginLeft: '10px' }}>Connection Profile</label>
-          {!isConnected('profileId') && (
+          {!isProfileIdConnected && (
             <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
           )}
         </div>
@@ -65,7 +63,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Messages</label>
-          {!isConnected('messages') && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
+          {!isMessagesConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -76,7 +74,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Schema Name</label>
-          {!isConnected('schema') && (
+          {!isSchemaConnected && (
             <STInput
               className="nodrag"
               value={data.schemaName}
@@ -93,7 +91,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Prompt Engineering Mode</label>
-          {!isConnected('promptEngineeringMode') && (
+          {!isModeConnected && (
             <STSelect
               className="nodrag"
               value={data.promptEngineeringMode ?? PromptEngineeringMode.NATIVE}
@@ -116,7 +114,7 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Max Response Token</label>
-          {!isConnected('maxResponseToken') && (
+          {!isMaxTokensConnected && (
             <STInput
               className="nodrag"
               type="number"

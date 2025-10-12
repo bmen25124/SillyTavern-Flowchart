@@ -5,18 +5,12 @@ import { ProfileIdNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
-import { shallow } from 'zustand/shallow';
 
 export type ProfileIdNodeProps = NodeProps<Node<ProfileIdNodeData>>;
 
 export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as ProfileIdNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ProfileIdNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

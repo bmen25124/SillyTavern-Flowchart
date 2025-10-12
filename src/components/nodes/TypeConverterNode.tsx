@@ -1,26 +1,19 @@
 import React, { FC } from 'react';
-import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from './BaseNode.js';
 import { useFlowStore } from '../popup/flowStore.js';
 import { TypeConverterNodeData } from '../../flow-types.js';
 import { STSelect } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type TypeConverterNodeProps = NodeProps<Node<TypeConverterNodeData>>;
 
 export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as TypeConverterNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as TypeConverterNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isTypeConnected = useIsConnected(id, 'targetType');
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Type Converter" selected={selected}>
@@ -33,7 +26,7 @@ export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected }) 
           style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
         />
         <label style={{ marginLeft: '10px' }}>Convert To</label>
-        {!isConnected('targetType') && (
+        {!isTypeConnected && (
           <STSelect
             className="nodrag"
             value={data.targetType ?? 'string'}

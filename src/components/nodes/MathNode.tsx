@@ -1,28 +1,23 @@
 import { FC } from 'react';
-import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { MathNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type MathNodeProps = NodeProps<Node<MathNodeData>>;
 
 const operations = ['add', 'subtract', 'multiply', 'divide', 'modulo'] as const;
 
 export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as MathNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as MathNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isOpConnected = useIsConnected(id, 'operation');
+  const isAConnected = useIsConnected(id, 'a');
+  const isBConnected = useIsConnected(id, 'b');
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Math Operation" selected={selected}>
@@ -35,7 +30,7 @@ export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Operation</label>
-          {!isConnected('operation') && (
+          {!isOpConnected && (
             <STSelect
               className="nodrag"
               value={data.operation ?? 'add'}
@@ -51,7 +46,7 @@ export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
         </div>
         <div style={{ position: 'relative' }}>
           <Handle type="target" position={Position.Left} id="a" style={{ top: '50%', transform: 'translateY(-50%)' }} />
-          {!isConnected('a') ? (
+          {!isAConnected ? (
             <STInput
               className="nodrag"
               type="number"
@@ -65,7 +60,7 @@ export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
         </div>
         <div style={{ position: 'relative' }}>
           <Handle type="target" position={Position.Left} id="b" style={{ top: '50%', transform: 'translateY(-50%)' }} />
-          {!isConnected('b') ? (
+          {!isBConnected ? (
             <STInput
               className="nodrag"
               type="number"

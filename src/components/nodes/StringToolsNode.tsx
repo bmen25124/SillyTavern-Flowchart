@@ -1,29 +1,24 @@
 import React, { FC } from 'react';
-import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { StringToolsNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect, STButton } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
 import { nodeDefinitionMap } from './definitions/index.js';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type StringToolsNodeProps = NodeProps<Node<StringToolsNodeData>>;
 
 export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as StringToolsNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StringToolsNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isOpConnected = useIsConnected(id, 'operation');
+  const isDelimiterConnected = useIsConnected(id, 'delimiter');
 
   if (!data) return null;
 
   const definition = nodeDefinitionMap.get('stringToolsNode')!;
   const inputCount = data.inputCount ?? 2;
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
   const operation = data.operation ?? 'merge';
 
   const setInputCount = (count: number) => {
@@ -87,7 +82,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Operation</label>
-          {!isConnected('operation') && (
+          {!isOpConnected && (
             <STSelect
               className="nodrag"
               value={operation}
@@ -103,7 +98,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
         <div style={{ position: 'relative' }}>
           <Handle type="target" position={Position.Left} id="delimiter" />
           <label style={{ marginLeft: '10px' }}>Delimiter</label>
-          {!isConnected('delimiter') && (
+          {!isDelimiterConnected && (
             <STInput
               className="nodrag"
               value={data.delimiter ?? ''}

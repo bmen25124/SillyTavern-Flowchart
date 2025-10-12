@@ -139,10 +139,11 @@ function computeCompatibilityMap() {
   return { sourceCompatibilityMap, targetCompatibilityMap };
 }
 
+const compatibilityMap = computeCompatibilityMap();
+
 const FlowCanvas: FC<{
   invalidNodeIds: Set<string>;
-  compatibilityMap: ReturnType<typeof computeCompatibilityMap>;
-}> = ({ invalidNodeIds, compatibilityMap }) => {
+}> = ({ invalidNodeIds }) => {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlowStore();
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
@@ -260,7 +261,7 @@ const FlowCanvas: FC<{
 
       connectingNode.current = null;
     },
-    [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu, compatibilityMap],
+    [getNodes, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
   const nodesWithDynamicClasses = useMemo(
@@ -347,7 +348,6 @@ const FlowManager: FC = () => {
   const copyBuffer = useRef<Node[]>([]);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const flowWrapperRef = useRef<HTMLDivElement>(null);
-  const compatibilityMap = useMemo(() => computeCompatibilityMap(), []);
 
   // Track mouse position relative to the flow wrapper for accurate pasting
   useEffect(() => {
@@ -611,7 +611,7 @@ const FlowManager: FC = () => {
 
       <div className="flowchart-editor-area" ref={flowWrapperRef}>
         <NodePalette />
-        <FlowCanvas invalidNodeIds={invalidNodeIds} compatibilityMap={compatibilityMap} />
+        <FlowCanvas invalidNodeIds={invalidNodeIds} />
       </div>
     </div>
   );

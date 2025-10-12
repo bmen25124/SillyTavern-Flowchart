@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Handle, Position, Node, NodeProps, useEdges } from '@xyflow/react';
+import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../popup/flowStore.js';
@@ -7,7 +7,6 @@ import { EventNameParameters, IfNodeData } from '../../flow-types.js';
 import { z } from 'zod';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { BaseNode } from './BaseNode.js';
-import { shallow } from 'zustand/shallow';
 
 function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
   let interfaceString = '{\n';
@@ -26,15 +25,12 @@ function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
 export type IfNodeProps = NodeProps<Node<IfNodeData>>;
 
 export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
-  const { data, nodes, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as IfNodeData,
-      nodes: state.nodes,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const { data, nodes, edges, updateNodeData } = useFlowStore((state) => ({
+    data: state.nodesMap.get(id)?.data as IfNodeData,
+    nodes: state.nodes,
+    edges: state.edges,
+    updateNodeData: state.updateNodeData,
+  }));
 
   const typeDeclarations = useMemo(() => {
     const findTriggerNode = (startNodeId: string): Node | undefined => {

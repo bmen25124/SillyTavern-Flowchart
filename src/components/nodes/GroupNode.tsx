@@ -3,18 +3,12 @@ import { NodeProps, NodeResizer, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GroupNodeData } from '../../flow-types.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
 
 export type GroupNodeProps = NodeProps<Node<GroupNodeData>>;
 
 export const GroupNode: FC<GroupNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as GroupNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GroupNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

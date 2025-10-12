@@ -4,18 +4,12 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { LogNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
 
 export type LogNodeProps = NodeProps<Node<LogNodeData>>;
 
 export const LogNode: React.FC<LogNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as LogNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as LogNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

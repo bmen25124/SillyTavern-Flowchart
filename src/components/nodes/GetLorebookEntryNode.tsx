@@ -1,26 +1,22 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetLorebookEntryNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type GetLorebookEntryNodeProps = NodeProps<Node<GetLorebookEntryNodeData>>;
 
 const outputFields = ['key', 'content', 'comment'] as const;
 
 export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as GetLorebookEntryNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookEntryNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isWorldNameConnected = useIsConnected(id, 'worldName');
+  const isEntryUidConnected = useIsConnected(id, 'entryUid');
   const [allWorldsData, setAllWorldsData] = useState<Record<string, WIEntry[]>>({});
 
   useEffect(() => {
@@ -44,8 +40,6 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
 
   if (!data) return null;
 
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
-
   return (
     <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -57,7 +51,7 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Lorebook Name</label>
-          {!isConnected('worldName') && (
+          {!isWorldNameConnected && (
             <STFancyDropdown
               value={[data.worldName ?? '']}
               onChange={(e) => updateNodeData(id, { worldName: e[0], entryUid: undefined })}
@@ -78,7 +72,7 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Entry</label>
-          {!isConnected('entryUid') && (
+          {!isEntryUidConnected && (
             <STFancyDropdown
               value={[String(data.entryUid ?? '')]}
               onChange={(e) => updateNodeData(id, { entryUid: Number(e[0]) })}

@@ -1,26 +1,23 @@
 import React, { FC } from 'react';
-import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { RandomNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type RandomNodeProps = NodeProps<Node<RandomNodeData>>;
 
 export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as RandomNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RandomNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+
+  const isModeConnected = useIsConnected(id, 'mode');
+  const isMinConnected = useIsConnected(id, 'min');
+  const isMaxConnected = useIsConnected(id, 'max');
 
   if (!data) return null;
 
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
   const mode = data.mode ?? 'number';
 
   return (
@@ -34,7 +31,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Mode</label>
-          {!isConnected('mode') && (
+          {!isModeConnected && (
             <STSelect
               className="nodrag"
               value={mode}
@@ -50,7 +47,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
           <>
             <div style={{ position: 'relative' }}>
               <Handle type="target" position={Position.Left} id="min" style={{ top: '50%' }} />
-              {!isConnected('min') ? (
+              {!isMinConnected ? (
                 <STInput
                   className="nodrag"
                   type="number"
@@ -64,7 +61,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
             </div>
             <div style={{ position: 'relative' }}>
               <Handle type="target" position={Position.Left} id="max" style={{ top: '50%' }} />
-              {!isConnected('max') ? (
+              {!isMaxConnected ? (
                 <STInput
                   className="nodrag"
                   type="number"

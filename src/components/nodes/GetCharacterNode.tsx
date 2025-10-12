@@ -1,29 +1,22 @@
 import { FC } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { GetCharacterNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type GetCharacterNodeProps = NodeProps<Node<GetCharacterNodeData>>;
 
 const fields = ['name', 'description', 'first_mes', 'scenario', 'personality', 'mes_example', 'tags'] as const;
 
 export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as GetCharacterNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetCharacterNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isAvatarConnected = useIsConnected(id, 'characterAvatar');
   const { characters } = SillyTavern.getContext();
 
   if (!data) return null;
-
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
 
   return (
     <BaseNode id={id} title="Get Character" selected={selected}>
@@ -36,7 +29,7 @@ export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected }) =>
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Character</label>
-          {!isConnected('characterAvatar') && (
+          {!isAvatarConnected && (
             <STFancyDropdown
               value={[data.characterAvatar ?? '']}
               onChange={(e) => updateNodeData(id, { characterAvatar: e[0] })}

@@ -4,7 +4,6 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { JsonNodeData, JsonNodeItem } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
-import { shallow } from 'zustand/shallow';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -119,13 +118,8 @@ const JsonItemEditor: FC<{
 };
 
 export const JsonNode: FC<JsonNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as JsonNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as JsonNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
   if (!data) return null;
 

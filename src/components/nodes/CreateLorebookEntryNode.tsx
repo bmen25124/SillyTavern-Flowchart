@@ -1,11 +1,11 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
-import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { CreateLorebookEntryNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
-import { shallow } from 'zustand/shallow';
+import { useIsConnected } from '../../hooks/useIsConnected.js';
 
 export type CreateLorebookEntryNodeProps = NodeProps<Node<CreateLorebookEntryNodeData>>;
 
@@ -16,14 +16,9 @@ const fields = [
 ] as const;
 
 export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
-    (state) => ({
-      data: state.nodes.find((n) => n.id === id)?.data as CreateLorebookEntryNodeData,
-      updateNodeData: state.updateNodeData,
-    }),
-    shallow,
-  );
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateLorebookEntryNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const isWorldNameConnected = useIsConnected(id, 'worldName');
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
 
   useEffect(() => {
@@ -36,8 +31,6 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
 
   if (!data) return null;
 
-  const isConnected = (fieldId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === fieldId);
-
   return (
     <BaseNode id={id} title="Create Lorebook Entry" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -49,7 +42,7 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
           <label style={{ marginLeft: '10px' }}>Lorebook Name</label>
-          {!isConnected('worldName') && (
+          {!isWorldNameConnected && (
             <STFancyDropdown
               value={[data.worldName ?? '']}
               onChange={(e) => updateNodeData(id, { worldName: e[0] })}
@@ -63,26 +56,38 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
           )}
         </div>
         {fields.map((field) => (
-          <div key={field.id} style={{ position: 'relative' }}>
-            <Handle
-              type="target"
-              position={Position.Left}
-              id={field.id}
-              style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-            />
-            <label style={{ marginLeft: '10px' }}>{field.label}</label>
-            {!isConnected(field.id) &&
-              React.createElement(field.component as any, {
-                className: 'nodrag',
-                value: data[field.id] ?? '',
-                onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-                  updateNodeData(id, { [field.id]: e.target.value }),
-                ...field.props,
-              })}
-          </div>
+          <FieldInput key={field.id} id={id} field={field} data={data} updateNodeData={updateNodeData} />
         ))}
       </div>
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );
 };
+
+const FieldInput: FC<{
+  id: string;
+  field: (typeof fields)[number];
+  data: CreateLorebookEntryNodeData;
+  updateNodeData: (id: string, data: object) => void;
+}> = React.memo(({ id, field, data, updateNodeData }) => {
+  const isFieldConnected = useIsConnected(id, field.id);
+  return (
+    <div key={field.id} style={{ position: 'relative' }}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id={field.id}
+        style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+      />
+      <label style={{ marginLeft: '10px' }}>{field.label}</label>
+      {!isFieldConnected &&
+        React.createElement(field.component as any, {
+          className: 'nodrag',
+          value: data[field.id] ?? '',
+          onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            updateNodeData(id, { [field.id]: e.target.value }),
+          ...field.props,
+        })}
+    </div>
+  );
+});
