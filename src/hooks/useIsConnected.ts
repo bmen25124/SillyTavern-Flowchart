@@ -1,6 +1,6 @@
-import { useEdges } from '@xyflow/react';
+import { useConnectedHandles } from './useConnectedHandles.js';
 
 export const useIsConnected = (nodeId: string, handleId: string) => {
-  const edges = useEdges();
-  return edges.some((edge) => edge.target === nodeId && edge.targetHandle === handleId);
+  const connectedHandles = useConnectedHandles(nodeId);
+  return connectedHandles.has(handleId);
 };

@@ -4,38 +4,31 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { DateTimeNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type DateTimeNodeProps = NodeProps<Node<DateTimeNodeData>>;
 
 const outputFields = ['iso', 'timestamp', 'year', 'month', 'day', 'hour', 'minute', 'second'] as const;
 
+const fields = [
+  createFieldConfig({
+    id: 'format',
+    label: 'Format (Optional)',
+    component: STInput,
+    props: { placeholder: 'Default: ISO String', type: 'text' },
+  }),
+];
+
 export const DateTimeNode: FC<DateTimeNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as DateTimeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isFormatConnected = useIsConnected(id, 'format');
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Date/Time" selected={selected}>
-      <div style={{ position: 'relative' }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="format"
-          style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-        />
-        <label style={{ marginLeft: '10px' }}>Format (Optional)</label>
-        {!isFormatConnected && (
-          <STInput
-            className="nodrag"
-            value={data.format ?? ''}
-            onChange={(e) => updateNodeData(id, { format: e.target.value })}
-            placeholder="Default: ISO String"
-          />
-        )}
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         {outputFields.map((field) => (
           <div

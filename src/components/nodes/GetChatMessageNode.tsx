@@ -4,38 +4,31 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { GetChatMessageNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type GetChatMessageNodeProps = NodeProps<Node<GetChatMessageNodeData>>;
 
 const outputFields = ['id', 'name', 'mes', 'is_user', 'is_system'] as const;
 
+const fields = [
+  createFieldConfig({
+    id: 'messageId',
+    label: 'Message ID (e.g., last, first, 123)',
+    component: STInput,
+    props: { placeholder: 'last', type: 'text' },
+  }),
+];
+
 export const GetChatMessageNode: FC<GetChatMessageNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isMessageIdConnected = useIsConnected(id, 'messageId');
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Get Chat Message" selected={selected}>
-      <div style={{ position: 'relative' }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="messageId"
-          style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-        />
-        <label style={{ marginLeft: '10px' }}>Message ID (e.g., last, first, 123)</label>
-        {!isMessageIdConnected && (
-          <STInput
-            className="nodrag"
-            value={data.messageId ?? ''}
-            onChange={(e) => updateNodeData(id, { messageId: e.target.value })}
-            placeholder="last"
-          />
-        )}
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
 
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>

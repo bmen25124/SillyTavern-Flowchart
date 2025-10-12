@@ -7,8 +7,46 @@ import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-
 import { PromptEngineeringMode } from '../../config.js';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'profileId',
+    label: 'Connection Profile',
+    component: STConnectionProfileSelect,
+    props: {
+      onChange: (profile?: ConnectionProfile) => {}, // This will be replaced in the component
+    },
+  }),
+  createFieldConfig({
+    id: 'schemaName',
+    label: 'Schema Name',
+    component: STInput,
+    props: { type: 'text' },
+  }),
+  createFieldConfig({
+    id: 'promptEngineeringMode',
+    label: 'Prompt Engineering Mode',
+    component: STSelect,
+    props: {
+      children: Object.values(PromptEngineeringMode).map((mode) => (
+        <option key={mode} value={mode}>
+          {mode}
+        </option>
+      )),
+    },
+  }),
+  createFieldConfig({
+    id: 'maxResponseToken',
+    label: 'Max Response Token',
+    component: STInput,
+    props: { type: 'number' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+  }),
+];
 
 export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StructuredRequestNodeData;
@@ -16,18 +54,15 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
   const allNodes = useFlowStore((state) => state.nodes);
   const edges = useEdges();
 
-  const isProfileIdConnected = useIsConnected(id, 'profileId');
   const isMessagesConnected = useIsConnected(id, 'messages');
   const isSchemaConnected = useIsConnected(id, 'schema');
-  const isModeConnected = useIsConnected(id, 'promptEngineeringMode');
-  const isMaxTokensConnected = useIsConnected(id, 'maxResponseToken');
 
   const schemaFields = useMemo(() => {
     const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
     if (!schemaEdge) return [];
 
     const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode && schemaNode.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
+    if (schemaNode?.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
       return schemaNode.data.fields;
     }
     return [];
@@ -35,25 +70,39 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
 
   if (!data) return null;
 
-  const handleProfileChange = (profile?: ConnectionProfile) => {
-    updateNodeData(id, { profileId: profile?.id || '' });
-  };
+  const dynamicFields = useMemo(
+    () =>
+      fields.map((field) => {
+        if (field.id === 'profileId') {
+          return {
+            ...field,
+            props: {
+              ...field.props,
+              initialSelectedProfileId: data.profileId,
+              onChange: (profile?: ConnectionProfile) => {
+                updateNodeData(id, { profileId: profile?.id || '' });
+              },
+            },
+          };
+        }
+        if (field.id === 'promptEngineeringMode') {
+          return {
+            ...field,
+            props: {
+              ...field.props,
+              value: data.promptEngineeringMode ?? PromptEngineeringMode.NATIVE,
+            },
+          };
+        }
+        return field;
+      }),
+    [data.profileId, data.promptEngineeringMode, updateNodeData, id],
+  );
 
   return (
     <BaseNode id={id} title="Structured Request" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="profileId"
-            style={{ transform: 'translateY(-50%)', top: '0.5rem' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Connection Profile</label>
-          {!isProfileIdConnected && (
-            <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
-          )}
-        </div>
+        <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
 
         <div style={{ position: 'relative' }}>
           <Handle
@@ -73,55 +122,8 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             id="schema"
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
-          <label style={{ marginLeft: '10px' }}>Schema Name</label>
-          {!isSchemaConnected && (
-            <STInput
-              className="nodrag"
-              value={data.schemaName}
-              onChange={(e) => updateNodeData(id, { schemaName: e.target.value })}
-            />
-          )}
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="promptEngineeringMode"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Prompt Engineering Mode</label>
-          {!isModeConnected && (
-            <STSelect
-              className="nodrag"
-              value={data.promptEngineeringMode ?? PromptEngineeringMode.NATIVE}
-              onChange={(e) => updateNodeData(id, { promptEngineeringMode: e.target.value as any })}
-            >
-              {Object.values(PromptEngineeringMode).map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode}
-                </option>
-              ))}
-            </STSelect>
-          )}
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="maxResponseToken"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Max Response Token</label>
-          {!isMaxTokensConnected && (
-            <STInput
-              className="nodrag"
-              type="number"
-              value={data.maxResponseToken}
-              onChange={(e) => updateNodeData(id, { maxResponseToken: Number(e.target.value) })}
-            />
-          )}
+          <label style={{ marginLeft: '10px' }}>Schema</label>
+          {!isSchemaConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>

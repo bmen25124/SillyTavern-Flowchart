@@ -4,15 +4,36 @@ import { useFlowStore } from '../popup/flowStore.js';
 import { SetVariableNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type SetVariableNodeProps = NodeProps<Node<SetVariableNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'variableName',
+    label: 'Variable Name',
+    component: STInput,
+    props: { type: 'text' },
+  }),
+  createFieldConfig({
+    id: 'scope',
+    label: 'Scope',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="Execution">Flow Execution</option>
+          <option value="Session">SillyTavern Session</option>
+        </>
+      ),
+    },
+  }),
+];
 
 export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isNameConnected = useIsConnected(id, 'variableName');
-  const isScopeConnected = useIsConnected(id, 'scope');
 
   if (!data) return null;
 
@@ -20,44 +41,7 @@ export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected }) => {
     <BaseNode id={id} title="Set Variable" selected={selected}>
       <Handle type="target" position={Position.Left} id="value" style={{ top: '15%' }} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="variableName"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Variable Name</label>
-          {!isNameConnected && (
-            <STInput
-              className="nodrag"
-              value={data.variableName ?? ''}
-              onChange={(e) => updateNodeData(id, { variableName: e.target.value })}
-            />
-          )}
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="scope"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Scope</label>
-          {!isScopeConnected && (
-            <STSelect
-              className="nodrag"
-              value={data.scope ?? 'Execution'}
-              onChange={(e) => updateNodeData(id, { scope: e.target.value as any })}
-            >
-              <option value="Execution">Flow Execution</option>
-              <option value="Session">SillyTavern Session</option>
-            </STSelect>
-          )}
-        </div>
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
         <span>Value (Passthrough)</span>

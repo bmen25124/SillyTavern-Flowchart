@@ -5,16 +5,44 @@ import { RegexNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STSelect, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type RegexNodeProps = NodeProps<Node<RegexNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'mode',
+    label: 'Mode',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="sillytavern">SillyTavern</option>
+          <option value="custom">Custom</option>
+        </>
+      ),
+    },
+  }),
+  createFieldConfig({
+    id: 'scriptId',
+    label: 'Regex Script',
+    component: STFancyDropdown,
+    props: {
+      multiple: false,
+      inputClasses: 'nodrag',
+      containerClasses: 'nodrag',
+      closeOnSelect: true,
+      enableSearch: true,
+    },
+    getValueFromEvent: (e: string[]) => e[0],
+    formatValue: (value) => [value ?? ''],
+  }),
+];
 
 export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RegexNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isStringConnected = useIsConnected(id, 'string');
-  const isModeConnected = useIsConnected(id, 'mode');
-  const isScriptIdConnected = useIsConnected(id, 'scriptId');
   const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
 
   useEffect(() => {
@@ -24,59 +52,32 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
 
   const regexOptions = useMemo(() => allRegexes.map((r) => ({ value: r.id, label: r.scriptName })), [allRegexes]);
 
-  if (!data) return null;
-
   const mode = data.mode ?? 'sillytavern';
+
+  const dynamicFields = useMemo(
+    () =>
+      fields
+        .filter((field) => {
+          if (mode === 'sillytavern') return field.id === 'mode' || field.id === 'scriptId';
+          if (mode === 'custom') return field.id === 'mode';
+          return true;
+        })
+        .map((field) => {
+          if (field.id === 'scriptId') {
+            return { ...field, props: { ...field.props, items: regexOptions } };
+          }
+          return field;
+        }),
+    [mode, regexOptions],
+  );
+
+  if (!data) return null;
 
   return (
     <BaseNode id={id} title="Regex" selected={selected}>
-      <Handle type="target" position={Position.Left} id="string" style={{ top: '25%' }} />
-      {isStringConnected && <label style={{ marginLeft: '10px' }}>Input String</label>}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="mode"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Mode</label>
-          {!isModeConnected && (
-            <STSelect
-              className="nodrag"
-              value={mode}
-              onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
-            >
-              <option value="sillytavern">SillyTavern</option>
-              <option value="custom">Custom</option>
-            </STSelect>
-          )}
-        </div>
-
-        {mode === 'sillytavern' && (
-          <div style={{ position: 'relative' }}>
-            <Handle
-              type="target"
-              position={Position.Left}
-              id="scriptId"
-              style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-            />
-            <label style={{ marginLeft: '10px' }}>Regex Script</label>
-            {!isScriptIdConnected && (
-              <STFancyDropdown
-                value={[data.scriptId ?? '']}
-                onChange={(e) => updateNodeData(id, { scriptId: e[0] })}
-                multiple={false}
-                items={regexOptions}
-                inputClasses="nodrag"
-                containerClasses="nodrag"
-                closeOnSelect={true}
-                enableSearch={true}
-              />
-            )}
-          </div>
-        )}
+      <Handle type="target" position={Position.Left} id="string" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
 
         {mode === 'custom' && (
           <>

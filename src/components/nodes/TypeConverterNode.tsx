@@ -4,41 +4,39 @@ import { BaseNode } from './BaseNode.js';
 import { useFlowStore } from '../popup/flowStore.js';
 import { TypeConverterNodeData } from '../../flow-types.js';
 import { STSelect } from 'sillytavern-utils-lib/components';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type TypeConverterNodeProps = NodeProps<Node<TypeConverterNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'targetType',
+    label: 'Convert To',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="string">String</option>
+          <option value="number">Number</option>
+          <option value="object">Object (from JSON string)</option>
+          <option value="array">Array (from JSON string)</option>
+        </>
+      ),
+    },
+  }),
+];
 
 export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as TypeConverterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isTypeConnected = useIsConnected(id, 'targetType');
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Type Converter" selected={selected}>
       <Handle type="target" position={Position.Left} id="value" />
-      <div style={{ position: 'relative' }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id="targetType"
-          style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-        />
-        <label style={{ marginLeft: '10px' }}>Convert To</label>
-        {!isTypeConnected && (
-          <STSelect
-            className="nodrag"
-            value={data.targetType ?? 'string'}
-            onChange={(e) => updateNodeData(id, { targetType: e.target.value as any })}
-          >
-            <option value="string">String</option>
-            <option value="number">Number</option>
-            <option value="object">Object (from JSON string)</option>
-            <option value="array">Array (from JSON string)</option>
-          </STSelect>
-        )}
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
         <span>Result</span>
         <Handle

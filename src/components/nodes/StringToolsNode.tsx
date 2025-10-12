@@ -5,15 +5,37 @@ import { StringToolsNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect, STButton } from 'sillytavern-utils-lib/components';
 import { nodeDefinitionMap } from './definitions/index.js';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type StringToolsNodeProps = NodeProps<Node<StringToolsNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'operation',
+    label: 'Operation',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="merge">Merge</option>
+          <option value="split">Split</option>
+          <option value="join">Join</option>
+        </>
+      ),
+    },
+  }),
+  createFieldConfig({
+    id: 'delimiter',
+    label: 'Delimiter',
+    component: STInput,
+    props: { type: 'text' },
+  }),
+];
 
 export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StringToolsNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isOpConnected = useIsConnected(id, 'operation');
-  const isDelimiterConnected = useIsConnected(id, 'delimiter');
 
   if (!data) return null;
 
@@ -74,38 +96,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="String Tools" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="operation"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Operation</label>
-          {!isOpConnected && (
-            <STSelect
-              className="nodrag"
-              value={operation}
-              onChange={(e) => updateNodeData(id, { operation: e.target.value as any })}
-            >
-              <option value="merge">Merge</option>
-              <option value="split">Split</option>
-              <option value="join">Join</option>
-            </STSelect>
-          )}
-        </div>
-
-        <div style={{ position: 'relative' }}>
-          <Handle type="target" position={Position.Left} id="delimiter" />
-          <label style={{ marginLeft: '10px' }}>Delimiter</label>
-          {!isDelimiterConnected && (
-            <STInput
-              className="nodrag"
-              value={data.delimiter ?? ''}
-              onChange={(e) => updateNodeData(id, { delimiter: e.target.value })}
-            />
-          )}
-        </div>
+        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
         <hr />
         {renderInputs()}
       </div>

@@ -1,65 +1,63 @@
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../popup/flowStore.js';
 import { CreateMessagesNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type CreateMessagesNodeProps = NodeProps<Node<CreateMessagesNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'profileId',
+    label: 'Connection Profile',
+    component: STConnectionProfileSelect,
+    props: {
+      onChange: (profile?: ConnectionProfile) => {}, // This will be replaced in the component
+    },
+  }),
+  createFieldConfig({
+    id: 'lastMessageId',
+    label: 'Last Message ID (Optional)',
+    component: STInput,
+    props: { type: 'number' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+      e.target.value === '' ? undefined : Number(e.target.value),
+  }),
+];
 
 export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateMessagesNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
-  const isProfileIdConnected = useIsConnected(id, 'profileId');
-  const isLastMessageIdConnected = useIsConnected(id, 'lastMessageId');
-
   if (!data) return null;
 
-  const handleProfileChange = (profile?: ConnectionProfile) => {
-    updateNodeData(id, { profileId: profile?.id || '' });
-  };
-
-  const handleLastMessageIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    updateNodeData(id, { lastMessageId: value === '' ? undefined : Number(value) });
-  };
+  const dynamicFields = useMemo(
+    () =>
+      fields.map((field) => {
+        if (field.id === 'profileId') {
+          return {
+            ...field,
+            props: {
+              ...field.props,
+              initialSelectedProfileId: data.profileId,
+              onChange: (profile?: ConnectionProfile) => {
+                updateNodeData(id, { profileId: profile?.id || '' });
+              },
+            },
+          };
+        }
+        return field;
+      }),
+    [data.profileId, updateNodeData, id],
+  );
 
   return (
     <BaseNode id={id} title="Create Messages" selected={selected}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="profileId"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Connection Profile</label>
-          {!isProfileIdConnected && (
-            <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />
-          )}
-        </div>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="lastMessageId"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Last Message ID (Optional)</label>
-          {!isLastMessageIdConnected && (
-            <STInput
-              className="nodrag"
-              type="number"
-              value={data.lastMessageId ?? ''}
-              onChange={handleLastMessageIdChange}
-            />
-          )}
-        </div>
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

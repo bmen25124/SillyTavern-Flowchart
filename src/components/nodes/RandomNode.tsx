@@ -5,14 +5,31 @@ import { RandomNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type RandomNodeProps = NodeProps<Node<RandomNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'mode',
+    label: 'Mode',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="number">Number</option>
+          <option value="array">From Array</option>
+        </>
+      ),
+    },
+  }),
+];
 
 export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RandomNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
-  const isModeConnected = useIsConnected(id, 'mode');
   const isMinConnected = useIsConnected(id, 'min');
   const isMaxConnected = useIsConnected(id, 'max');
 
@@ -23,25 +40,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Random" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="mode"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Mode</label>
-          {!isModeConnected && (
-            <STSelect
-              className="nodrag"
-              value={mode}
-              onChange={(e) => updateNodeData(id, { mode: e.target.value as any })}
-            >
-              <option value="number">Number</option>
-              <option value="array">From Array</option>
-            </STSelect>
-          )}
-        </div>
+        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
 
         {mode === 'number' && (
           <>

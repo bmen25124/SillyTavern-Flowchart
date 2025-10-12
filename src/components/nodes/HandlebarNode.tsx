@@ -5,13 +5,23 @@ import { HandlebarNodeData } from '../../flow-types.js';
 import { BaseNode } from './BaseNode.js';
 import { STTextarea } from 'sillytavern-utils-lib/components';
 import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'template',
+    label: 'Template',
+    component: STTextarea,
+    props: { rows: 4 },
+  }),
+];
 
 export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isTemplateConnected = useIsConnected(id, 'template');
   const isDataConnected = useIsConnected(id, 'data');
 
   if (!data) return null;
@@ -19,23 +29,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Handlebar Template" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="template"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Template</label>
-          {!isTemplateConnected && (
-            <STTextarea
-              className="nodrag"
-              value={data.template}
-              onChange={(e) => updateNodeData(id, { template: e.target.value })}
-              rows={4}
-            />
-          )}
-        </div>
+        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
         <div style={{ position: 'relative' }}>
           <Handle
             type="target"

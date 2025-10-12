@@ -6,17 +6,49 @@ import { BaseNode } from './BaseNode.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
-import { useIsConnected } from '../../hooks/useIsConnected.js';
+import { NodeFieldRenderer } from './NodeFieldRenderer.js';
+import { createFieldConfig } from './fieldConfig.js';
 
 export type GetLorebookEntryNodeProps = NodeProps<Node<GetLorebookEntryNodeData>>;
 
 const outputFields = ['key', 'content', 'comment'] as const;
 
+const fields = [
+  createFieldConfig({
+    id: 'worldName',
+    label: 'Lorebook Name',
+    component: STFancyDropdown,
+    props: {
+      multiple: false,
+      inputClasses: 'nodrag',
+      containerClasses: 'nodrag',
+      closeOnSelect: true,
+      enableSearch: true,
+    },
+    customChangeHandler: (e: string[], { nodeId, updateNodeData }) => {
+      updateNodeData(nodeId, { worldName: e[0], entryUid: undefined });
+    },
+    formatValue: (value) => [value ?? ''],
+  }),
+  createFieldConfig({
+    id: 'entryUid',
+    label: 'Entry',
+    component: STFancyDropdown,
+    props: {
+      multiple: false,
+      inputClasses: 'nodrag',
+      containerClasses: 'nodrag',
+      closeOnSelect: true,
+      enableSearch: true,
+    },
+    getValueFromEvent: (e: string[]) => Number(e[0]),
+    formatValue: (value) => [String(value ?? '')],
+  }),
+];
+
 export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookEntryNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const isWorldNameConnected = useIsConnected(id, 'worldName');
-  const isEntryUidConnected = useIsConnected(id, 'entryUid');
   const [allWorldsData, setAllWorldsData] = useState<Record<string, WIEntry[]>>({});
 
   useEffect(() => {
@@ -40,53 +72,23 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
 
   if (!data) return null;
 
+  const dynamicFields = useMemo(
+    () =>
+      fields.map((field) => {
+        if (field.id === 'worldName') {
+          return { ...field, props: { ...field.props, items: lorebookOptions } };
+        }
+        if (field.id === 'entryUid') {
+          return { ...field, props: { ...field.props, items: entryOptions, disabled: !data.worldName } };
+        }
+        return field;
+      }),
+    [lorebookOptions, entryOptions, data.worldName],
+  );
+
   return (
     <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="worldName"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Lorebook Name</label>
-          {!isWorldNameConnected && (
-            <STFancyDropdown
-              value={[data.worldName ?? '']}
-              onChange={(e) => updateNodeData(id, { worldName: e[0], entryUid: undefined })}
-              multiple={false}
-              items={lorebookOptions}
-              inputClasses="nodrag"
-              containerClasses="nodrag"
-              closeOnSelect={true}
-              enableSearch={true}
-            />
-          )}
-        </div>
-        <div style={{ position: 'relative' }}>
-          <Handle
-            type="target"
-            position={Position.Left}
-            id="entryUid"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
-          />
-          <label style={{ marginLeft: '10px' }}>Entry</label>
-          {!isEntryUidConnected && (
-            <STFancyDropdown
-              value={[String(data.entryUid ?? '')]}
-              onChange={(e) => updateNodeData(id, { entryUid: Number(e[0]) })}
-              multiple={false}
-              items={entryOptions}
-              inputClasses="nodrag"
-              containerClasses="nodrag"
-              closeOnSelect={true}
-              enableSearch={true}
-              disabled={!data.worldName}
-            />
-          )}
-        </div>
-      </div>
+      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
           <span>Entry (Full Object)</span>
