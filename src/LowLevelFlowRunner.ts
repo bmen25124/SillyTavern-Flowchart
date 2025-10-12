@@ -634,12 +634,23 @@ export class LowLevelFlowRunner {
     return buildZodSchema(topLevelObjectDefinition);
   }
 
-  private async executeProfileIdNode(node: SpecNode): Promise<any> {
+  private async executeProfileIdNode(node: SpecNode, input: Record<string, any>): Promise<any> {
     const parseResult = ProfileIdNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    return parseResult.data.profileId;
+    const staticData = parseResult.data;
+
+    // A null input handle means the entire upstream output is in `input`.
+    // We intelligently extract the ID from common output shapes.
+    let resolvedId: string | undefined;
+    if (typeof input === 'string') {
+      resolvedId = input;
+    } else if (typeof input === 'object' && input !== null) {
+      resolvedId = input.profileId ?? input.value;
+    }
+
+    return resolvedId && typeof resolvedId === 'string' ? resolvedId : staticData.profileId;
   }
 
   private async executeCreateCharacterNode(node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -866,12 +877,13 @@ export class LowLevelFlowRunner {
       messageIndex = chat.findIndex((_, i) => i === messageIdInput);
     } else {
       const idStr = String(messageIdInput).toLowerCase().trim();
-      if (idStr === 'last') messageIndex = chat.length - 1;
-      else if (idStr === 'first') messageIndex = 0;
-      else if (idStr.startsWith('last')) {
-        const offset = parseInt(idStr.replace('last', '').trim(), 10) || 0;
-        messageIndex = chat.length - 1 + offset;
-      } else messageIndex = parseInt(idStr, 10);
+      if (idStr === 'last') {
+        messageIndex = chat.length - 1;
+      } else if (idStr === 'first') {
+        messageIndex = 0;
+      } else {
+        messageIndex = parseInt(idStr, 10);
+      }
     }
 
     if (isNaN(messageIndex) || messageIndex < 0 || messageIndex >= chat.length) {
@@ -919,7 +931,9 @@ export class LowLevelFlowRunner {
     const role = this.resolveInput(input, staticData, 'role');
     const name = this.resolveInput(input, staticData, 'name');
     await this.dependencies.sendChatMessage(message, role, name);
-    return { messageSent: true };
+
+    const newChatLength = this.dependencies.getSillyTavernContext().chat.length;
+    return { messageId: newChatLength - 1 };
   }
 
   private async executeRemoveChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {
