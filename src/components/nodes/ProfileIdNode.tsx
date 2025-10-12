@@ -26,6 +26,7 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Profile ID" selected={selected}>
+      <Handle type="target" position={Position.Left} />
       <div>
         <label>Connection Profile</label>
         <STConnectionProfileSelect initialSelectedProfileId={data.profileId} onChange={handleProfileChange} />

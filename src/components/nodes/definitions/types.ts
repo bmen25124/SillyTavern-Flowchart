@@ -40,3 +40,5 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    */
   getDynamicHandles?: (data: T) => { inputs: HandleSpec[]; outputs: HandleSpec[] };
 }
+
+export type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;

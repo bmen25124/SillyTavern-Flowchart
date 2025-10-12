@@ -1,5 +1,5 @@
 import { Connection, Edge, Node } from '@xyflow/react';
-import { nodeDefinitionMap } from '../components/nodes/definitions/map.js';
+import { nodeDefinitionMap } from '../components/nodes/definitions/definitions.js';
 import { FlowDataType } from '../flow-types.js';
 
 function getHandleType(

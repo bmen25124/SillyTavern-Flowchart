@@ -1,5 +1,5 @@
 import { FlowData } from './constants.js';
-import { nodeDefinitionMap } from './components/nodes/definitions/map.js';
+import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
 
 export interface ValidationResult {
   isValid: boolean;

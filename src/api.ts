@@ -3,13 +3,10 @@ import { selected_group, this_chid } from 'sillytavern-utils-lib/config';
 import { ExtractedData, StreamResponse } from 'sillytavern-utils-lib/types';
 import z from 'zod';
 import { settingsManager } from './components/Settings.js';
-import {
-  PromptEngineeringMode,
-  STRUCTURED_REQUEST_JSON_PROMPT_KEY,
-  STRUCTURED_REQUEST_XML_PROMPT_KEY,
-} from './config.js';
+import { PromptEngineeringMode } from './config.js';
 import { parseResponse } from './parser.js';
 import { schemaToExample } from './schema-to-example.js';
+import Handlebars from 'handlebars';
 
 export async function getBaseMessagesForProfile(profileId: string, lastMessageId?: number): Promise<Message[]> {
   const { extensionSettings, CONNECT_API_MAP } = SillyTavern.getContext();
@@ -112,10 +109,9 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
     const example = schemaToExample(schemaAsJson, format);
     const schemaString = JSON.stringify(schemaAsJson, null, 2);
 
-    const promptKey = format === 'json' ? STRUCTURED_REQUEST_JSON_PROMPT_KEY : STRUCTURED_REQUEST_XML_PROMPT_KEY;
-    const promptTemplate = settings.prompts[promptKey];
+    const promptTemplate = settings.prompts[promptEngineeringMode];
     if (!promptTemplate) {
-      throw new Error(`Prompt template for "${promptKey}" not found in settings.`);
+      throw new Error(`Prompt template for mode "${promptEngineeringMode}" not found.`);
     }
 
     const templateContext: any = {

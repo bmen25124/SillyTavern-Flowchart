@@ -34,6 +34,10 @@ describe('LowLevelFlowRunner', () => {
       st_createNewWorldInfo: jest.fn(),
       applyWorldInfoEntry: jest.fn(),
       getWorldInfos: jest.fn(),
+      deleteMessage: jest.fn(),
+      saveChat: jest.fn(),
+      sendChatMessage: jest.fn(),
+      st_updateMessageBlock: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });

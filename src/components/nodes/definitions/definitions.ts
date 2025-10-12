@@ -70,17 +70,15 @@ import {
   MathNodeDataSchema,
   GetPromptNodeData,
   GetPromptNodeDataSchema,
-  SetVariableNodeData,
-  SetVariableNodeDataSchema,
   GetVariableNodeData,
   GetVariableNodeDataSchema,
+  SetVariableNodeData,
+  SetVariableNodeDataSchema,
 } from '../../../flow-types.js';
-import { NodeDefinition } from './types.js';
+import { BaseNodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { PromptEngineeringMode } from '../../../config.js';
 import { z } from 'zod';
-
-type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
@@ -218,7 +216,10 @@ const profileIdNodeDefinition: BaseNodeDefinition<ProfileIdNodeData> = {
   category: 'Input',
   dataSchema: ProfileIdNodeDataSchema,
   initialData: { profileId: '' },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.PROFILE_ID }] },
+  handles: {
+    inputs: [{ id: null, type: FlowDataType.ANY }],
+    outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
+  },
 };
 
 // from json.ts
@@ -678,7 +679,7 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   },
 };
 
-const allNodeDefinitionsBase: BaseNodeDefinition[] = [
+export const baseNodeDefinitions: BaseNodeDefinition[] = [
   triggerNodeDefinition,
   manualTriggerNodeDefinition,
   ifNodeDefinition,
@@ -717,6 +718,4 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   getVariableNodeDefinition,
 ];
 
-export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(
-  allNodeDefinitionsBase.map((def) => [def.type, def]),
-);
+export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(baseNodeDefinitions.map((def) => [def.type, def]));
