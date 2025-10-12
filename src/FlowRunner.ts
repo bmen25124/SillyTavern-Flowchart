@@ -9,6 +9,7 @@ import { settingsManager, st_updateMessageBlock } from './config.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
+const MAX_STRING_LENGTH_IN_HISTORY = 2048;
 
 type StoredExecutionReport = ExecutionReport & { flowId: string; timestamp: string };
 
@@ -24,12 +25,49 @@ function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[
   }
 }
 
+/**
+ * Recursively truncates long strings within any given data structure.
+ * This is to prevent localStorage quota errors when saving large execution reports.
+ * @param value The data to process.
+ * @returns The processed data with long strings truncated.
+ */
+function truncateValue(value: any): any {
+  if (typeof value === 'string' && value.length > MAX_STRING_LENGTH_IN_HISTORY) {
+    return value.substring(0, MAX_STRING_LENGTH_IN_HISTORY) + `... [truncated]`;
+  }
+  if (Array.isArray(value)) {
+    return value.map(truncateValue);
+  }
+  if (typeof value === 'object' && value !== null) {
+    const newObj: Record<string, any> = {};
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        newObj[key] = truncateValue(value[key]);
+      }
+    }
+    return newObj;
+  }
+  return value;
+}
+
 function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Date })[]) {
   try {
-    const storable = history.map((item) => ({ ...item, timestamp: item.timestamp.toISOString() }));
+    const storable = history.map((item) => ({
+      ...item,
+      executedNodes: item.executedNodes.map((nodeReport) => ({
+        ...nodeReport,
+        input: truncateValue(nodeReport.input),
+        output: truncateValue(nodeReport.output),
+      })),
+      timestamp: item.timestamp.toISOString(),
+    }));
+
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(storable));
-  } catch (e) {
+  } catch (e: any) {
     console.error('[FlowChart] Failed to save execution history:', e);
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      st_echo('error', 'FlowChart: Could not save execution history. Storage quota exceeded.');
+    }
   }
 }
 
