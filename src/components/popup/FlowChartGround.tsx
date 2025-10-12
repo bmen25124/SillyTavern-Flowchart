@@ -17,7 +17,7 @@ import {
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { STButton, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
@@ -156,7 +156,12 @@ const FlowCanvas: FC<{
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlowStore();
   const { screenToFlowPosition, getNodes } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
-  const [contextMenu, setContextMenu] = useState<AddNodeContextMenu | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    options: { label: string; action: () => void }[];
+    searchTerm: string;
+  } | null>(null);
   const wasConnectionSuccessful = useRef(false);
   const activeNodeId = useDebugStore((state) => state.activeNodeId);
 
@@ -186,6 +191,8 @@ const FlowCanvas: FC<{
         return;
       }
 
+      event.stopPropagation();
+
       const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
       const startNode = getNodes().find((n) => n.id === startNodeId);
       if (!startNode || !startNode.type) {
@@ -204,22 +211,29 @@ const FlowCanvas: FC<{
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
-      const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
-      let position = { x: 0, y: 0 };
-      if (reactFlowBounds) {
-        position = screenToFlowPosition({
-          x: clientX > reactFlowBounds.right - 200 ? clientX - 200 : clientX,
-          y: clientY,
-        });
+      const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
+      if (!editorArea) {
+        connectingNode.current = null;
+        return;
       }
+      const bounds = editorArea.getBoundingClientRect();
+
+      // Correctly calculate position for the new NODE
+      const position = screenToFlowPosition({ x: clientX, y: clientY });
+
+      // Correctly calculate position for the new MENU
+      const menuX = clientX - bounds.left;
+      const menuY = clientY - bounds.top;
 
       const createAndConnectNode = (nodeType: string, connectToHandle: string | null) => {
         const nodeDef = nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
+        const nodeXOffset = handleType === 'source' ? 50 : -250; // Place left for input, right for output
+
         const newNode = addNode({
           type: nodeType,
-          position: { x: position.x + 50, y: position.y },
+          position: { x: position.x + nodeXOffset, y: position.y },
           data: structuredClone(nodeDef.initialData),
         });
         const connection =
@@ -234,16 +248,14 @@ const FlowCanvas: FC<{
       if (compatibleNodes.length === 1) {
         createAndConnectNode(compatibleNodes[0].nodeType, compatibleNodes[0].connectToHandle);
       } else {
-        let menuX = clientX;
-        let menuY = clientY;
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        if (menuX + 220 > windowWidth) menuX = windowWidth - 230;
-        if (menuY + 300 > windowHeight) menuY = windowHeight - 310;
+        let finalMenuX = menuX;
+        let finalMenuY = menuY;
+        if (finalMenuX + 220 > bounds.width) finalMenuX -= 220;
+        if (finalMenuY + 300 > bounds.height) finalMenuY = bounds.height - 310;
 
         setContextMenu({
-          x: menuX,
-          y: menuY,
+          x: finalMenuX,
+          y: finalMenuY,
           options: compatibleNodes.map(({ nodeType, nodeLabel, connectToHandle }) => ({
             label: nodeLabel,
             action: () => {
@@ -251,8 +263,11 @@ const FlowCanvas: FC<{
               setContextMenu(null);
             },
           })),
+          searchTerm: '',
         });
       }
+
+      connectingNode.current = null;
     },
     [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu, compatibilityMap],
   );
@@ -272,6 +287,13 @@ const FlowCanvas: FC<{
     [nodes, invalidNodeIds, activeNodeId],
   );
 
+  const filteredMenuOptions = useMemo(() => {
+    if (!contextMenu) return [];
+    if (!contextMenu.searchTerm) return contextMenu.options;
+    const lowerSearch = contextMenu.searchTerm.toLowerCase();
+    return contextMenu.options.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
+  }, [contextMenu]);
+
   return (
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
@@ -282,7 +304,6 @@ const FlowCanvas: FC<{
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
-        onPaneClick={() => setContextMenu(null)}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
@@ -301,12 +322,24 @@ const FlowCanvas: FC<{
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onMouseDown={(e) => e.stopPropagation()}
         >
+          <div className="context-menu-search-wrapper">
+            <STInput
+              type="text"
+              placeholder="Search to add..."
+              value={contextMenu.searchTerm}
+              onChange={(e) =>
+                setContextMenu((currentMenu) => (currentMenu ? { ...currentMenu, searchTerm: e.target.value } : null))
+              }
+              autoFocus
+            />
+          </div>
           <ul>
-            {contextMenu.options.map((option, i) => (
+            {filteredMenuOptions.map((option, i) => (
               <li key={i} onClick={option.action} title={option.label}>
                 {option.label}
               </li>
             ))}
+            {filteredMenuOptions.length === 0 && <li className="no-results">No matching nodes</li>}
           </ul>
         </div>
       )}
