@@ -43,7 +43,6 @@ export function clearExecutionHistory() {
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
   private lowLevelRunner: LowLevelFlowRunner;
-  private sessionVariables: Map<string, any> = new Map();
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner({
@@ -73,7 +72,6 @@ class FlowRunner {
       eventSource.removeListener(eventType, listener);
     }
     this.registeredListeners.clear();
-    this.sessionVariables.clear();
 
     const settings = settingsManager.getSettings();
     const allFlows = settings.flows;
@@ -127,7 +125,7 @@ class FlowRunner {
     }
 
     eventEmitter.emit('flow:start');
-    const report = await this.lowLevelRunner.executeFlow(flow, this.sessionVariables, initialInput);
+    const report = await this.lowLevelRunner.executeFlow(flow, initialInput);
 
     if (report.error) {
       st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);

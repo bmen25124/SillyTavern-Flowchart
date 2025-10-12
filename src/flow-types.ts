@@ -45,7 +45,7 @@ export const IfNodeDataSchema = z.object({
 export type IfNodeData = z.infer<typeof IfNodeDataSchema>;
 
 export const CreateMessagesNodeDataSchema = z.object({
-  profileId: z.string().optional(),
+  profileId: z.string().default(''),
   lastMessageId: z.number().optional(),
 });
 export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema>;
@@ -87,10 +87,10 @@ export const LogNodeDataSchema = z.object({
 export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
 export const StructuredRequestNodeDataSchema = z.object({
-  profileId: z.string().optional(),
-  schemaName: z.string().optional(),
-  promptEngineeringMode: z.nativeEnum(PromptEngineeringMode).optional(),
-  maxResponseToken: z.number().optional(),
+  profileId: z.string().default(''),
+  schemaName: z.string().default('responseSchema'),
+  promptEngineeringMode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  maxResponseToken: z.number().default(1000),
 });
 export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
 
@@ -136,7 +136,7 @@ export const SchemaNodeDataSchema = z.object({
 export type SchemaNodeData = z.infer<typeof SchemaNodeDataSchema>;
 
 export const ProfileIdNodeDataSchema = z.object({
-  profileId: z.string().optional(),
+  profileId: z.string().default(''),
 });
 export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 
@@ -155,12 +155,12 @@ export type CreateCharacterNodeData = z.infer<typeof CreateCharacterNodeDataSche
 
 export const EditCharacterNodeDataSchema = z.object({
   ...CharacterFieldsSchema,
-  characterAvatar: z.string().optional(),
+  characterAvatar: z.string().default(''),
 });
 export type EditCharacterNodeData = z.infer<typeof EditCharacterNodeDataSchema>;
 
 export const GetCharacterNodeDataSchema = z.object({
-  characterAvatar: z.string().optional(),
+  characterAvatar: z.string().default(''),
 });
 export type GetCharacterNodeData = z.infer<typeof GetCharacterNodeDataSchema>;
 
@@ -236,13 +236,13 @@ export const ExecuteJsNodeDataSchema = z.object({
 export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
 
 export const GetChatMessageNodeDataSchema = z.object({
-  messageId: z.string().optional(), // Can be 'last', 'first', or a number
+  messageId: z.string().default('last'),
 });
 export type GetChatMessageNodeData = z.infer<typeof GetChatMessageNodeDataSchema>;
 
 export const EditChatMessageNodeDataSchema = z.object({
-  messageId: z.number().optional(),
-  message: z.string().optional(),
+  messageId: z.number().optional(), // Optional is correct here as it's a required input connection
+  message: z.string().default(''),
 });
 export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSchema>;
 
@@ -285,37 +285,35 @@ export const MathNodeDataSchema = z.object({
 export type MathNodeData = z.infer<typeof MathNodeDataSchema>;
 
 export const GetPromptNodeDataSchema = z.object({
-  promptName: z.string().optional(),
+  promptName: z.string().default(''),
 });
 export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
 
 export const SetVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
-  scope: z.enum(['Execution', 'Session']).optional(),
 });
 export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 
 export const GetVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
-  scope: z.enum(['Execution', 'Session']).optional(),
 });
 export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;
 
 export const RegexNodeDataSchema = z.object({
-  mode: z.enum(['sillytavern', 'custom']).optional(),
-  scriptId: z.string().optional(),
-  findRegex: z.string().optional(),
-  replaceString: z.string().optional(),
+  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  scriptId: z.string().default(''),
+  findRegex: z.string().default(''),
+  replaceString: z.string().default(''),
 });
 export type RegexNodeData = z.infer<typeof RegexNodeDataSchema>;
 
 export const RunSlashCommandNodeDataSchema = z.object({
-  command: z.string().optional(),
+  command: z.string().default(''),
 });
 export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
 
 export const TypeConverterNodeDataSchema = z.object({
-  targetType: z.enum(['string', 'number', 'object', 'array']).optional(),
+  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
 });
 export type TypeConverterNodeData = z.infer<typeof TypeConverterNodeDataSchema>;
 
@@ -350,13 +348,8 @@ export const PickStringToolsOperationNodeDataSchema = z.object({
 });
 export type PickStringToolsOperationNodeData = z.infer<typeof PickStringToolsOperationNodeDataSchema>;
 
-export const PickVariableScopeNodeDataSchema = z.object({
-  scope: z.enum(['Execution', 'Session']).default('Execution'),
-});
-export type PickVariableScopeNodeData = z.infer<typeof PickVariableScopeNodeDataSchema>;
-
 export const PickPromptEngineeringModeNodeDataSchema = z.object({
-  mode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  mode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
 });
 export type PickPromptEngineeringModeNodeData = z.infer<typeof PickPromptEngineeringModeNodeDataSchema>;
 

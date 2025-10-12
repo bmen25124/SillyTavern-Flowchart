@@ -43,7 +43,6 @@ import {
   PickPromptNodeDataSchema,
   PickMathOperationNodeDataSchema,
   PickStringToolsOperationNodeDataSchema,
-  PickVariableScopeNodeDataSchema,
   PickPromptEngineeringModeNodeDataSchema,
   PickRandomModeNodeDataSchema,
   PickRegexModeNodeDataSchema,
@@ -119,7 +118,6 @@ type NodeExecutor = (
   context: {
     flow: SpecFlow;
     executionVariables: Map<string, any>;
-    sessionVariables: Map<string, any>;
   },
 ) => Promise<any>;
 
@@ -218,7 +216,6 @@ export class LowLevelFlowRunner {
       pickRegexScriptNode: this.executePickRegexScriptNode.bind(this),
       pickMathOperationNode: this.executePickMathOperationNode.bind(this),
       pickStringToolsOperationNode: this.executePickStringToolsOperationNode.bind(this),
-      pickVariableScopeNode: this.executePickVariableScopeNode.bind(this),
       pickPromptEngineeringModeNode: this.executePickPromptEngineeringModeNode.bind(this),
       pickRandomModeNode: this.executePickRandomModeNode.bind(this),
       pickRegexModeNode: this.executePickRegexModeNode.bind(this),
@@ -226,11 +223,7 @@ export class LowLevelFlowRunner {
     };
   }
 
-  public async executeFlow(
-    flow: SpecFlow,
-    sessionVariables: Map<string, any>,
-    initialInput: Record<string, any>,
-  ): Promise<ExecutionReport> {
+  public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
@@ -262,7 +255,7 @@ export class LowLevelFlowRunner {
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
 
-        const output = await this.executeNode(node, inputs, { flow, executionVariables, sessionVariables });
+        const output = await this.executeNode(node, inputs, { flow, executionVariables });
 
         nodeOutputs[nodeId] = output;
         const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
@@ -339,7 +332,6 @@ export class LowLevelFlowRunner {
     context: {
       flow: SpecFlow;
       executionVariables: Map<string, any>;
-      sessionVariables: Map<string, any>;
     },
   ): Promise<any> {
     if (node.type === 'groupNode') return {};
@@ -382,19 +374,17 @@ export class LowLevelFlowRunner {
   private async executeSetVariableNode(
     node: SpecNode,
     input: Record<string, any>,
-    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
+    context: { executionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = SetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
 
     const variableName = this.resolveInput(input, parseResult.data, 'variableName');
-    const scope = this.resolveInput(input, parseResult.data, 'scope');
     const value = input.value;
 
     if (!variableName) throw new Error('Variable name is required.');
 
-    const targetMap = scope === 'Session' ? context.sessionVariables : context.executionVariables;
-    targetMap.set(variableName, value);
+    context.executionVariables.set(variableName, value);
 
     return { value }; // Passthrough
   }
@@ -402,24 +392,17 @@ export class LowLevelFlowRunner {
   private async executeGetVariableNode(
     node: SpecNode,
     input: Record<string, any>,
-    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
+    context: { executionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = GetVariableNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
     const variableName = this.resolveInput(input, parseResult.data, 'variableName');
-    const scope = this.resolveInput(input, parseResult.data, 'scope');
 
     if (!variableName) throw new Error('Variable name is required.');
 
-    if (scope === 'Session') {
-      if (!context.sessionVariables.has(variableName)) throw new Error(`Session variable "${variableName}" not found.`);
-      return { value: context.sessionVariables.get(variableName) };
-    } else {
-      // Execution scope check
-      if (!context.executionVariables.has(variableName))
-        throw new Error(`Execution variable "${variableName}" not found.`);
-      return { value: context.executionVariables.get(variableName) };
-    }
+    if (!context.executionVariables.has(variableName))
+      throw new Error(`Execution variable "${variableName}" not found.`);
+    return { value: context.executionVariables.get(variableName) };
   }
 
   private async executeTriggerNode(_node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -489,14 +472,14 @@ export class LowLevelFlowRunner {
   private async executeIfNode(
     node: SpecNode,
     input: Record<string, any>,
-    context: { flow: SpecFlow; executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
+    context: { flow: SpecFlow; executionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = IfNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
-    const { executionVariables, sessionVariables } = context;
-    const variables = { ...Object.fromEntries(sessionVariables), ...Object.fromEntries(executionVariables) };
+    const { executionVariables } = context;
+    const variables = { ...Object.fromEntries(executionVariables) };
 
     for (const condition of parseResult.data.conditions) {
       try {
@@ -841,12 +824,12 @@ export class LowLevelFlowRunner {
   private async executeExecuteJsNode(
     node: SpecNode,
     input: Record<string, any>,
-    context: { executionVariables: Map<string, any>; sessionVariables: Map<string, any> },
+    context: { executionVariables: Map<string, any> },
   ): Promise<any> {
     const parseResult = ExecuteJsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
-    const { executionVariables, sessionVariables } = context;
-    const variables = { ...Object.fromEntries(sessionVariables), ...Object.fromEntries(executionVariables) };
+    const { executionVariables } = context;
+    const variables = { ...Object.fromEntries(executionVariables) };
     try {
       const func = new Function('input', 'variables', 'stContext', parseResult.data.code);
       return func(input, variables, this.dependencies.getSillyTavernContext());
@@ -1163,10 +1146,6 @@ export class LowLevelFlowRunner {
   private async executePickStringToolsOperationNode(node: SpecNode): Promise<any> {
     const data = PickStringToolsOperationNodeDataSchema.parse(node.data);
     return { operation: data.operation };
-  }
-  private async executePickVariableScopeNode(node: SpecNode): Promise<any> {
-    const data = PickVariableScopeNodeDataSchema.parse(node.data);
-    return { scope: data.scope };
   }
   private async executePickPromptEngineeringModeNode(node: SpecNode): Promise<any> {
     const data = PickPromptEngineeringModeNodeDataSchema.parse(node.data);

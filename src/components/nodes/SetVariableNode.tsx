@@ -16,19 +16,6 @@ const fields = [
     component: STInput,
     props: { type: 'text' },
   }),
-  createFieldConfig({
-    id: 'scope',
-    label: 'Scope',
-    component: STSelect,
-    props: {
-      children: (
-        <>
-          <option value="Execution">Flow Execution</option>
-          <option value="Session">SillyTavern Session</option>
-        </>
-      ),
-    },
-  }),
 ];
 
 export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected }) => {

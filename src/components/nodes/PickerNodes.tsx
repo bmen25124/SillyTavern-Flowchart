@@ -15,7 +15,6 @@ import {
   PickRegexScriptNodeData,
   PickStringToolsOperationNodeData,
   PickTypeConverterTargetNodeData,
-  PickVariableScopeNodeData,
 } from '../../flow-types.js';
 import { PromptEngineeringMode } from '../../config.js';
 import { world_names } from 'sillytavern-utils-lib/config';
@@ -227,26 +226,6 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
       ]}
       outputHandleId="operation"
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
-    />
-  );
-};
-
-export const PickVariableScopeNode: FC<NodeProps<Node<PickVariableScopeNodeData>>> = ({ id, selected }) => {
-  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickVariableScopeNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  if (!data) return null;
-  return (
-    <EnumPicker
-      id={id}
-      selected={selected}
-      title="Pick Variable Scope"
-      value={data.scope}
-      options={[
-        { value: 'Execution', label: 'Flow Execution' },
-        { value: 'Session', label: 'SillyTavern Session' },
-      ]}
-      outputHandleId="scope"
-      onUpdate={(value) => updateNodeData(id, { scope: value as any })}
     />
   );
 };

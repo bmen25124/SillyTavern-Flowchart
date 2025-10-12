@@ -2,6 +2,7 @@ import { FC, useEffect } from 'react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { eventEmitter } from '../../events.js';
+import { safeJsonStringify } from '../../utils/safeJsonStringify.js';
 
 interface DebugState {
   isRunning: boolean;
@@ -73,9 +74,9 @@ export const DebugPanel: FC = () => {
                   <strong>{step.type || 'Node'}</strong> ({step.nodeId})
                 </summary>
                 <h4>Input</h4>
-                <pre>{JSON.stringify(step.input, null, 2)}</pre>
+                <pre>{safeJsonStringify(step.input)}</pre>
                 <h4>Output</h4>
-                <pre>{JSON.stringify(step.output, null, 2)}</pre>
+                <pre>{safeJsonStringify(step.output)}</pre>
               </details>
             </li>
           ))}

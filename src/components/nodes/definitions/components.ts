@@ -70,7 +70,6 @@ import {
   PickRegexScriptNode,
   PickStringToolsOperationNode,
   PickTypeConverterTargetNode,
-  PickVariableScopeNode,
 } from '../PickerNodes.js';
 
 export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
@@ -128,7 +127,6 @@ export const nodeTypes: Record<string, FC<NodeProps<Node<any>>>> = {
   pickRegexScriptNode: PickRegexScriptNode,
   pickMathOperationNode: PickMathOperationNode,
   pickStringToolsOperationNode: PickStringToolsOperationNode,
-  pickVariableScopeNode: PickVariableScopeNode,
   pickPromptEngineeringModeNode: PickPromptEngineeringModeNode,
   pickRandomModeNode: PickRandomModeNode,
   pickRegexModeNode: PickRegexModeNode,

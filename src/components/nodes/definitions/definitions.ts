@@ -90,8 +90,6 @@ import {
   PickMathOperationNodeDataSchema,
   PickStringToolsOperationNodeData,
   PickStringToolsOperationNodeDataSchema,
-  PickVariableScopeNodeData,
-  PickVariableScopeNodeDataSchema,
   PickPromptEngineeringModeNodeData,
   PickPromptEngineeringModeNodeDataSchema,
   PickRandomModeNodeData,
@@ -498,7 +496,7 @@ const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData>
   label: 'Edit Chat Message',
   category: 'Chat',
   dataSchema: EditChatMessageNodeDataSchema,
-  initialData: {},
+  initialData: { message: '' },
   handles: {
     inputs: [
       { id: 'messageId', type: FlowDataType.NUMBER },
@@ -711,12 +709,11 @@ const setVariableNodeDefinition: BaseNodeDefinition<SetVariableNodeData> = {
   label: 'Set Variable',
   category: 'Utility',
   dataSchema: SetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar', scope: 'Execution' },
+  initialData: { variableName: 'myVar' },
   handles: {
     inputs: [
       { id: 'value', type: FlowDataType.ANY },
       { id: 'variableName', type: FlowDataType.STRING },
-      { id: 'scope', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
@@ -726,12 +723,9 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   label: 'Get Variable',
   category: 'Utility',
   dataSchema: GetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar', scope: 'Execution' },
+  initialData: { variableName: 'myVar' },
   handles: {
-    inputs: [
-      { id: 'variableName', type: FlowDataType.STRING },
-      { id: 'scope', type: FlowDataType.STRING },
-    ],
+    inputs: [{ id: 'variableName', type: FlowDataType.STRING }],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
 };
@@ -741,7 +735,7 @@ const regexNodeDefinition: BaseNodeDefinition<RegexNodeData> = {
   label: 'Regex',
   category: 'Utility',
   dataSchema: RegexNodeDataSchema,
-  initialData: { mode: 'sillytavern' },
+  initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '' },
   handles: {
     inputs: [
       { id: 'string', type: FlowDataType.STRING },
@@ -848,14 +842,6 @@ const pickStringToolsOperationNodeDefinition: BaseNodeDefinition<PickStringTools
   initialData: { operation: 'merge' },
   handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
 };
-const pickVariableScopeNodeDefinition: BaseNodeDefinition<PickVariableScopeNodeData> = {
-  type: 'pickVariableScopeNode',
-  label: 'Pick Variable Scope',
-  category: 'Picker',
-  dataSchema: PickVariableScopeNodeDataSchema,
-  initialData: { scope: 'Execution' },
-  handles: { inputs: [], outputs: [{ id: 'scope', type: FlowDataType.STRING }] },
-};
 const pickPromptEngineeringModeNodeDefinition: BaseNodeDefinition<PickPromptEngineeringModeNodeData> = {
   type: 'pickPromptEngineeringModeNode',
   label: 'Pick Prompt Mode',
@@ -935,7 +921,6 @@ export const baseNodeDefinitions: BaseNodeDefinition[] = [
   pickRegexScriptNodeDefinition,
   pickMathOperationNodeDefinition,
   pickStringToolsOperationNodeDefinition,
-  pickVariableScopeNodeDefinition,
   pickPromptEngineeringModeNodeDefinition,
   pickRandomModeNodeDefinition,
   pickRegexModeNodeDefinition,

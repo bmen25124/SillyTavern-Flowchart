@@ -26,6 +26,7 @@ import { toPng } from 'html-to-image';
 import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
 import { useDebugStore } from './DebugPanel.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
+import { useDebounce } from '../../hooks/useDebounce.js';
 
 type CompatibilityInfo = {
   nodeType: string;
@@ -153,6 +154,7 @@ const FlowCanvas: FC<{
     options: { label: string; action: () => void }[];
     searchTerm: string;
   } | null>(null);
+  const debouncedSearchTerm = useDebounce(contextMenu?.searchTerm ?? '', 200);
   const wasConnectionSuccessful = useRef(false);
   const activeNodeId = useDebugStore((state) => state.activeNodeId);
 
@@ -281,10 +283,10 @@ const FlowCanvas: FC<{
 
   const filteredMenuOptions = useMemo(() => {
     if (!contextMenu) return [];
-    if (!contextMenu.searchTerm) return contextMenu.options;
-    const lowerSearch = contextMenu.searchTerm.toLowerCase();
+    if (!debouncedSearchTerm) return contextMenu.options;
+    const lowerSearch = debouncedSearchTerm.toLowerCase();
     return contextMenu.options.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
-  }, [contextMenu]);
+  }, [contextMenu?.options, debouncedSearchTerm]);
 
   return (
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>

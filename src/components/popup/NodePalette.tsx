@@ -4,11 +4,13 @@ import { STInput } from 'sillytavern-utils-lib/components';
 import { allNodeDefinitions } from '../nodes/definitions/index.js';
 import { NodeDefinition } from '../nodes/definitions/types.js';
 import { useReactFlow } from '@xyflow/react';
+import { useDebounce } from '../../hooks/useDebounce.js';
 
 export const NodePalette: FC = () => {
   const addNode = useFlowStore((state) => state.addNode);
   const { screenToFlowPosition } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 200);
 
   const onNodeClick = (event: React.MouseEvent, nodeType: string, data: any) => {
     // Place node at center of viewport if clicked, or at mouse pos if dragged (not implemented here but good practice)
@@ -31,17 +33,17 @@ export const NodePalette: FC = () => {
   };
 
   const filteredNodes = useMemo(() => {
-    if (!searchTerm) {
+    if (!debouncedSearchTerm) {
       return allNodeDefinitions;
     }
-    const lowerSearch = searchTerm.toLowerCase();
+    const lowerSearch = debouncedSearchTerm.toLowerCase();
     return allNodeDefinitions.filter(
       (def) =>
         def.label.toLowerCase().includes(lowerSearch) ||
         def.type.toLowerCase().includes(lowerSearch) ||
         def.category.toLowerCase().includes(lowerSearch),
     );
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   const groupedNodes = useMemo(() => {
     const groups: Record<string, NodeDefinition[]> = {};
