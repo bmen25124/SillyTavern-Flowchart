@@ -28,6 +28,10 @@ import {
   EditChatMessageNodeDataSchema,
   SendChatMessageNodeDataSchema,
   RemoveChatMessageNodeDataSchema,
+  DateTimeNodeDataSchema,
+  RandomNodeDataSchema,
+  StringToolsNodeDataSchema,
+  MathNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -155,6 +159,10 @@ export class LowLevelFlowRunner {
       editChatMessageNode: this.executeEditChatMessageNode.bind(this),
       sendChatMessageNode: this.executeSendChatMessageNode.bind(this),
       removeChatMessageNode: this.executeRemoveChatMessageNode.bind(this),
+      dateTimeNode: this.executeDateTimeNode.bind(this),
+      randomNode: this.executeRandomNode.bind(this),
+      stringToolsNode: this.executeStringToolsNode.bind(this),
+      mathNode: this.executeMathNode.bind(this),
     };
   }
 
@@ -419,6 +427,10 @@ export class LowLevelFlowRunner {
           return (item.value as JsonNodeItem[]).map(buildValue);
       }
     };
+
+    if (data.rootType === 'array') {
+      return data.items.map(buildValue);
+    }
 
     const rootObject: { [key: string]: any } = {};
     for (const item of data.items) {
@@ -827,5 +839,106 @@ export class LowLevelFlowRunner {
 
     await this.dependencies.deleteMessage(messageId);
     return {};
+  }
+
+  private async executeDateTimeNode(node: SpecNode): Promise<any> {
+    const parseResult = DateTimeNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+
+    const now = new Date();
+    return {
+      iso: now.toISOString(),
+      timestamp: now.getTime(),
+      year: now.getFullYear(),
+      month: now.getMonth() + 1, // 1-indexed
+      day: now.getDate(),
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+      second: now.getSeconds(),
+    };
+  }
+
+  private async executeRandomNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = RandomNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+    const mode = staticData.mode;
+
+    if (mode === 'number') {
+      const min = input.min ?? staticData.min ?? 0;
+      const max = input.max ?? staticData.max ?? 100;
+      const result = Math.random() * (max - min) + min;
+      return { result };
+    }
+
+    if (mode === 'array') {
+      const arr = input.array;
+      if (!Array.isArray(arr) || arr.length === 0) {
+        throw new Error('Input is not a non-empty array.');
+      }
+      const randomIndex = Math.floor(Math.random() * arr.length);
+      return { result: arr[randomIndex] };
+    }
+
+    throw new Error(`Unknown random mode: ${mode}`);
+  }
+
+  private async executeStringToolsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = StringToolsNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { operation } = parseResult.data;
+    const delimiter = input.delimiter ?? parseResult.data.delimiter ?? '';
+
+    switch (operation) {
+      case 'merge':
+        const strings = Object.keys(input)
+          .filter((key) => key.startsWith('string_'))
+          .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
+          .map((key) => String(input[key]));
+        return { result: strings.join(delimiter) };
+
+      case 'split':
+        const strToSplit = input.string;
+        if (typeof strToSplit !== 'string') throw new Error('Input for split must be a string.');
+        return { result: strToSplit.split(delimiter) };
+
+      case 'join':
+        const arrToJoin = input.array;
+        if (!Array.isArray(arrToJoin)) throw new Error('Input for join must be an array.');
+        return { result: arrToJoin.join(delimiter) };
+
+      default:
+        throw new Error(`Unknown string operation: ${operation}`);
+    }
+  }
+
+  private async executeMathNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+    const parseResult = MathNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const staticData = parseResult.data;
+    const operation = staticData.operation;
+    const a = input.a ?? staticData.a ?? 0;
+    const b = input.b ?? staticData.b ?? 0;
+
+    if (typeof a !== 'number' || typeof b !== 'number') {
+      throw new Error('Both inputs must be numbers.');
+    }
+
+    switch (operation) {
+      case 'add':
+        return { result: a + b };
+      case 'subtract':
+        return { result: a - b };
+      case 'multiply':
+        return { result: a * b };
+      case 'divide':
+        if (b === 0) throw new Error('Division by zero.');
+        return { result: a / b };
+      case 'modulo':
+        if (b === 0) throw new Error('Division by zero for modulo.');
+        return { result: a % b };
+      default:
+        throw new Error(`Unknown math operation: ${operation}`);
+    }
   }
 }

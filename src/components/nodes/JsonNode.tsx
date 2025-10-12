@@ -169,25 +169,36 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected }) => {
   };
 
   const addRootItem = () => {
-    const newItem = { id: crypto.randomUUID(), key: 'rootKey', value: '', type: 'string' as const };
+    const newItem = { id: crypto.randomUUID(), key: 'newKey', value: '', type: 'string' as const };
     updateNodeData(id, { items: [...data.items, newItem] });
   };
 
+  const handleRootTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    updateNodeData(id, { rootType: e.target.value as 'object' | 'array', items: [] });
+  };
+
   return (
-    <BaseNode id={id} title="JSON Object" selected={selected}>
+    <BaseNode id={id} title="JSON" selected={selected}>
+      <div style={{ marginBottom: '10px' }}>
+        <label>Root Type: </label>
+        <STSelect className="nodrag" value={data.rootType} onChange={handleRootTypeChange}>
+          <option value="object">Object</option>
+          <option value="array">Array</option>
+        </STSelect>
+      </div>
       {(data.items || []).map((item, index) => (
         <JsonItemEditor
           key={item.id}
           item={item}
           path={[index]}
-          parentType="object"
+          parentType={data.rootType ?? 'object'}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
           onAddChild={handleAddChild}
         />
       ))}
       <STButton className="nodrag" onClick={addRootItem} style={{ marginTop: '10px' }}>
-        Add Property
+        Add {data.rootType === 'object' ? 'Property' : 'Item'}
       </STButton>
       <Handle type="source" position={Position.Right} />
     </BaseNode>

@@ -9,12 +9,24 @@ import {
   LogNodeDataSchema,
   MergeObjectsNodeData,
   MergeObjectsNodeDataSchema,
+  DateTimeNodeData,
+  DateTimeNodeDataSchema,
+  RandomNodeData,
+  RandomNodeDataSchema,
+  StringToolsNodeData,
+  StringToolsNodeDataSchema,
+  MathNodeData,
+  MathNodeDataSchema,
 } from '../../../flow-types.js';
 import { ExecuteJsNode } from '../ExecuteJsNode.js';
 import { GroupNode } from '../GroupNode.js';
 import { HandlebarNode } from '../HandlebarNode.js';
 import { LogNode } from '../LogNode.js';
 import { MergeObjectsNode } from '../MergeObjectsNode.js';
+import { DateTimeNode } from '../DateTimeNode.js';
+import { RandomNode } from '../RandomNode.js';
+import { StringToolsNode } from '../StringToolsNode.js';
+import { MathNode } from '../MathNode.js';
 import { NodeDefinition } from './types.js';
 import { FlowDataType } from '../../../flow-types.js';
 
@@ -89,5 +101,87 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: null, type: FlowDataType.ANY }],
+  },
+};
+
+export const dateTimeNodeDefinition: NodeDefinition<DateTimeNodeData> = {
+  type: 'dateTimeNode',
+  label: 'Date/Time',
+  category: 'Utility',
+  component: DateTimeNode,
+  dataSchema: DateTimeNodeDataSchema,
+  initialData: {},
+  handles: {
+    inputs: [{ id: 'format', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'iso', type: FlowDataType.STRING },
+      { id: 'timestamp', type: FlowDataType.NUMBER },
+      { id: 'year', type: FlowDataType.NUMBER },
+      { id: 'month', type: FlowDataType.NUMBER },
+      { id: 'day', type: FlowDataType.NUMBER },
+      { id: 'hour', type: FlowDataType.NUMBER },
+      { id: 'minute', type: FlowDataType.NUMBER },
+      { id: 'second', type: FlowDataType.NUMBER },
+    ],
+  },
+};
+
+export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
+  type: 'randomNode',
+  label: 'Random',
+  category: 'Utility',
+  component: RandomNode,
+  dataSchema: RandomNodeDataSchema,
+  initialData: { mode: 'number', min: 0, max: 100 },
+  handles: {
+    inputs: [
+      { id: 'min', type: FlowDataType.NUMBER },
+      { id: 'max', type: FlowDataType.NUMBER },
+      { id: 'array', type: FlowDataType.OBJECT }, // Array is a type of object
+    ],
+    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+  },
+};
+
+export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
+  type: 'stringToolsNode',
+  label: 'String Tools',
+  category: 'Utility',
+  component: StringToolsNode,
+  dataSchema: StringToolsNodeDataSchema,
+  initialData: { operation: 'merge', inputCount: 2, delimiter: '' },
+  handles: {
+    inputs: [{ id: 'delimiter', type: FlowDataType.STRING }], // Static handle
+    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+  },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'input') {
+      const data = node.data as StringToolsNodeData;
+      if (data.operation === 'merge' && handleId?.startsWith('string_')) return FlowDataType.STRING;
+      if (data.operation === 'split' && handleId === 'string') return FlowDataType.STRING;
+      if (data.operation === 'join' && handleId === 'array') return FlowDataType.OBJECT; // Array
+    }
+    if (handleDirection === 'output' && handleId === 'result') {
+      const data = node.data as StringToolsNodeData;
+      if (data.operation === 'split') return FlowDataType.OBJECT; // Array
+      return FlowDataType.STRING;
+    }
+    return undefined;
+  },
+};
+
+export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
+  type: 'mathNode',
+  label: 'Math',
+  category: 'Utility',
+  component: MathNode,
+  dataSchema: MathNodeDataSchema,
+  initialData: { operation: 'add', a: 0, b: 0 },
+  handles: {
+    inputs: [
+      { id: 'a', type: FlowDataType.NUMBER },
+      { id: 'b', type: FlowDataType.NUMBER },
+    ],
+    outputs: [{ id: 'result', type: FlowDataType.NUMBER }],
   },
 };

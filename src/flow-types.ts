@@ -186,6 +186,7 @@ export const JsonNodeItemSchema: z.ZodType<JsonNodeItem> = baseJsonNodeItemSchem
 });
 
 export const JsonNodeDataSchema = z.object({
+  rootType: z.enum(['object', 'array']).default('object'),
   items: z.array(JsonNodeItemSchema).default([]),
 });
 export type JsonNodeData = z.infer<typeof JsonNodeDataSchema>;
@@ -255,3 +256,29 @@ export const RemoveChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(),
 });
 export type RemoveChatMessageNodeData = z.infer<typeof RemoveChatMessageNodeDataSchema>;
+
+export const DateTimeNodeDataSchema = z.object({
+  format: z.string().optional(),
+});
+export type DateTimeNodeData = z.infer<typeof DateTimeNodeDataSchema>;
+
+export const RandomNodeDataSchema = z.object({
+  mode: z.enum(['number', 'array']).default('number'),
+  min: z.number().optional(),
+  max: z.number().optional(),
+});
+export type RandomNodeData = z.infer<typeof RandomNodeDataSchema>;
+
+export const StringToolsNodeDataSchema = z.object({
+  operation: z.enum(['merge', 'split', 'join']).default('merge'),
+  delimiter: z.string().optional(),
+  inputCount: z.number().min(1).optional(),
+});
+export type StringToolsNodeData = z.infer<typeof StringToolsNodeDataSchema>;
+
+export const MathNodeDataSchema = z.object({
+  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
+  a: z.number().optional(),
+  b: z.number().optional(),
+});
+export type MathNodeData = z.infer<typeof MathNodeDataSchema>;

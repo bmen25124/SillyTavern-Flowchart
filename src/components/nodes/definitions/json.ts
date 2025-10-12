@@ -10,7 +10,7 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   category: 'JSON',
   component: JsonNode,
   dataSchema: JsonNodeDataSchema,
-  initialData: { items: [] },
+  initialData: { rootType: 'object', items: [] },
   handles: {
     inputs: [],
     outputs: [{ id: null, type: FlowDataType.OBJECT }],

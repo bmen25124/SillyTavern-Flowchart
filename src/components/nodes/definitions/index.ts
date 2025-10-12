@@ -28,6 +28,10 @@ import {
   mergeObjectsNodeDefinition,
   groupNodeDefinition,
   executeJsNodeDefinition,
+  dateTimeNodeDefinition,
+  randomNodeDefinition,
+  stringToolsNodeDefinition,
+  mathNodeDefinition,
 } from './utility.js';
 
 export const allNodeDefinitions: NodeDefinition[] = [
@@ -68,6 +72,10 @@ export const allNodeDefinitions: NodeDefinition[] = [
   mergeObjectsNodeDefinition,
   groupNodeDefinition,
   executeJsNodeDefinition,
+  dateTimeNodeDefinition,
+  randomNodeDefinition,
+  stringToolsNodeDefinition,
+  mathNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, NodeDefinition>(allNodeDefinitions.map((def) => [def.type, def]));
