@@ -121,6 +121,8 @@ type NodeExecutor = (
   },
 ) => Promise<any>;
 
+type ReportSanitizer = (data: any) => any;
+
 function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
   let zodType: z.ZodTypeAny;
 
@@ -169,6 +171,7 @@ function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
 
 export class LowLevelFlowRunner {
   private nodeExecutors: Record<string, NodeExecutor>;
+  private reportSanitizers: Record<string, { input?: ReportSanitizer; output?: ReportSanitizer }>;
 
   constructor(private dependencies: FlowRunnerDependencies) {
     this.nodeExecutors = {
@@ -221,6 +224,8 @@ export class LowLevelFlowRunner {
       pickRegexModeNode: this.executePickRegexModeNode.bind(this),
       pickTypeConverterTargetNode: this.executePickTypeConverterTargetNode.bind(this),
     };
+    this.reportSanitizers = {
+    };
   }
 
   public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {
@@ -258,7 +263,12 @@ export class LowLevelFlowRunner {
         const output = await this.executeNode(node, inputs, { flow, executionVariables });
 
         nodeOutputs[nodeId] = output;
-        const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
+
+        const sanitizer = this.reportSanitizers[node.type];
+        const sanitizedInput = sanitizer?.input ? sanitizer.input(inputs) : inputs;
+        const sanitizedOutput = sanitizer?.output ? sanitizer.output(output) : output;
+
+        const nodeReport = { nodeId: node.id, type: node.type, input: sanitizedInput, output: sanitizedOutput };
         report.executedNodes.push(nodeReport);
         eventEmitter.emit('node:end', nodeReport);
 
@@ -580,8 +590,11 @@ export class LowLevelFlowRunner {
     if (!characterAvatar) throw new Error('No character avatar provided.');
 
     const stContext = this.dependencies.getSillyTavernContext();
-    const character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+    let character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
     if (!character) throw new Error(`Character with avatar ${characterAvatar} not found.`);
+    character = structuredClone(character);
+    delete character?.data?.json_data;
+    delete character?.json_data;
 
     return { ...character, result: character };
   }
@@ -678,8 +691,11 @@ export class LowLevelFlowRunner {
     if (!characterAvatar) throw new Error(`Character avatar is required.`);
 
     const stContext = this.dependencies.getSillyTavernContext();
-    const existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+    let existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
     if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
+    existingChar = structuredClone(existingChar);
+    delete existingChar?.data?.json_data;
+    delete existingChar?.json_data;
 
     const updatedChar: Character = { ...existingChar };
     const fields: (keyof typeof staticData)[] = [
@@ -862,7 +878,7 @@ export class LowLevelFlowRunner {
     if (isNaN(messageIndex) || messageIndex < 0 || messageIndex >= chat.length) {
       throw new Error(`Message with ID/Index "${messageIdInput}" not found or invalid.`);
     }
-    const message = chat[messageIndex];
+    const message = structuredClone(chat[messageIndex]);
     return {
       id: messageIndex,
       result: message,
@@ -890,7 +906,7 @@ export class LowLevelFlowRunner {
     message.mes = newMessage;
     this.dependencies.st_updateMessageBlock(messageId, message);
     await this.dependencies.saveChat();
-    return { messageObject: message };
+    return { messageObject: structuredClone(message) };
   }
 
   private async executeSendChatMessageNode(node: SpecNode, input: Record<string, any>): Promise<any> {

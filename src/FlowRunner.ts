@@ -10,6 +10,7 @@ import { settingsManager, st_updateMessageBlock } from './config.js';
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
 const MAX_STRING_LENGTH_IN_HISTORY = 2048;
+const CHARACTER_FIELDS_TO_LOG = ['name', 'description', 'first_mes', 'personality', 'scenario', 'tags', 'avatar'];
 
 type StoredExecutionReport = ExecutionReport & { flowId: string; timestamp: string };
 
@@ -26,23 +27,37 @@ function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[
 }
 
 /**
- * Recursively truncates long strings within any given data structure.
- * This is to prevent localStorage quota errors when saving large execution reports.
+ * Recursively sanitizes and truncates data for storage.
+ * - Truncates long strings.
+ * - Detects character objects and keeps only essential fields.
  * @param value The data to process.
- * @returns The processed data with long strings truncated.
+ * @returns The processed data.
  */
-function truncateValue(value: any): any {
+function sanitizeAndTruncateForHistory(value: any): any {
   if (typeof value === 'string' && value.length > MAX_STRING_LENGTH_IN_HISTORY) {
     return value.substring(0, MAX_STRING_LENGTH_IN_HISTORY) + `... [truncated]`;
   }
   if (Array.isArray(value)) {
-    return value.map(truncateValue);
+    return value.map(sanitizeAndTruncateForHistory);
   }
   if (typeof value === 'object' && value !== null) {
+    // Character object detection
+    if ('name' in value && 'spec' in value && 'spec_version' in value) {
+      const sanitizedChar: Record<string, any> = {};
+      for (const key of CHARACTER_FIELDS_TO_LOG) {
+        if (key in value) {
+          sanitizedChar[key] = value[key];
+        }
+      }
+      sanitizedChar['...'] = '[character object sanitized]';
+      return sanitizedChar;
+    }
+
+    // Generic object traversal
     const newObj: Record<string, any> = {};
     for (const key in value) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
-        newObj[key] = truncateValue(value[key]);
+        newObj[key] = sanitizeAndTruncateForHistory(value[key]);
       }
     }
     return newObj;
@@ -56,8 +71,8 @@ function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Da
       ...item,
       executedNodes: item.executedNodes.map((nodeReport) => ({
         ...nodeReport,
-        input: truncateValue(nodeReport.input),
-        output: truncateValue(nodeReport.output),
+        input: sanitizeAndTruncateForHistory(nodeReport.input),
+        output: sanitizeAndTruncateForHistory(nodeReport.output),
       })),
       timestamp: item.timestamp.toISOString(),
     }));
