@@ -224,8 +224,7 @@ export class LowLevelFlowRunner {
       pickRegexModeNode: this.executePickRegexModeNode.bind(this),
       pickTypeConverterTargetNode: this.executePickTypeConverterTargetNode.bind(this),
     };
-    this.reportSanitizers = {
-    };
+    this.reportSanitizers = {};
   }
 
   public async executeFlow(flow: SpecFlow, initialInput: Record<string, any>): Promise<ExecutionReport> {

@@ -65,18 +65,23 @@ function sanitizeAndTruncateForHistory(value: any): any {
   return value;
 }
 
+function sanitizeReportForHistory(report: ExecutionReport): ExecutionReport {
+  return {
+    ...report,
+    executedNodes: report.executedNodes.map((nodeReport) => ({
+      ...nodeReport,
+      input: sanitizeAndTruncateForHistory(nodeReport.input),
+      output: sanitizeAndTruncateForHistory(nodeReport.output),
+    })),
+  };
+}
+
 function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Date })[]) {
   try {
     const storable = history.map((item) => ({
       ...item,
-      executedNodes: item.executedNodes.map((nodeReport) => ({
-        ...nodeReport,
-        input: sanitizeAndTruncateForHistory(nodeReport.input),
-        output: sanitizeAndTruncateForHistory(nodeReport.output),
-      })),
       timestamp: item.timestamp.toISOString(),
     }));
-
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(storable));
   } catch (e: any) {
     console.error('[FlowChart] Failed to save execution history:', e);
@@ -185,12 +190,14 @@ class FlowRunner {
       eventEmitter.emit('flow:error', report.error);
     }
 
-    executionHistory.unshift({ ...report, flowId, timestamp: new Date() });
+    const sanitizedReport = sanitizeReportForHistory(report);
+    executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
+
     if (executionHistory.length > MAX_HISTORY_LENGTH) {
       executionHistory.pop();
     }
     saveHistory(executionHistory);
-    eventEmitter.emit('flow:end', report);
+    eventEmitter.emit('flow:end', sanitizedReport);
 
     return report;
   }
