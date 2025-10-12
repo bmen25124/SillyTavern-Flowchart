@@ -12,6 +12,7 @@ import {
   getNodesBounds,
   getViewportForBounds,
   MiniMap,
+  BackgroundVariant,
 } from '@xyflow/react';
 import { useFlowStore } from './flowStore.js';
 import { settingsManager } from '../Settings.js';
@@ -89,9 +90,20 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       const findCompatibleNodes = () => {
         const candidates: { nodeType: string; nodeLabel: string; connectToHandle: string | null }[] = [];
 
+        const getHandlesForNodeDef = (nodeDef: (typeof allNodeDefinitions)[0]) => {
+          const staticHandles = { ...nodeDef.handles };
+          const dynamicHandles = nodeDef.getDynamicHandles
+            ? nodeDef.getDynamicHandles(structuredClone(nodeDef.initialData))
+            : { inputs: [], outputs: [] };
+          return {
+            inputs: [...staticHandles.inputs, ...dynamicHandles.inputs],
+            outputs: [...staticHandles.outputs, ...dynamicHandles.outputs],
+          };
+        };
+
         if (handleType === 'source') {
           for (const nodeDef of allNodeDefinitions) {
-            const targetInputs = nodeDef.handles.inputs;
+            const { inputs: targetInputs } = getHandlesForNodeDef(nodeDef);
             const tempTargetNode: Node = {
               id: 'temp',
               type: nodeDef.type,
@@ -107,7 +119,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                   edges,
                 )
               ) {
-                const label = targetHandle.id ? `${nodeDef.label} -> ${targetHandle.id}` : nodeDef.label;
+                const label = targetHandle.id ? `${nodeDef.label} (to ${targetHandle.id})` : nodeDef.label;
                 candidates.push({
                   nodeType: nodeDef.type,
                   nodeLabel: label,
@@ -118,7 +130,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
           }
         } else {
           for (const nodeDef of allNodeDefinitions) {
-            const sourceOutputs = nodeDef.handles.outputs;
+            const { outputs: sourceOutputs } = getHandlesForNodeDef(nodeDef);
             const tempSourceNode: Node = {
               id: 'temp',
               type: nodeDef.type,
@@ -134,7 +146,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
                   edges,
                 )
               ) {
-                const label = sourceHandle.id ? `${sourceHandle.id} -> ${nodeDef.label}` : nodeDef.label;
+                const label = sourceHandle.id ? `${nodeDef.label} (from ${sourceHandle.id})` : nodeDef.label;
                 candidates.push({
                   nodeType: nodeDef.type,
                   nodeLabel: label,
@@ -144,33 +156,65 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
             }
           }
         }
-        return Array.from(new Map(candidates.map((item) => [item.nodeLabel, item])).values());
+
+        // Group by category for context menu
+        candidates.sort((a, b) => {
+          const catA = nodeDefinitionMap.get(a.nodeType)?.category || '';
+          const catB = nodeDefinitionMap.get(b.nodeType)?.category || '';
+          return catA.localeCompare(catB) || a.nodeLabel.localeCompare(b.nodeLabel);
+        });
+
+        return candidates;
       };
 
       const compatibleNodes = findCompatibleNodes();
       connectingNode.current = null;
       if (compatibleNodes.length === 0) return;
 
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      // Calculate position for new node
+      const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
+      let position = { x: 0, y: 0 };
+      if (reactFlowBounds) {
+        position = screenToFlowPosition({
+          x: event.clientX > reactFlowBounds.right - 200 ? event.clientX - 200 : event.clientX,
+          y: event.clientY,
+        });
+      }
 
       const createAndConnectNode = (nodeType: string, connectToHandle: string | null) => {
         const nodeDef = nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
-        const newNode = addNode({ type: nodeType, position, data: structuredClone(nodeDef.initialData) });
+        // Offset new node slightly
+        const newNode = addNode({
+          type: nodeType,
+          position: { x: position.x + 50, y: position.y },
+          data: structuredClone(nodeDef.initialData),
+        });
         const connection =
           handleType === 'source'
             ? { source: startNodeId, sourceHandle: startHandleId, target: newNode.id, targetHandle: connectToHandle }
             : { source: newNode.id, sourceHandle: connectToHandle, target: startNodeId, targetHandle: startHandleId };
-        onConnect(connection);
+
+        // Small delay to allow node to render before connecting
+        setTimeout(() => onConnect(connection), 10);
       };
 
       if (compatibleNodes.length === 1) {
         createAndConnectNode(compatibleNodes[0].nodeType, compatibleNodes[0].connectToHandle);
       } else {
+        // Calculate menu position, keeping it within viewport bounds
+        let menuX = event.clientX;
+        let menuY = event.clientY;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (menuX + 220 > windowWidth) menuX = windowWidth - 230;
+        if (menuY + 300 > windowHeight) menuY = windowHeight - 310;
+
         setContextMenu({
-          x: event.clientX,
-          y: event.clientY,
+          x: menuX,
+          y: menuY,
           options: compatibleNodes.map(({ nodeType, nodeLabel, connectToHandle }) => ({
             label: nodeLabel,
             action: () => {
@@ -193,7 +237,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         return {
           ...node,
           className: classNames.join(' '),
-          zIndex: node.type === 'groupNode' ? -1 : 0,
+          zIndex: node.type === 'groupNode' ? -1 : 1, // Ensure nodes are above groups
         };
       }),
     [nodes, invalidNodeIds, activeNodeId],
@@ -215,20 +259,22 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         fitView
         isValidConnection={isValidConnection}
         minZoom={0.1}
+        deleteKeyCode="Delete"
+        proOptions={{ hideAttribution: true }}
       >
-        <Background />
+        <Background color="#444" gap={15} variant={BackgroundVariant.Dots} />
         <Controls />
-        <MiniMap />
+        <MiniMap zoomable pannable />
       </ReactFlow>
       {contextMenu && (
         <div
           className="flowchart-context-menu"
-          style={{ top: contextMenu.y, left: contextMenu.x, zIndex: 999, position: 'fixed' }}
-          onContextMenu={(e) => e.stopPropagation()}
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <ul>
-            {contextMenu.options.map((option) => (
-              <li key={option.label} onClick={option.action}>
+            {contextMenu.options.map((option, i) => (
+              <li key={i} onClick={option.action} title={option.label}>
                 {option.label}
               </li>
             ))}
@@ -241,11 +287,30 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
 
 const FlowManager: FC = () => {
   const { nodes, edges, loadFlow, getFlowData, addNode } = useFlowStore();
-  const { getNodes, setViewport, getViewport } = useReactFlow();
+  const { getNodes, setViewport, getViewport, screenToFlowPosition } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const copyBuffer = useRef<Node[]>([]);
+  const mousePosRef = useRef({ x: 0, y: 0 });
+  const flowWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Track mouse position relative to the flow wrapper for accurate pasting
+  useEffect(() => {
+    const onMouseMove = (event: MouseEvent) => {
+      if (flowWrapperRef.current) {
+        const bounds = flowWrapperRef.current.getBoundingClientRect();
+        mousePosRef.current = {
+          x: event.clientX - bounds.left,
+          y: event.clientY - bounds.top,
+        };
+      }
+    };
+    // Attach to wrapper to get coordinates relative to it
+    const wrapper = flowWrapperRef.current;
+    wrapper?.addEventListener('mousemove', onMouseMove);
+    return () => wrapper?.removeEventListener('mousemove', onMouseMove);
+  }, []);
 
   // Load active flow into store on mount
   useEffect(() => {
@@ -276,21 +341,46 @@ const FlowManager: FC = () => {
   // Copy/Paste effect
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Ensure we are focused inside the popup
+      if (!document.querySelector('.flowchart-data-popup')?.contains(document.activeElement)) return;
+
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'c') {
           const selectedNodes = getNodes().filter((n) => n.selected);
           if (selectedNodes.length > 0) {
-            copyBuffer.current = structuredClone(selectedNodes.map((n) => ({ ...n, selected: false })));
+            // Find top-left most node to use as anchor
+            const minX = Math.min(...selectedNodes.map((n) => n.position.x));
+            const minY = Math.min(...selectedNodes.map((n) => n.position.y));
+
+            copyBuffer.current = structuredClone(
+              selectedNodes.map((n) => ({
+                ...n,
+                selected: true, // Keep selected upon paste
+                position: {
+                  x: n.position.x - minX,
+                  y: n.position.y - minY,
+                },
+              })),
+            );
             st_echo('info', `${selectedNodes.length} node(s) copied.`);
           }
         } else if (event.key === 'v') {
           if (copyBuffer.current.length > 0) {
+            // Convert mouse screen coordinates to flow coordinates
+            const flowPos = screenToFlowPosition({
+              x: mousePosRef.current.x + (flowWrapperRef.current?.getBoundingClientRect().left || 0),
+              y: mousePosRef.current.y + (flowWrapperRef.current?.getBoundingClientRect().top || 0),
+            });
+
+            // Deselect current nodes
+            getNodes().forEach((n) => (n.selected = false));
+
             copyBuffer.current.forEach((nodeToPaste) => {
               addNode({
                 ...nodeToPaste,
                 position: {
-                  x: nodeToPaste.position.x + 20,
-                  y: nodeToPaste.position.y + 20,
+                  x: flowPos.x + nodeToPaste.position.x,
+                  y: flowPos.y + nodeToPaste.position.y,
                 },
               });
             });
@@ -302,12 +392,9 @@ const FlowManager: FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [getNodes, addNode]);
+  }, [getNodes, addNode, screenToFlowPosition]);
 
-  const { isValid, errors, invalidNodeIds, invalidEdgeIds } = useMemo(
-    () => validateFlow({ nodes, edges }),
-    [nodes, edges],
-  );
+  const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow({ nodes, edges }), [nodes, edges]);
 
   const presetItems = useMemo(
     () => Object.keys(settings.flows).map((key) => ({ value: key, label: key })),
@@ -368,9 +455,12 @@ const FlowManager: FC = () => {
   };
 
   const handleClearInvalid = () => {
+    // Only remove nodes, ReactFlow handles edge removal automatically
     const newNodes = nodes.filter((node) => !invalidNodeIds.has(node.id));
-    const newEdges = edges.filter((edge) => !invalidEdgeIds.has(edge.id));
-    loadFlow({ nodes: newNodes, edges: newEdges });
+    loadFlow({
+      nodes: newNodes,
+      edges: edges.filter((e) => newNodes.some((n) => n.id === e.source) && newNodes.some((n) => n.id === e.target)),
+    });
   };
 
   const handleRunFlow = () => {
@@ -465,28 +555,24 @@ const FlowManager: FC = () => {
           enableRename
           enableDelete
         />
-        <STButton color="primary" onClick={handleRunFlow}>
-          Run Flow
+        <div style={{ flex: 1 }}></div>
+        {!isValid && (
+          <STButton color="danger" onClick={handleClearInvalid} title={errors.join('\n')}>
+            Fix Errors ({errors.length})
+          </STButton>
+        )}
+        <STButton color="primary" onClick={handleRunFlow} title="Run Manual Triggers">
+          <i className="fa-solid fa-play"></i> Run
         </STButton>
-        <STButton onClick={handleCopyFlow}>Copy</STButton>
-        <STButton onClick={handleScreenshot}>Screenshot</STButton>
+        <STButton onClick={handleCopyFlow} title="Copy Flow JSON">
+          <i className="fa-solid fa-copy"></i>
+        </STButton>
+        <STButton onClick={handleScreenshot} title="Take Screenshot">
+          <i className="fa-solid fa-camera"></i>
+        </STButton>
       </div>
-      {!isValid && (
-        <div className="flowchart-errors">
-          <div className="flowchart-errors-header">
-            <strong>Flow is invalid:</strong>
-            <STButton color="danger" onClick={handleClearInvalid}>
-              Clear Invalid Items
-            </STButton>
-          </div>
-          <ul>
-            {errors.map((error, i) => (
-              <li key={i}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <div className="flowchart-editor-area">
+
+      <div className="flowchart-editor-area" ref={flowWrapperRef}>
         <NodePalette />
         <FlowCanvas invalidNodeIds={invalidNodeIds} />
       </div>

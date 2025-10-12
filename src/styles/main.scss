@@ -21,28 +21,28 @@
 }
 
 .popup:has(.flowchart-data-popup) {
-    overflow-y: auto;
-    max-width: 70% !important;
-    width: 100%;
+  overflow-y: auto;
+  max-width: 70% !important;
+  width: 100%;
 }
 
 // Utility classes for popups
 .flowchart-errors {
   color: var(--warning);
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   border: 1px solid var(--warning);
-  padding: 10px;
+  padding: 5px;
   border-radius: 4px;
-  max-height: 150px;
+  max-height: 100px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  font-size: 0.9em;
 
   .flowchart-errors-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
 
     button {
       padding: 2px 8px;
@@ -52,15 +52,10 @@
   }
 
   ul {
-    margin-top: 5px;
+    margin-top: 2px;
     padding-left: 20px;
     margin-bottom: 0;
   }
-}
-
-.flowchart-success {
-  color: var(--active);
-  margin-top: 10px;
 }
 
 // Popup Styles
@@ -69,6 +64,7 @@
   flex-direction: column;
   height: 100%;
   gap: 10px;
+  overflow: hidden; // Prevent outer scroll
 
   button.menu_button.interactable {
     width: unset;
@@ -76,19 +72,33 @@
 
   .flowchart-popup-header {
     border-bottom: 1px solid var(--SmartThemeBorderColor);
-    padding-bottom: 10px;
+    padding-bottom: 5px;
+    flex-shrink: 0;
+
+    h2 {
+      margin: 0;
+    }
   }
 
   .flowchart-popup-tabs {
     display: flex;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 5px;
+    margin-top: 5px;
   }
 
   .flowchart-popup-content {
     flex-grow: 1;
-    overflow-y: auto;
-    padding-right: 10px;
+    overflow: hidden; // Manage scroll in children
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    // Styles for non-ground tabs
+    > .flowchart-popup-section {
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 5px;
+    }
 
     details {
       border: 1px solid var(--SmartThemeBorderColor);
@@ -100,7 +110,7 @@
     summary {
       font-weight: bold;
       cursor: pointer;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
   }
 
@@ -109,40 +119,20 @@
     flex-direction: column;
     gap: 5px;
     margin-bottom: 15px;
-
-    .input-with-button {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-
-      input,
-      select {
-        flex-grow: 1;
-      }
-    }
   }
 
   .flowchart-popup-footer {
     border-top: 1px solid var(--SmartThemeBorderColor);
+    padding-top: 10px;
     text-align: right;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-  }
-
-  .two-column-layout {
-    display: flex;
-    gap: 20px;
-
-    .setting-column {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
+    flex-shrink: 0;
   }
 }
 
+// React Flow Overrides
 .react-flow__pane.draggable,
 .react-flow__node.draggable {
   bottom: unset;
@@ -161,7 +151,7 @@
   text-align: initial;
 }
 
-.react-flow__nodes {
+.react-flow__node {
   width: unset !important;
 }
 
@@ -170,21 +160,160 @@
   overflow: visible;
 }
 
+// Main Layout for Ground Tab
 .flowchart-ground-manager {
   display: flex;
   flex-direction: column;
   height: 100%;
-  gap: 10px;
+  gap: 5px;
+  overflow: hidden;
 }
 
-.flowchart-popup-ground {
-  position: relative;
+.flowchart-preset-selector {
+  flex-shrink: 0;
+}
+
+.flowchart-editor-area {
+  display: flex;
   flex-grow: 1;
   border: 1px solid var(--SmartThemeBorderColor);
   border-radius: 4px;
-  min-height: 300px;
+  overflow: hidden;
+  position: relative;
+}
+
+// Node Palette Sidebar
+.flowchart-node-palette {
+  width: 200px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid var(--SmartThemeBorderColor);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 10; // Above canvas
+
+  .palette-header {
+    padding: 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor);
+    background: var(--SmartThemeHeadersBackgroundColor);
+
+    h3 {
+      margin: 0 0 5px 0;
+      font-size: 1.1em;
+    }
+
+    .palette-search {
+      width: 100%;
+      font-size: 0.9em;
+    }
+  }
+
+  .palette-categories {
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
+  .palette-category {
+    position: relative;
+
+    .category-label {
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background-color 0.2s;
+      font-weight: 600;
+
+      .fa-chevron-right {
+        font-size: 0.8em;
+        opacity: 0.5;
+      }
+
+      &:hover {
+        background-color: var(--SmartThemeHoverColor);
+        color: var(--SmartThemeHoverTextStyle);
+      }
+    }
+
+    // Flyout Menu
+    .category-nodes {
+      display: none; // Hidden by default
+      position: absolute;
+      left: 100%; // Align to right edge of sidebar
+      top: 0;
+      width: 220px;
+      background-color: var(--background-color-modal);
+      border: 1px solid var(--SmartThemeBorderColor);
+      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+      z-index: 20; // Above sidebar
+      border-radius: 0 4px 4px 0;
+      max-height: 400px;
+      overflow-y: auto;
+
+      .category-nodes-header {
+        padding: 8px 10px;
+        background: var(--SmartThemeHeadersBackgroundColor);
+        border-bottom: 1px solid var(--SmartThemeBorderColor);
+        font-weight: bold;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+
+      .category-nodes-list {
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+    }
+
+    // Show flyout on hover of category container
+    &:hover {
+      .category-label {
+        background-color: var(--SmartThemeHoverColor);
+        color: var(--SmartThemeHoverTextStyle);
+      }
+
+      .category-nodes {
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+      }
+    }
+  }
+
+  .node-item {
+    padding: 6px 10px;
+    background-color: var(--SmartThemeInputColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 0.9em;
+    text-align: left;
+    transition: all 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+      background-color: var(--SmartThemeHoverColor);
+      border-color: var(--SmartThemeEmColor);
+      transform: translateX(2px);
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
+
+.flowchart-popup-ground {
+  flex-grow: 1;
   height: 100%;
   width: 100%;
+  background-color: #1a1a1a; // Dark background for canvas
 }
 
 // Styles for invalid nodes
@@ -198,9 +327,11 @@
   0% {
     box-shadow: 0 0 0 0 rgba(0, 128, 255, 0.7);
   }
+
   70% {
     box-shadow: 0 0 10px 10px rgba(0, 128, 255, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(0, 128, 255, 0);
   }
@@ -209,10 +340,6 @@
 .react-flow__node.flow-node-executing > div {
   border-color: #007bff !important;
   animation: pulse 1.5s infinite;
-}
-
-.react-flow__node.flow-node-executed > div {
-  border-color: #28a745 !important;
 }
 
 // Styles for history tab
@@ -227,10 +354,6 @@
     details {
       padding: 8px;
 
-      summary {
-        margin-bottom: 0;
-      }
-
       pre {
         background-color: var(--black);
         padding: 10px;
@@ -240,6 +363,7 @@
         overflow: auto;
         white-space: pre-wrap;
         word-break: break-all;
+        font-size: 0.85em;
       }
     }
   }
@@ -250,19 +374,27 @@
   background: var(--background-color-modal);
   border: 1px solid var(--SmartThemeBorderColor);
   border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-  z-index: 10000;
-  min-width: 180px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  z-index: 10000; // Topmost
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
 
   ul {
     list-style: none;
-    padding: 5px 0;
+    padding: 0;
     margin: 0;
   }
 
   li {
     padding: 8px 12px;
     cursor: pointer;
+    font-size: 0.9em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:last-child {
+      border-bottom: none;
+    }
 
     &:hover {
       background: var(--primary-color);
@@ -273,31 +405,52 @@
 
 // Minimap styles
 .react-flow__minimap {
-  background-color: var(--background-color) !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
   border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
 }
 
 .react-flow__minimap-mask {
-  fill: var(--background-color-modal) !important;
+  fill: var(--background-color) !important;
   fill-opacity: 0.7 !important;
+}
+
+.react-flow__minimap-node {
+  fill: var(--SmartThemeEmColor) !important;
+  stroke: none !important;
 }
 
 // Group Node
 .flow-group-node {
   width: 100%;
   height: 100%;
-  border: 1px solid var(--SmartThemeEmColor);
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.2);
-  pointer-events: none; /* Allows interaction with nodes inside */
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.02);
+  pointer-events: none;
+  /* Allows interaction with nodes inside */
+  transition: all 0.2s;
+
+  .react-flow__node.selected & {
+    border-color: var(--SmartThemeEmColor);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
 
   .flow-group-node-label {
-    background: var(--SmartThemeEmColor);
-    color: var(--text-color-black);
+    background: transparent;
+    color: var(--text-color-main);
     border: none;
-    border-radius: 3px 3px 0 0;
-    padding: 2px 6px;
+    padding: 5px 10px;
     width: 100%;
-    pointer-events: all; /* Label should be editable */
+    font-weight: bold;
+    font-size: 1.2em;
+    opacity: 0.5;
+    pointer-events: all;
+    /* Label should be editable */
+
+    &:focus {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.5);
+    }
   }
 }

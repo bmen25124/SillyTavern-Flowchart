@@ -30,6 +30,15 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
     inputs: [],
     outputs: [], // Outputs are dynamic
   },
+  getDynamicHandles: (data) => {
+    const eventParams = EventNameParameters[data.selectedEventType];
+    if (!eventParams) return { inputs: [], outputs: [] };
+    const outputs = Object.keys(eventParams).map((paramName) => ({
+      id: paramName,
+      type: zodTypeToFlowType(eventParams[paramName]),
+    }));
+    return { inputs: [], outputs };
+  },
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output') {
       const { selectedEventType } = node.data as TriggerNodeData;

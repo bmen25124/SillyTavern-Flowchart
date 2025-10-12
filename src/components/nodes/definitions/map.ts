@@ -152,6 +152,17 @@ const triggerNodeDefinition: BaseNodeDefinition<TriggerNodeData> = {
   dataSchema: TriggerNodeDataSchema,
   initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED },
   handles: { inputs: [], outputs: [] },
+
+  getDynamicHandles: (data) => {
+    const eventParams = EventNameParameters[data.selectedEventType];
+    if (!eventParams) return { inputs: [], outputs: [] };
+    const outputs = Object.keys(eventParams).map((paramName) => ({
+      id: paramName,
+      type: zodTypeToFlowType(eventParams[paramName]),
+    }));
+    return { inputs: [], outputs };
+  },
+
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output') {
       const { selectedEventType } = node.data as TriggerNodeData;
@@ -210,7 +221,7 @@ const jsonNodeDefinition: BaseNodeDefinition<JsonNodeData> = {
   label: 'JSON',
   category: 'JSON',
   dataSchema: JsonNodeDataSchema,
-  initialData: { items: [] },
+  initialData: { items: [], rootType: 'object' },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
 };
 const schemaNodeDefinition: BaseNodeDefinition<SchemaNodeData> = {
@@ -233,6 +244,10 @@ const ifNodeDefinition: BaseNodeDefinition<IfNodeData> = {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: 'false', type: FlowDataType.ANY }],
   },
+  getDynamicHandles: (data) => ({
+    inputs: [],
+    outputs: data.conditions.map((c) => ({ id: c.id, type: FlowDataType.ANY })),
+  }),
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output') {
       const isConditionHandle = (node.data as IfNodeData).conditions.some((c) => c.id === handleId);
@@ -322,7 +337,7 @@ const getLorebookEntryNodeDefinition: BaseNodeDefinition<GetLorebookEntryNodeDat
 const createMessagesNodeDefinition: BaseNodeDefinition<CreateMessagesNodeData> = {
   type: 'createMessagesNode',
   label: 'Create Messages',
-  category: 'Messaging',
+  category: 'API Request',
   dataSchema: CreateMessagesNodeDataSchema,
   initialData: { profileId: '' },
   handles: {
@@ -336,10 +351,14 @@ const createMessagesNodeDefinition: BaseNodeDefinition<CreateMessagesNodeData> =
 const customMessageNodeDefinition: BaseNodeDefinition<CustomMessageNodeData> = {
   type: 'customMessageNode',
   label: 'Custom Message',
-  category: 'Messaging',
+  category: 'API Request',
   dataSchema: CustomMessageNodeDataSchema,
   initialData: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
+  getDynamicHandles: (data) => ({
+    inputs: data.messages.map((m) => ({ id: m.id, type: FlowDataType.STRING })),
+    outputs: [],
+  }),
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'input') {
       if ((node.data as CustomMessageNodeData).messages.some((m) => m.id === handleId)) return FlowDataType.STRING;
@@ -350,10 +369,17 @@ const customMessageNodeDefinition: BaseNodeDefinition<CustomMessageNodeData> = {
 const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
   type: 'mergeMessagesNode',
   label: 'Merge Messages',
-  category: 'Messaging',
+  category: 'API Request',
   dataSchema: MergeMessagesNodeDataSchema,
   initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
+  getDynamicHandles: (data) => {
+    const inputs = [];
+    for (let i = 0; i < data.inputCount; i++) {
+      inputs.push({ id: `messages_${i}`, type: FlowDataType.MESSAGES });
+    }
+    return { inputs, outputs: [] };
+  },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith('messages_')) return FlowDataType.MESSAGES;
     return undefined;
@@ -362,7 +388,7 @@ const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
 const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeData> = {
   type: 'structuredRequestNode',
   label: 'Structured Request',
-  category: 'Messaging',
+  category: 'API Request',
   dataSchema: StructuredRequestNodeDataSchema,
   initialData: {
     profileId: '',
@@ -405,7 +431,7 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
 const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> = {
   type: 'getChatMessageNode',
   label: 'Get Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   dataSchema: GetChatMessageNodeDataSchema,
   initialData: { messageId: 'last' },
   handles: {
@@ -423,7 +449,7 @@ const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> =
 const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData> = {
   type: 'editChatMessageNode',
   label: 'Edit Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   dataSchema: EditChatMessageNodeDataSchema,
   initialData: {},
   handles: {
@@ -437,7 +463,7 @@ const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData>
 const sendChatMessageNodeDefinition: BaseNodeDefinition<SendChatMessageNodeData> = {
   type: 'sendChatMessageNode',
   label: 'Send Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   dataSchema: SendChatMessageNodeDataSchema,
   initialData: { message: '', role: 'assistant' },
   handles: {
@@ -452,7 +478,7 @@ const sendChatMessageNodeDefinition: BaseNodeDefinition<SendChatMessageNodeData>
 const removeChatMessageNodeDefinition: BaseNodeDefinition<RemoveChatMessageNodeData> = {
   type: 'removeChatMessageNode',
   label: 'Remove Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   dataSchema: RemoveChatMessageNodeDataSchema,
   initialData: {},
   handles: {
@@ -494,6 +520,13 @@ const mergeObjectsNodeDefinition: BaseNodeDefinition<MergeObjectsNodeData> = {
   dataSchema: MergeObjectsNodeDataSchema,
   initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
+  getDynamicHandles: (data) => {
+    const inputs = [];
+    for (let i = 0; i < data.inputCount; i++) {
+      inputs.push({ id: `object_${i}`, type: FlowDataType.OBJECT });
+    }
+    return { inputs, outputs: [] };
+  },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith('object_')) return FlowDataType.OBJECT;
     return undefined;
@@ -562,6 +595,19 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
   handles: {
     inputs: [{ id: 'delimiter', type: FlowDataType.STRING }],
     outputs: [{ id: 'result', type: FlowDataType.ANY }],
+  },
+  getDynamicHandles: (data) => {
+    const inputs = [];
+    if (data.operation === 'merge') {
+      for (let i = 0; i < (data.inputCount ?? 2); i++) {
+        inputs.push({ id: `string_${i}`, type: FlowDataType.STRING });
+      }
+    } else if (data.operation === 'split') {
+      inputs.push({ id: 'string', type: FlowDataType.STRING });
+    } else if (data.operation === 'join') {
+      inputs.push({ id: 'array', type: FlowDataType.OBJECT });
+    }
+    return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'input') {

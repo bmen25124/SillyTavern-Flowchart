@@ -28,10 +28,12 @@ import { StructuredRequestNode } from '../StructuredRequestNode.js';
 import { NodeDefinition } from './types.js';
 import { PromptEngineeringMode } from '../../../config.js';
 
+// --- API Request Nodes ---
+
 export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData> = {
   type: 'createMessagesNode',
   label: 'Create Messages',
-  category: 'Messaging',
+  category: 'API Request',
   component: CreateMessagesNode,
   dataSchema: CreateMessagesNodeDataSchema,
   initialData: { profileId: '' },
@@ -47,7 +49,7 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
 export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> = {
   type: 'customMessageNode',
   label: 'Custom Message',
-  category: 'Messaging',
+  category: 'API Request',
   component: CustomMessageNode,
   dataSchema: CustomMessageNodeDataSchema,
   initialData: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
@@ -55,6 +57,10 @@ export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> 
     inputs: [], // Dynamic handles
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
+  getDynamicHandles: (data) => ({
+    inputs: data.messages.map((m) => ({ id: m.id, type: FlowDataType.STRING })),
+    outputs: [],
+  }),
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'input') {
       // Any handleId corresponding to a message ID is a string input for content
@@ -69,13 +75,20 @@ export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> 
 export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> = {
   type: 'mergeMessagesNode',
   label: 'Merge Messages',
-  category: 'Messaging',
+  category: 'API Request',
   component: MergeMessagesNode,
   dataSchema: MergeMessagesNodeDataSchema,
   initialData: { inputCount: 2 },
   handles: {
     inputs: [], // Dynamic handles
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
+  },
+  getDynamicHandles: (data) => {
+    const inputs = [];
+    for (let i = 0; i < data.inputCount; i++) {
+      inputs.push({ id: `messages_${i}`, type: FlowDataType.MESSAGES });
+    }
+    return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith('messages_')) {
@@ -88,7 +101,7 @@ export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> 
 export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNodeData> = {
   type: 'structuredRequestNode',
   label: 'Structured Request',
-  category: 'Messaging',
+  category: 'API Request',
   component: StructuredRequestNode,
   dataSchema: StructuredRequestNodeDataSchema,
   initialData: {
@@ -136,10 +149,12 @@ export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNo
   },
 };
 
+// --- Chat Nodes ---
+
 export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData> = {
   type: 'getChatMessageNode',
   label: 'Get Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   component: GetChatMessageNode,
   dataSchema: GetChatMessageNodeDataSchema,
   initialData: { messageId: 'last' },
@@ -159,7 +174,7 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
 export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeData> = {
   type: 'editChatMessageNode',
   label: 'Edit Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   component: EditChatMessageNode,
   dataSchema: EditChatMessageNodeDataSchema,
   initialData: {},
@@ -175,7 +190,7 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
 export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeData> = {
   type: 'sendChatMessageNode',
   label: 'Send Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   component: SendChatMessageNode,
   dataSchema: SendChatMessageNodeDataSchema,
   initialData: { message: '', role: 'assistant' },
@@ -192,7 +207,7 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
 export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNodeData> = {
   type: 'removeChatMessageNode',
   label: 'Remove Chat Message',
-  category: 'Messaging',
+  category: 'Chat',
   component: RemoveChatMessageNode,
   dataSchema: RemoveChatMessageNodeDataSchema,
   initialData: {},

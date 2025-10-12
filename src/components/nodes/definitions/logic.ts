@@ -13,6 +13,10 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: 'false', type: FlowDataType.ANY }], // + dynamic condition handles
   },
+  getDynamicHandles: (data) => ({
+    inputs: [],
+    outputs: data.conditions.map((c) => ({ id: c.id, type: FlowDataType.ANY })),
+  }),
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output') {
       const isConditionHandle = (node.data as IfNodeData).conditions.some((c) => c.id === handleId);

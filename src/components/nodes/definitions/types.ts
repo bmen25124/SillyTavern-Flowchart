@@ -19,7 +19,7 @@ export type GetHandleTypeParams = {
 export interface NodeDefinition<T extends Node<Record<string, unknown>, string | undefined | any> | any = any> {
   type: string;
   label: string;
-  category: 'Trigger' | 'Logic' | 'Input' | 'Messaging' | 'Character' | 'Lorebook' | 'JSON' | 'Utility';
+  category: 'Trigger' | 'Logic' | 'Input' | 'API Request' | 'Chat' | 'Character' | 'Lorebook' | 'JSON' | 'Utility';
   // @ts-ignore
   component: FC<NodeProps<Node<T>>>;
   dataSchema: z.ZodType<T>;
@@ -34,4 +34,9 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * If not provided, the static `handles` array is used as a fallback.
    */
   getHandleType?: (params: GetHandleTypeParams) => FlowDataType | undefined;
+  /**
+   * Optional function to get a list of dynamic handles based on the node's data.
+   * This is used by the UI to suggest compatible nodes when creating new connections.
+   */
+  getDynamicHandles?: (data: T) => { inputs: HandleSpec[]; outputs: HandleSpec[] };
 }

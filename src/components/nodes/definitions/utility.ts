@@ -27,7 +27,7 @@ import { DateTimeNode } from '../DateTimeNode.js';
 import { RandomNode } from '../RandomNode.js';
 import { StringToolsNode } from '../StringToolsNode.js';
 import { MathNode } from '../MathNode.js';
-import { NodeDefinition } from './types.js';
+import { NodeDefinition, HandleSpec } from './types.js';
 import { FlowDataType } from '../../../flow-types.js';
 
 export const logNodeDefinition: NodeDefinition<LogNodeData> = {
@@ -69,6 +69,13 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
   handles: {
     inputs: [], // Dynamic handles
     outputs: [{ id: null, type: FlowDataType.OBJECT }],
+  },
+  getDynamicHandles: (data) => {
+    const inputs = [];
+    for (let i = 0; i < data.inputCount; i++) {
+      inputs.push({ id: `object_${i}`, type: FlowDataType.OBJECT });
+    }
+    return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith('object_')) {
@@ -153,6 +160,19 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   handles: {
     inputs: [{ id: 'delimiter', type: FlowDataType.STRING }], // Static handle
     outputs: [{ id: 'result', type: FlowDataType.ANY }],
+  },
+  getDynamicHandles: (data) => {
+    const inputs: HandleSpec[] = [];
+    if (data.operation === 'merge') {
+      for (let i = 0; i < (data.inputCount ?? 2); i++) {
+        inputs.push({ id: `string_${i}`, type: FlowDataType.STRING });
+      }
+    } else if (data.operation === 'split') {
+      inputs.push({ id: 'string', type: FlowDataType.STRING });
+    } else if (data.operation === 'join') {
+      inputs.push({ id: 'array', type: FlowDataType.OBJECT }); // Array
+    }
+    return { inputs, outputs: [] };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'input') {
