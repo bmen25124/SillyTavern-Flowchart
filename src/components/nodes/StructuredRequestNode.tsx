@@ -11,10 +11,11 @@ import { shallow } from 'zustand/shallow';
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
 
 export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
+  const { data, updateNodeData, allNodes } = useFlowStore(
     (state) => ({
       data: state.nodes.find((n) => n.id === id)?.data as StructuredRequestNodeData,
       updateNodeData: state.updateNodeData,
+      allNodes: state.nodes,
     }),
     shallow,
   );
@@ -25,12 +26,12 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
     const schemaEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'schema');
     if (!schemaEdge) return [];
 
-    const schemaNode = useFlowStore.getState().nodes.find((n) => n.id === schemaEdge.source);
+    const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode && schemaNode.type === 'schemaNode' && Array.isArray(schemaNode.data.fields)) {
       return schemaNode.data.fields;
     }
     return [];
-  }, [id, edges]);
+  }, [id, edges, allNodes]);
 
   if (!data) return null;
 

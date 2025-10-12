@@ -32,6 +32,9 @@ import {
   RandomNodeDataSchema,
   StringToolsNodeDataSchema,
   MathNodeDataSchema,
+  GetPromptNodeDataSchema,
+  SetVariableNodeDataSchema,
+  GetVariableNodeDataSchema,
 } from './flow-types.js';
 import { z } from 'zod';
 import { FullExportData, Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
@@ -40,6 +43,7 @@ import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { ChatMessage } from 'sillytavern-utils-lib/types';
+import { settingsManager } from './components/Settings.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -78,7 +82,12 @@ export interface FlowRunnerDependencies {
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
 }
 
-type NodeExecutor = (node: SpecNode, input: Record<string, any>, flow: SpecFlow) => Promise<any>;
+type NodeExecutor = (
+  node: SpecNode,
+  input: Record<string, any>,
+  flow: SpecFlow,
+  variables: Map<string, any>,
+) => Promise<any>;
 
 function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
   let zodType: z.ZodTypeAny;
@@ -163,6 +172,9 @@ export class LowLevelFlowRunner {
       randomNode: this.executeRandomNode.bind(this),
       stringToolsNode: this.executeStringToolsNode.bind(this),
       mathNode: this.executeMathNode.bind(this),
+      getPromptNode: this.executeGetPromptNode.bind(this),
+      setVariableNode: this.executeSetVariableNode.bind(this),
+      getVariableNode: this.executeGetVariableNode.bind(this),
     };
   }
 
@@ -170,6 +182,7 @@ export class LowLevelFlowRunner {
     console.log(`[FlowChart] Executing flow with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
+    const flowVariables = new Map<string, any>();
     const report: ExecutionReport = { executedNodes: [] };
 
     const inDegree: Record<string, number> = {};
@@ -198,7 +211,7 @@ export class LowLevelFlowRunner {
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
 
-        const output = await this.executeNode(node, inputs, flow);
+        const output = await this.executeNode(node, inputs, flow, flowVariables);
 
         nodeOutputs[nodeId] = output;
         const nodeReport = { nodeId: node.id, type: node.type, input: inputs, output: output };
@@ -270,7 +283,12 @@ export class LowLevelFlowRunner {
     return inputs;
   }
 
-  private async executeNode(node: SpecNode, input: Record<string, any>, flow: SpecFlow): Promise<any> {
+  private async executeNode(
+    node: SpecNode,
+    input: Record<string, any>,
+    flow: SpecFlow,
+    variables: Map<string, any>,
+  ): Promise<any> {
     if (node.type === 'groupNode') return {};
 
     const executor = this.nodeExecutors[node.type];
@@ -278,7 +296,7 @@ export class LowLevelFlowRunner {
       console.log(`[FlowChart] Executing node ${node.id} (${node.type}) with input:`, input);
       eventEmitter.emit('node:start', node.id);
       try {
-        const result = await executor(node, input, flow);
+        const result = await executor(node, input, flow, variables);
         return result;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -286,6 +304,54 @@ export class LowLevelFlowRunner {
       }
     }
     return {};
+  }
+
+  private async executeGetPromptNode(node: SpecNode): Promise<any> {
+    const parseResult = GetPromptNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { promptName } = parseResult.data;
+
+    if (!promptName) throw new Error('Prompt name not selected.');
+
+    const settings = settingsManager.getSettings();
+    const prompt = settings.prompts[promptName];
+
+    if (prompt === undefined) throw new Error(`Prompt "${promptName}" not found.`);
+
+    return prompt;
+  }
+
+  private async executeSetVariableNode(
+    node: SpecNode,
+    input: Record<string, any>,
+    _flow: SpecFlow,
+    variables: Map<string, any>,
+  ): Promise<any> {
+    const parseResult = SetVariableNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { variableName } = parseResult.data;
+    const value = input.value;
+
+    if (!variableName) throw new Error('Variable name is required.');
+
+    variables.set(variableName, value);
+    return { value }; // Passthrough
+  }
+
+  private async executeGetVariableNode(
+    node: SpecNode,
+    _input: Record<string, any>,
+    _flow: SpecFlow,
+    variables: Map<string, any>,
+  ): Promise<any> {
+    const parseResult = GetVariableNodeDataSchema.safeParse(node.data);
+    if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
+    const { variableName } = parseResult.data;
+
+    if (!variableName) throw new Error('Variable name is required.');
+    if (!variables.has(variableName)) throw new Error(`Variable "${variableName}" not found.`);
+
+    return { value: variables.get(variableName) };
   }
 
   private async executeTriggerNode(_node: SpecNode, input: Record<string, any>): Promise<any> {
@@ -357,16 +423,23 @@ export class LowLevelFlowRunner {
     return Object.assign({}, ...objectsToMerge);
   }
 
-  private async executeIfNode(node: SpecNode, input: Record<string, any>, flow: SpecFlow): Promise<any> {
+  private async executeIfNode(
+    node: SpecNode,
+    input: Record<string, any>,
+    flow: SpecFlow,
+    variables: Map<string, any>,
+  ): Promise<any> {
     const parseResult = IfNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) {
       throw new Error(`Invalid data: ${parseResult.error.message}`);
     }
 
+    const flowVariables = Object.fromEntries(variables);
+
     for (const condition of parseResult.data.conditions) {
       try {
-        const func = new Function('input', 'stContext', condition.code);
-        if (func(input, this.dependencies.getSillyTavernContext())) {
+        const func = new Function('input', 'variables', 'stContext', condition.code);
+        if (func(input, flowVariables, this.dependencies.getSillyTavernContext())) {
           const edge = flow.edges.find((e) => e.source === node.id && e.sourceHandle === condition.id);
           return { nextNodeId: edge?.target ?? null };
         }
@@ -737,13 +810,20 @@ export class LowLevelFlowRunner {
     };
   }
 
-  private async executeExecuteJsNode(node: SpecNode, input: Record<string, any>): Promise<any> {
+  private async executeExecuteJsNode(
+    node: SpecNode,
+    input: Record<string, any>,
+    _flow: SpecFlow,
+    variables: Map<string, any>,
+  ): Promise<any> {
     const parseResult = ExecuteJsNodeDataSchema.safeParse(node.data);
     if (!parseResult.success) throw new Error(`Invalid data: ${parseResult.error.message}`);
 
+    const flowVariables = Object.fromEntries(variables);
+
     try {
-      const func = new Function('input', 'stContext', parseResult.data.code);
-      return func(input, this.dependencies.getSillyTavernContext());
+      const func = new Function('input', 'variables', 'stContext', parseResult.data.code);
+      return func(input, flowVariables, this.dependencies.getSillyTavernContext());
     } catch (error: any) {
       throw new Error(`Error executing JS code: ${error.message}`);
     }

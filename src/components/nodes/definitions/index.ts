@@ -32,6 +32,9 @@ import {
   randomNodeDefinition,
   stringToolsNodeDefinition,
   mathNodeDefinition,
+  getPromptNodeDefinition,
+  setVariableNodeDefinition,
+  getVariableNodeDefinition,
 } from './utility.js';
 
 export const allNodeDefinitions: NodeDefinition[] = [
@@ -76,6 +79,9 @@ export const allNodeDefinitions: NodeDefinition[] = [
   randomNodeDefinition,
   stringToolsNodeDefinition,
   mathNodeDefinition,
+  getPromptNodeDefinition,
+  setVariableNodeDefinition,
+  getVariableNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, NodeDefinition>(allNodeDefinitions.map((def) => [def.type, def]));

@@ -14,16 +14,16 @@ export interface ExtensionSettings {
   version: string;
   formatVersion: string;
   enabled: boolean;
-  prompts: {
-    json: string;
-    xml: string;
-  };
+  prompts: Record<string, string>;
   flows: Record<string, FlowData>;
   activeFlow: string;
 }
 
 export const EXTENSION_NAME = 'SillyTavern-FlowChart';
 export const EXTENSION_KEY = 'flowchart';
+
+export const STRUCTURED_REQUEST_JSON_PROMPT_KEY = 'Structured Request (JSON)';
+export const STRUCTURED_REQUEST_XML_PROMPT_KEY = 'Structured Request (XML)';
 
 const VERSION = '0.1.0';
 const FORMAT_VERSION = 'F_1.0';
@@ -51,8 +51,6 @@ export function createDefaultFlow(): FlowData {
     },
   ];
 
-  // The default flow starts with no edges to ensure it is always valid.
-  // A trigger node cannot have outgoing connections.
   const edges: Edge[] = [];
 
   return { nodes, edges };
@@ -63,8 +61,8 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   formatVersion: FORMAT_VERSION,
   enabled: true,
   prompts: {
-    json: DEFAULT_PROMPT_JSON,
-    xml: DEFAULT_PROMPT_XML,
+    [STRUCTURED_REQUEST_JSON_PROMPT_KEY]: DEFAULT_PROMPT_JSON,
+    [STRUCTURED_REQUEST_XML_PROMPT_KEY]: DEFAULT_PROMPT_XML,
   },
   activeFlow: 'Default',
   flows: {

@@ -132,6 +132,26 @@
   }
 }
 
+// Prompts Settings Tab
+.flowchart-prompts-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  .prompt-item {
+    border: 1px solid var(--SmartThemeBorderColor);
+    padding: 10px;
+    border-radius: 4px;
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  }
+}
+
 // React Flow Overrides
 .react-flow__pane.draggable,
 .react-flow__node.draggable {

@@ -64,7 +64,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
   }, []);
 
   const onConnectEnd = useCallback(
-    (event: MouseEvent) => {
+    (event: MouseEvent | TouchEvent) => {
       if (!connectingNode.current) return;
 
       if (wasConnectionSuccessful.current) {
@@ -171,13 +171,15 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
       connectingNode.current = null;
       if (compatibleNodes.length === 0) return;
 
-      // Calculate position for new node
+      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
+
       const reactFlowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
       let position = { x: 0, y: 0 };
       if (reactFlowBounds) {
         position = screenToFlowPosition({
-          x: event.clientX > reactFlowBounds.right - 200 ? event.clientX - 200 : event.clientX,
-          y: event.clientY,
+          x: clientX > reactFlowBounds.right - 200 ? clientX - 200 : clientX,
+          y: clientY,
         });
       }
 
@@ -185,7 +187,6 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         const nodeDef = nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
-        // Offset new node slightly
         const newNode = addNode({
           type: nodeType,
           position: { x: position.x + 50, y: position.y },
@@ -196,16 +197,14 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
             ? { source: startNodeId, sourceHandle: startHandleId, target: newNode.id, targetHandle: connectToHandle }
             : { source: newNode.id, sourceHandle: connectToHandle, target: startNodeId, targetHandle: startHandleId };
 
-        // Small delay to allow node to render before connecting
         setTimeout(() => onConnect(connection), 10);
       };
 
       if (compatibleNodes.length === 1) {
         createAndConnectNode(compatibleNodes[0].nodeType, compatibleNodes[0].connectToHandle);
       } else {
-        // Calculate menu position, keeping it within viewport bounds
-        let menuX = event.clientX;
-        let menuY = event.clientY;
+        let menuX = clientX;
+        let menuY = clientY;
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
 
@@ -237,7 +236,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         return {
           ...node,
           className: classNames.join(' '),
-          zIndex: node.type === 'groupNode' ? -1 : 1, // Ensure nodes are above groups
+          zIndex: node.type === 'groupNode' ? -1 : 1,
         };
       }),
     [nodes, invalidNodeIds, activeNodeId],
@@ -252,7 +251,7 @@ const FlowCanvas: FC<{ invalidNodeIds: Set<string> }> = ({ invalidNodeIds }) => 
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectStart={onConnectStart}
-        onConnectEnd={onConnectEnd as any}
+        onConnectEnd={onConnectEnd}
         onPaneClick={() => setContextMenu(null)}
         nodeTypes={nodeTypes}
         colorMode="dark"

@@ -282,3 +282,18 @@ export const MathNodeDataSchema = z.object({
   b: z.number().optional(),
 });
 export type MathNodeData = z.infer<typeof MathNodeDataSchema>;
+
+export const GetPromptNodeDataSchema = z.object({
+  promptName: z.string().optional(),
+});
+export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
+
+export const SetVariableNodeDataSchema = z.object({
+  variableName: z.string().default('myVar'),
+});
+export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
+
+export const GetVariableNodeDataSchema = z.object({
+  variableName: z.string().default('myVar'),
+});
+export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;

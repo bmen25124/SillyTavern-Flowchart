@@ -17,6 +17,12 @@ import {
   StringToolsNodeDataSchema,
   MathNodeData,
   MathNodeDataSchema,
+  GetPromptNodeData,
+  GetPromptNodeDataSchema,
+  SetVariableNodeData,
+  SetVariableNodeDataSchema,
+  GetVariableNodeData,
+  GetVariableNodeDataSchema,
 } from '../../../flow-types.js';
 import { ExecuteJsNode } from '../ExecuteJsNode.js';
 import { GroupNode } from '../GroupNode.js';
@@ -29,6 +35,9 @@ import { StringToolsNode } from '../StringToolsNode.js';
 import { MathNode } from '../MathNode.js';
 import { NodeDefinition, HandleSpec } from './types.js';
 import { FlowDataType } from '../../../flow-types.js';
+import { GetPromptNode } from '../GetPromptNode.js';
+import { GetVariableNode } from '../GetVariableNode.js';
+import { SetVariableNode } from '../SetVariableNode.js';
 
 export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   type: 'logNode',
@@ -203,5 +212,44 @@ export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
       { id: 'b', type: FlowDataType.NUMBER },
     ],
     outputs: [{ id: 'result', type: FlowDataType.NUMBER }],
+  },
+};
+
+export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
+  type: 'getPromptNode',
+  label: 'Get Prompt',
+  category: 'Utility',
+  component: GetPromptNode,
+  dataSchema: GetPromptNodeDataSchema,
+  initialData: { promptName: '' },
+  handles: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.STRING }],
+  },
+};
+
+export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
+  type: 'setVariableNode',
+  label: 'Set Variable',
+  category: 'Utility',
+  component: SetVariableNode,
+  dataSchema: SetVariableNodeDataSchema,
+  initialData: { variableName: 'myVar' },
+  handles: {
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'value', type: FlowDataType.ANY }], // Passthrough
+  },
+};
+
+export const getVariableNodeDefinition: NodeDefinition<GetVariableNodeData> = {
+  type: 'getVariableNode',
+  label: 'Get Variable',
+  category: 'Utility',
+  component: GetVariableNode,
+  dataSchema: GetVariableNodeDataSchema,
+  initialData: { variableName: 'myVar' },
+  handles: {
+    inputs: [],
+    outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
 };

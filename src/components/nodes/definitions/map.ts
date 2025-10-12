@@ -68,6 +68,12 @@ import {
   StringToolsNodeDataSchema,
   MathNodeData,
   MathNodeDataSchema,
+  GetPromptNodeData,
+  GetPromptNodeDataSchema,
+  SetVariableNodeData,
+  SetVariableNodeDataSchema,
+  GetVariableNodeData,
+  GetVariableNodeDataSchema,
 } from '../../../flow-types.js';
 import { NodeDefinition } from './types.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -638,6 +644,39 @@ const mathNodeDefinition: BaseNodeDefinition<MathNodeData> = {
     outputs: [{ id: 'result', type: FlowDataType.NUMBER }],
   },
 };
+const getPromptNodeDefinition: BaseNodeDefinition<GetPromptNodeData> = {
+  type: 'getPromptNode',
+  label: 'Get Prompt',
+  category: 'Utility',
+  dataSchema: GetPromptNodeDataSchema,
+  initialData: { promptName: '' },
+  handles: {
+    inputs: [],
+    outputs: [{ id: null, type: FlowDataType.STRING }],
+  },
+};
+const setVariableNodeDefinition: BaseNodeDefinition<SetVariableNodeData> = {
+  type: 'setVariableNode',
+  label: 'Set Variable',
+  category: 'Utility',
+  dataSchema: SetVariableNodeDataSchema,
+  initialData: { variableName: 'myVar' },
+  handles: {
+    inputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+  },
+};
+const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
+  type: 'getVariableNode',
+  label: 'Get Variable',
+  category: 'Utility',
+  dataSchema: GetVariableNodeDataSchema,
+  initialData: { variableName: 'myVar' },
+  handles: {
+    inputs: [],
+    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+  },
+};
 
 const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   triggerNodeDefinition,
@@ -673,6 +712,9 @@ const allNodeDefinitionsBase: BaseNodeDefinition[] = [
   randomNodeDefinition,
   stringToolsNodeDefinition,
   mathNodeDefinition,
+  getPromptNodeDefinition,
+  setVariableNodeDefinition,
+  getVariableNodeDefinition,
 ];
 
 export const nodeDefinitionMap = new Map<string, BaseNodeDefinition>(
