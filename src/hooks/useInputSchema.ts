@@ -3,14 +3,7 @@ import { useEdges, useNodes } from '@xyflow/react';
 import { z } from 'zod';
 import { getHandleSpec } from '../utils/handle-logic.js';
 import { FlowDataType } from '../flow-types.js';
-
-// List of node types that are known to pass their input through to their output.
-// The key is the node type, the value is the ID of the primary input handle to trace back from.
-const PASSTHROUGH_NODES: Record<string, string | null> = {
-  logNode: 'value',
-  executeJsNode: null, // The main, unnamed input
-  setVariableNode: 'value',
-};
+import { registrator } from '../components/nodes/autogen-imports.js';
 
 /**
  * A hook that recursively traces back through connections to find the most specific
@@ -44,7 +37,7 @@ export const useInputSchema = (nodeId: string, handleId: string | null): z.ZodTy
       }
 
       const sourceNode = allNodes.find((n) => n.id === edge.source);
-      if (!sourceNode) {
+      if (!sourceNode?.type) {
         return undefined;
       }
 
@@ -60,9 +53,9 @@ export const useInputSchema = (nodeId: string, handleId: string | null): z.ZodTy
 
       // If the source is a passthrough node with a generic output,
       // recursively trace its input to find the original schema.
-      const passthroughInputHandle = PASSTHROUGH_NODES[sourceNode.type as string];
-      if (spec.type === FlowDataType.ANY && passthroughInputHandle !== undefined) {
-        return findSourceSchema(sourceNode.id, passthroughInputHandle, depth + 1);
+      const sourceDef = registrator.nodeDefinitionMap.get(sourceNode.type);
+      if (spec.type === FlowDataType.ANY && sourceDef?.isPassthrough) {
+        return findSourceSchema(sourceNode.id, sourceDef.passthroughHandleId ?? null, depth + 1);
       }
 
       // If it's not a passthrough node and has no schema, we stop here.

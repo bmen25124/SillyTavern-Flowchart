@@ -38,6 +38,8 @@ export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
   execute,
+  isPassthrough: true,
+  passthroughHandleId: 'value',
 };
 
 registrator.register(setVariableNodeDefinition);

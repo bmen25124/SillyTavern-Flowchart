@@ -36,6 +36,8 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   },
   execute,
   isDangerous: true,
+  isPassthrough: true,
+  passthroughHandleId: null,
 };
 
 registrator.register(executeJsNodeDefinition);

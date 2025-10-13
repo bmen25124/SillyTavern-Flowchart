@@ -47,6 +47,16 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    */
   isDangerous?: boolean;
   /**
+   * A flag indicating that this node passes its primary input through to its output,
+   * allowing for schema inference to "see through" it.
+   */
+  isPassthrough?: boolean;
+  /**
+   * The ID of the primary input handle for passthrough nodes.
+   * Use `null` for the default, unnamed input handle.
+   */
+  passthroughHandleId?: string | null;
+  /**
    * Optional function to dynamically determine the data type of a handle.
    * This is used for nodes with dynamic handles (e.g., based on data or connections).
    * If not provided, the static `handles` array is used as a fallback.

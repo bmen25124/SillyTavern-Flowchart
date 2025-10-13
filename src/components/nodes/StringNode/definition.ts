@@ -4,6 +4,7 @@ import { FlowDataType } from '../../../flow-types.js';
 import { StringNode } from './StringNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { resolveInput } from '../../../utils/node-logic.js';
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),
@@ -13,9 +14,7 @@ export type StringNodeData = z.infer<typeof StringNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = StringNodeDataSchema.parse(node.data);
-
-  const value = input && 'value' in input ? input.value : data.value;
-
+  const value = resolveInput(input, data, 'value');
   return { value: String(value) };
 };
 

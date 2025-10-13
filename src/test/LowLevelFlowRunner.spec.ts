@@ -233,13 +233,17 @@ describe('LowLevelFlowRunner', () => {
   it('should correctly evaluate an ifNode and follow the false path', async () => {
     const flow: SpecFlow = {
       nodes: [
-        { id: 'if', type: 'ifNode', data: { conditions: [{ id: 'cond1', code: 'return input.value > 10;' }] } },
+        {
+          id: 'if',
+          type: 'ifNode',
+          data: { conditions: [{ id: 'cond1', code: 'return input.value > 10;', operator: 'equals', value: '' }] },
+        },
         { id: 'trueNode', type: 'stringNode', data: { value: 'true' } },
         { id: 'falseNode', type: 'stringNode', data: { value: 'false' } },
       ],
       edges: [
-        { id: 'e-if-true', source: 'if', target: 'trueNode', sourceHandle: 'cond1', targetHandle: null },
-        { id: 'e-if-false', source: 'if', target: 'falseNode', sourceHandle: 'false', targetHandle: null },
+        { id: 'e-if-true', source: 'if', target: 'trueNode', sourceHandle: 'cond1', targetHandle: 'value' },
+        { id: 'e-if-false', source: 'if', target: 'falseNode', sourceHandle: 'false', targetHandle: 'value' },
       ],
     };
 

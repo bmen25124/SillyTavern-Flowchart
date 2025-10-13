@@ -30,6 +30,8 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
   },
   execute,
+  isPassthrough: true,
+  passthroughHandleId: 'value',
 };
 
 registrator.register(logNodeDefinition);

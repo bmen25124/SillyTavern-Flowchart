@@ -99,9 +99,11 @@ class FlowRunner {
   private registeredCommands: string[] = [];
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
-  private isExecuting: boolean = false;
   private abortController: AbortController | null = null;
   private dependencies: FlowRunnerDependencies;
+
+  private isExecuting: boolean = false;
+  private flowQueue: { flowId: string; initialInput: Record<string, any> }[] = [];
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner(registrator.nodeExecutors);
@@ -265,19 +267,57 @@ class FlowRunner {
     }
   }
 
-  private async executeFlow(flowId: string, initialInput: Record<string, any>, depth = 0): Promise<ExecutionReport> {
-    if (depth > 10) {
-      throw new Error('Flow execution depth limit exceeded (10). Possible infinite recursion.');
+  private async _processQueue() {
+    if (this.isExecuting || this.flowQueue.length === 0) {
+      return;
     }
+
+    this.isExecuting = true;
+    const { flowId, initialInput } = this.flowQueue.shift()!;
+
+    try {
+      await this.executeFlow(flowId, initialInput, 0);
+    } catch (error) {
+      console.error(`[FlowChart] Critical error during queued flow execution:`, error);
+    } finally {
+      this.isExecuting = false;
+      // After finishing, immediately check if there's more work to do.
+      this._processQueue();
+    }
+  }
+
+  public async executeFlow(flowId: string, initialInput: Record<string, any>, depth = 0): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows[flowId];
     if (!flowData) throw new Error(`Flow with id ${flowId} not found.`);
 
-    if (this.isExecuting && depth === 0) {
-      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowData.name}" was ignored.`);
-      return { executedNodes: [], error: { nodeId: 'N/A', message: 'Another flow is already running.' } };
+    if (depth > 10) {
+      throw new Error('Flow execution depth limit exceeded (10). Possible infinite recursion.');
     }
 
+    // Queue top-level triggers, execute sub-flows directly.
+    if (depth === 0) {
+      this.flowQueue.push({ flowId, initialInput });
+      if (!this.isExecuting) {
+        this._processQueue();
+      } else {
+        st_echo('info', `FlowChart: Another flow is running. "${flowData.name}" has been queued.`);
+      }
+      // Top-level calls are fire-and-forget; results are handled by events.
+      return { executedNodes: [], lastOutput: undefined };
+    }
+
+    // This is a sub-flow execution, run it directly.
+    return this._executeFlowInternal(flowId, initialInput, depth);
+  }
+
+  private async _executeFlowInternal(
+    flowId: string,
+    initialInput: Record<string, any>,
+    depth: number,
+  ): Promise<ExecutionReport> {
+    const flowData = settingsManager.getSettings().flows[flowId];
     const flow = flowData.flow;
+
     const hasDangerousNode = flow.nodes.some((node) => {
       if (node.data?.disabled) return false;
       const definition = registrator.nodeDefinitionMap.get(node.type);
@@ -291,7 +331,6 @@ class FlowRunner {
     }
 
     if (depth === 0) {
-      this.isExecuting = true;
       this.abortController = new AbortController();
     }
     let report: ExecutionReport | undefined;
@@ -332,7 +371,6 @@ class FlowRunner {
       report = { executedNodes: [], error: { nodeId: 'CRITICAL', message: error.message } };
     } finally {
       if (depth === 0) {
-        this.isExecuting = false;
         this.abortController = null;
       }
     }
@@ -348,7 +386,7 @@ class FlowRunner {
     const paramNames = Object.keys(EventNameParameters[eventType] || {});
     const initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
 
-    return this.executeFlow(flowId, initialInput);
+    return this.executeFlow(flowId, initialInput, 0);
   }
 
   async executeFlowFromSlashCommand(
@@ -358,7 +396,10 @@ class FlowRunner {
     unnamedArgs: string,
   ) {
     const initialInput = { ...namedArgs, unnamed: unnamedArgs || '' };
-    const report = await this.executeFlow(flowId, initialInput);
+    // Slash command callbacks expect a return value, so we must await the result.
+    // This bypasses the queue for now. This could be refactored to use a Promise that resolves when the queued item is done.
+    // For now, let's keep it simple and execute it directly.
+    const report = await this._executeFlowInternal(flowId, initialInput, 0);
     if (report?.error) {
       return `Flow Error: ${report.error.message}`;
     }
@@ -383,7 +424,7 @@ class FlowRunner {
       return;
     }
 
-    return this.executeFlow(flowId, params ?? {});
+    return this.executeFlow(flowId, params ?? {}, 0);
   }
 
   public abortCurrentRun() {
