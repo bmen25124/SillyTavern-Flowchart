@@ -129,11 +129,13 @@ class FlowRunner {
   private setupEventListeners() {
     if (this.isListeningToEvents) return;
     eventEmitter.on('flow:run:start', ({ runId }) => useFlowRunStore.getState().startRun(runId));
-    eventEmitter.on('node:run:start', ({ runId, nodeId }) => useFlowRunStore.getState().setActiveNode(runId, nodeId)); // <-- ADDED
+    eventEmitter.on('node:run:start', ({ runId, nodeId }) => useFlowRunStore.getState().setActiveNode(runId, nodeId));
     eventEmitter.on('node:run:end', ({ runId, nodeId, report }) =>
       useFlowRunStore.getState().addNodeReport(runId, nodeId, report),
     );
-    eventEmitter.on('flow:run:end', ({ runId, status }) => useFlowRunStore.getState().endRun(runId, status));
+    eventEmitter.on('flow:run:end', ({ runId, status, executedNodes }) =>
+      useFlowRunStore.getState().endRun(runId, status, executedNodes),
+    );
     this.isListeningToEvents = true;
   }
 
@@ -213,9 +215,9 @@ class FlowRunner {
 
       if (report.error) {
         st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
-        eventEmitter.emit('flow:run:end', { runId, status: 'error' });
+        eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
       } else {
-        eventEmitter.emit('flow:run:end', { runId, status: 'completed' });
+        eventEmitter.emit('flow:run:end', { runId, status: 'completed', executedNodes: report.executedNodes });
       }
 
       const sanitizedReport = sanitizeReportForHistory(report);

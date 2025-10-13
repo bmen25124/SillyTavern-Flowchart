@@ -14,14 +14,16 @@ type BaseNodeProps = {
 
 export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) => {
   const duplicateNode = useFlowStore((state) => state.duplicateNode);
-  const { isVisualizationVisible, nodeReports } = useFlowRunStore((state) => ({
+  const { isVisualizationVisible, nodeReports, executionOrder } = useFlowRunStore((state) => ({
     isVisualizationVisible: state.isVisualizationVisible,
     nodeReports: state.nodeReports,
+    executionOrder: state.executionOrder,
   }));
 
   const report = nodeReports.get(id);
   const showReport = isVisualizationVisible && report;
   const statusClass = showReport ? `run-${report.status}` : '';
+  const executionOrderIndex = isVisualizationVisible ? executionOrder.indexOf(id) + 1 : 0;
 
   return (
     <div
@@ -34,8 +36,10 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
         width: '100%',
         height: '100%',
         minWidth: 180,
+        position: 'relative',
       }}
     >
+      {executionOrderIndex > 0 && <div className="execution-order-badge">{executionOrderIndex}</div>}
       <NodeResizer isVisible={selected} minWidth={180} minHeight={50} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
         <label>{title}</label>

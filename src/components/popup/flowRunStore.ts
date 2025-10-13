@@ -12,14 +12,15 @@ interface FlowRunState {
   runId: string | null;
   runStatus: 'idle' | 'running' | 'completed' | 'error';
   nodeReports: Map<string, NodeReport>;
+  executionOrder: string[];
   isVisualizationVisible: boolean;
-  activeNodeId: string | null; // <-- ADDED
+  activeNodeId: string | null;
 
   // Actions
   startRun: (runId: string) => void;
-  setActiveNode: (runId: string, nodeId: string | null) => void; // <-- ADDED
+  setActiveNode: (runId: string, nodeId: string | null) => void;
   addNodeReport: (runId: string, nodeId: string, report: NodeReport) => void;
-  endRun: (runId: string, status: 'completed' | 'error') => void;
+  endRun: (runId: string, status: 'completed' | 'error', executedNodes: { nodeId: string }[]) => void;
   toggleVisualization: () => void;
   clearRun: () => void;
 }
@@ -30,10 +31,12 @@ export const useFlowRunStore = create<FlowRunState>()(
       runId: null,
       runStatus: 'idle',
       nodeReports: new Map(),
+      executionOrder: [],
       isVisualizationVisible: false,
-      activeNodeId: null, // <-- ADDED
+      activeNodeId: null,
 
-      startRun: (runId) => set({ runId, runStatus: 'running', nodeReports: new Map(), activeNodeId: null }),
+      startRun: (runId) =>
+        set({ runId, runStatus: 'running', nodeReports: new Map(), activeNodeId: null, executionOrder: [] }),
 
       setActiveNode: (runId, nodeId) =>
         set((state) => {
@@ -49,10 +52,15 @@ export const useFlowRunStore = create<FlowRunState>()(
           return { nodeReports: newReports };
         }),
 
-      endRun: (runId, status) =>
+      endRun: (runId, status, executedNodes = []) =>
         set((state) => {
           if (state.runId !== runId) return {}; // Stale run, ignore
-          return { runStatus: status, isVisualizationVisible: true, activeNodeId: null };
+          return {
+            runStatus: status,
+            isVisualizationVisible: true,
+            activeNodeId: null,
+            executionOrder: executedNodes.map((n) => n.nodeId),
+          };
         }),
 
       toggleVisualization: () => set((state) => ({ isVisualizationVisible: !state.isVisualizationVisible })),
@@ -64,6 +72,7 @@ export const useFlowRunStore = create<FlowRunState>()(
           nodeReports: new Map(),
           isVisualizationVisible: false,
           activeNodeId: null,
+          executionOrder: [],
         }),
     }),
     { name: 'FlowRunStore' },
