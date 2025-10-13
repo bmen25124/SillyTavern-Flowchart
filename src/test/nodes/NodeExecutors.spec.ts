@@ -17,6 +17,17 @@ import { regexNodeDefinition } from '../../components/nodes/RegexNode/definition
 import { runSlashCommandNodeDefinition } from '../../components/nodes/RunSlashCommandNode/definition.js';
 import { llmRequestNodeDefinition } from '../../components/nodes/LLMRequestNode/definition.js';
 import { PromptEngineeringMode } from '../../config.js';
+import { jsonNodeDefinition } from '../../components/nodes/JsonNode/definition.js';
+import { schemaNodeDefinition } from '../../components/nodes/SchemaNode/definition.js';
+import { mergeMessagesNodeDefinition } from '../../components/nodes/MergeMessagesNode/definition.js';
+import { mergeObjectsNodeDefinition } from '../../components/nodes/MergeObjectsNode/definition.js';
+import { handlebarNodeDefinition } from '../../components/nodes/HandlebarNode/definition.js';
+import { stringToolsNodeDefinition } from '../../components/nodes/StringToolsNode/definition.js';
+import { slashCommandNodeDefinition } from '../../components/nodes/SlashCommandNode/definition.js';
+import { triggerNodeDefinition } from '../../components/nodes/TriggerNode/definition.js';
+import { stringToNumberNodeDefinition } from '../../components/nodes/StringToNumberNode/definition.js';
+import { typeConverterNodeDefinition } from '../../components/nodes/TypeConverterNode/definition.js';
+import { dateTimeNodeDefinition } from '../../components/nodes/DateTimeNode/definition.js';
 
 describe('Node Executors', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -206,6 +217,149 @@ describe('Node Executors', () => {
       });
       const result = await execute(node, { value: 20 }, context);
       expect(result).toEqual({ activatedHandle: trueConditionId });
+    });
+  });
+
+  // --- Complex Logic & Dynamic Handles ---
+  describe('JsonNode', () => {
+    const { execute } = jsonNodeDefinition;
+    it('should build a nested JSON object from its data', async () => {
+      const node = createMockNode(jsonNodeDefinition, {
+        rootType: 'object',
+        items: [
+          { id: '1', key: 'name', type: 'string', value: 'Alice' },
+          { id: '2', key: 'age', type: 'number', value: 30 },
+          {
+            id: '3',
+            key: 'address',
+            type: 'object',
+            value: [{ id: '4', key: 'city', type: 'string', value: 'Wonderland' }],
+          },
+        ],
+      });
+      const result = await execute(node, {}, context);
+      expect(result).toEqual({ name: 'Alice', age: 30, address: { city: 'Wonderland' } });
+    });
+  });
+
+  describe('SchemaNode', () => {
+    const { execute } = schemaNodeDefinition;
+    it('should generate a valid Zod schema', async () => {
+      const node = createMockNode(schemaNodeDefinition, {
+        fields: [{ id: 'f1', name: 'username', type: 'string', description: 'User name' }],
+      });
+      const result = await execute(node, {}, context);
+      expect(result).toBeInstanceOf(z.ZodObject);
+      const validation = result.safeParse({ username: 'test' });
+      expect(validation.success).toBe(true);
+    });
+  });
+
+  describe('MergeMessagesNode', () => {
+    const { execute } = mergeMessagesNodeDefinition;
+    it('should merge message arrays in order', async () => {
+      const node = createMockNode(mergeMessagesNodeDefinition, { inputCount: 2 });
+      const input = {
+        messages_0: [{ role: 'user', content: 'A' }],
+        messages_1: [{ role: 'assistant', content: 'B' }],
+      };
+      const result = await execute(node, input, context);
+      expect(result).toEqual([
+        { role: 'user', content: 'A' },
+        { role: 'assistant', content: 'B' },
+      ]);
+    });
+  });
+
+  describe('MergeObjectsNode', () => {
+    const { execute } = mergeObjectsNodeDefinition;
+    it('should merge objects, with later inputs overwriting earlier ones', async () => {
+      const node = createMockNode(mergeObjectsNodeDefinition, { inputCount: 2 });
+      const input = { object_0: { a: 1, b: 2 }, object_1: { b: 3, c: 4 } };
+      const result = await execute(node, input, context);
+      expect(result).toEqual({ a: 1, b: 3, c: 4 });
+    });
+  });
+
+  describe('HandlebarNode', () => {
+    const { execute } = handlebarNodeDefinition;
+    it('should render a template with the provided data context', async () => {
+      const node = createMockNode(handlebarNodeDefinition, { template: 'Hello, {{name}}!' });
+      const result = await execute(node, { name: 'World' }, context);
+      expect(result).toEqual({ result: 'Hello, World!' });
+    });
+  });
+
+  describe('StringToolsNode', () => {
+    const { execute } = stringToolsNodeDefinition;
+    it('should merge multiple strings with a delimiter', async () => {
+      const node = createMockNode(stringToolsNodeDefinition, { operation: 'merge', delimiter: ',', inputCount: 2 });
+      const result = await execute(node, { string_0: 'a', string_1: 'b' }, context);
+      expect(result).toEqual({ result: 'a,b' });
+    });
+    it('should split a string into an array', async () => {
+      const node = createMockNode(stringToolsNodeDefinition, { operation: 'split', delimiter: ',' });
+      const result = await execute(node, { string: 'a,b,c' }, context);
+      expect(result).toEqual({ result: ['a', 'b', 'c'] });
+    });
+  });
+
+  // --- Trigger Nodes (simple pass-through execution) ---
+  describe('TriggerNode & SlashCommandNode', () => {
+    it('TriggerNode should pass through its input', async () => {
+      const { execute } = triggerNodeDefinition;
+      const node = createMockNode(triggerNodeDefinition, { selectedEventType: 'user_message_rendered' });
+      const input = { messageId: 123 };
+      const result = await execute(node, input, context);
+      expect(result).toEqual(input);
+    });
+
+    it('SlashCommandNode should pass through its input', async () => {
+      const { execute } = slashCommandNodeDefinition;
+      const node = createMockNode(slashCommandNodeDefinition, { commandName: 'test' });
+      const input = { arg1: 'value', unnamed: 'text' };
+      const result = await execute(node, input, context);
+      expect(result).toEqual({ ...input, allArgs: input });
+    });
+  });
+
+  // --- Simple & Untested Utilities ---
+  describe('StringToNumberNode', () => {
+    const { execute } = stringToNumberNodeDefinition;
+    it('should convert a valid string to a number', async () => {
+      const node = createMockNode(stringToNumberNodeDefinition, {});
+      const result = await execute(node, { string: '123.45' }, context);
+      expect(result).toEqual({ result: 123.45 });
+    });
+    it('should throw an error for an invalid string', async () => {
+      const node = createMockNode(stringToNumberNodeDefinition, {});
+      await expect(execute(node, { string: 'abc' }, context)).rejects.toThrow("'abc' cannot be converted to a number.");
+    });
+  });
+
+  describe('TypeConverterNode', () => {
+    const { execute } = typeConverterNodeDefinition;
+    it('should convert an object to a JSON string', async () => {
+      const node = createMockNode(typeConverterNodeDefinition, { targetType: 'string' });
+      const result = await execute(node, { value: { a: 1 } }, context);
+      expect(result).toEqual({ result: '{\n  "a": 1\n}' });
+    });
+    it('should convert a JSON string to an object', async () => {
+      const node = createMockNode(typeConverterNodeDefinition, { targetType: 'object' });
+      const result = await execute(node, { value: '{"a": 1}' }, context);
+      expect(result).toEqual({ result: { a: 1 } });
+    });
+  });
+
+  describe('DateTimeNode', () => {
+    const { execute } = dateTimeNodeDefinition;
+    it('should return a valid date/time object', async () => {
+      const node = createMockNode(dateTimeNodeDefinition, {});
+      const result = await execute(node, {}, context);
+      expect(result).toHaveProperty('iso');
+      expect(result).toHaveProperty('timestamp');
+      expect(typeof result.year).toBe('number');
+      expect(typeof result.iso).toBe('string');
     });
   });
 
