@@ -1,9 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, StringToolsNodeDataSchema, StringToolsNodeData } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { StringToolsNode } from './StringToolsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const StringToolsNodeDataSchema = z.object({
+  operation: z.enum(['merge', 'split', 'join']).optional(),
+  delimiter: z.string().optional(),
+  inputCount: z.number().min(1).optional(),
+  _version: z.number().optional(),
+});
+export type StringToolsNodeData = z.infer<typeof StringToolsNodeDataSchema>;
 
 const STRING_TOOLS_MERGE_HANDLE_PREFIX = 'string_';
 
@@ -33,14 +42,14 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
-export const stringToolsNodeDefinition: NodeDefinition = {
+export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   type: 'stringToolsNode',
   label: 'String Tools',
   category: 'Utility',
   component: StringToolsNode,
   dataSchema: StringToolsNodeDataSchema,
   currentVersion: 1,
-  initialData: { operation: 'merge', inputCount: 2, delimiter: '', _version: 1 },
+  initialData: { operation: 'merge', inputCount: 2, delimiter: '' },
   handles: {
     inputs: [
       { id: 'operation', type: FlowDataType.STRING },

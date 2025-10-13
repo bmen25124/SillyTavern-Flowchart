@@ -1,8 +1,15 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, MergeMessagesNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { MergeMessagesNode } from './MergeMessagesNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+export const MergeMessagesNodeDataSchema = z.object({
+  inputCount: z.number().min(1).default(2),
+  _version: z.number().optional(),
+});
+export type MergeMessagesNodeData = z.infer<typeof MergeMessagesNodeDataSchema>;
 
 const MERGE_MESSAGES_HANDLE_PREFIX = 'messages_';
 
@@ -14,14 +21,14 @@ const execute: NodeExecutor = async (node, input) => {
     .flatMap((key) => input[key]);
 };
 
-export const mergeMessagesNodeDefinition: NodeDefinition = {
+export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> = {
   type: 'mergeMessagesNode',
   label: 'Merge Messages',
   category: 'API Request',
   component: MergeMessagesNode,
   dataSchema: MergeMessagesNodeDataSchema,
   currentVersion: 1,
-  initialData: { inputCount: 2, _version: 1 },
+  initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,

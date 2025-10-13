@@ -1,7 +1,7 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { EditLorebookEntryNodeData } from '../../../flow-types.js';
+import { EditLorebookEntryNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';

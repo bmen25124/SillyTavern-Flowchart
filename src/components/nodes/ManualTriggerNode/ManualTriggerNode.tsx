@@ -4,7 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { BaseNode } from '../BaseNode.js';
-import { ManualTriggerNodeData } from '../../../flow-types.js';
+import { ManualTriggerNodeData } from './definition.js';
 
 export type ManualTriggerNodeProps = NodeProps<Node<ManualTriggerNodeData>>;
 

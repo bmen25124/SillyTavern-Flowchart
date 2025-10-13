@@ -1,9 +1,22 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, CustomMessageNodeDataSchema, CustomMessageNodeData } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { CustomMessageNode } from './CustomMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const CustomMessageNodeDataSchema = z.object({
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      role: z.enum(['system', 'user', 'assistant']),
+      content: z.string(),
+    }),
+  ),
+  _version: z.number().optional(),
+});
+export type CustomMessageNodeData = z.infer<typeof CustomMessageNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = CustomMessageNodeDataSchema.parse(node.data);
@@ -13,7 +26,7 @@ const execute: NodeExecutor = async (node, input) => {
   }));
 };
 
-export const customMessageNodeDefinition: NodeDefinition = {
+export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> = {
   type: 'customMessageNode',
   label: 'Custom Message',
   category: 'API Request',
@@ -22,13 +35,11 @@ export const customMessageNodeDefinition: NodeDefinition = {
   currentVersion: 1,
   initialData: {
     messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }],
-    _version: 1,
   },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   execute,
   getDynamicHandles: (node) => ({
-    // @ts-ignore
-    inputs: node.data.messages.flatMap((m) => [
+    inputs: (node.data.messages || []).flatMap((m) => [
       { id: m.id, type: FlowDataType.STRING },
       { id: `${m.id}_role`, type: FlowDataType.STRING },
     ]),

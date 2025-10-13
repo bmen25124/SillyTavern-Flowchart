@@ -1,10 +1,21 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, EditLorebookEntryNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { EditLorebookEntryNode } from './EditLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const EditLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  entryUid: z.number().optional(), // uid is used as an identifier
+  key: z.string().optional(),
+  content: z.string().optional(),
+  comment: z.string().optional(), // new comment
+  _version: z.number().optional(),
+});
+export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = EditLorebookEntryNodeDataSchema.parse(node.data);
@@ -43,14 +54,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return result.entry;
 };
 
-export const editLorebookEntryNodeDefinition: NodeDefinition = {
+export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNodeData> = {
   type: 'editLorebookEntryNode',
   label: 'Edit Lorebook Entry',
   category: 'Lorebook',
   component: EditLorebookEntryNode,
   dataSchema: EditLorebookEntryNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: '', entryUid: undefined, _version: 1 },
+  initialData: { worldName: '', entryUid: undefined },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },

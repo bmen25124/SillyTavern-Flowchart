@@ -1,11 +1,21 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, CreateLorebookEntryNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { CreateLorebookEntryNode } from './CreateLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const CreateLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  key: z.string().optional(), // comma-separated
+  content: z.string().optional(),
+  comment: z.string().optional(),
+  _version: z.number().optional(),
+});
+export type CreateLorebookEntryNodeData = z.infer<typeof CreateLorebookEntryNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = CreateLorebookEntryNodeDataSchema.parse(node.data);
@@ -31,14 +41,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return result.entry;
 };
 
-export const createLorebookEntryNodeDefinition: NodeDefinition = {
+export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEntryNodeData> = {
   type: 'createLorebookEntryNode',
   label: 'Create Lorebook Entry',
   category: 'Lorebook',
   component: CreateLorebookEntryNode,
   dataSchema: CreateLorebookEntryNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: '', key: '', content: '', comment: '', _version: 1 },
+  initialData: { worldName: '', key: '', content: '', comment: '' },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },

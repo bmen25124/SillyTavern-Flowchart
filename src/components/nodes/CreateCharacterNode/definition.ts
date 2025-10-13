@@ -1,10 +1,27 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, CreateCharacterNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { CreateCharacterNode } from './CreateCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { FullExportData } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+const CharacterFieldsSchema = {
+  name: z.string().optional(),
+  description: z.string().optional(),
+  first_mes: z.string().optional(),
+  scenario: z.string().optional(),
+  personality: z.string().optional(),
+  mes_example: z.string().optional(),
+  tags: z.string().optional(), // Comma-separated
+};
+
+export const CreateCharacterNodeDataSchema = z.object({
+  ...CharacterFieldsSchema,
+  _version: z.number().optional(),
+});
+export type CreateCharacterNodeData = z.infer<typeof CreateCharacterNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = CreateCharacterNodeDataSchema.parse(node.data);
@@ -33,14 +50,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return name;
 };
 
-export const createCharacterNodeDefinition: NodeDefinition = {
+export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeData> = {
   type: 'createCharacterNode',
   label: 'Create Character',
   category: 'Character',
   component: CreateCharacterNode,
   dataSchema: CreateCharacterNodeDataSchema,
   currentVersion: 1,
-  initialData: { name: 'New Character', _version: 1 },
+  initialData: { name: 'New Character' },
   handles: {
     inputs: [
       { id: 'name', type: FlowDataType.STRING },

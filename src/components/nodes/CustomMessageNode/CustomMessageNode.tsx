@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { CustomMessageNodeData } from '../../../flow-types.js';
+import { CustomMessageNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 

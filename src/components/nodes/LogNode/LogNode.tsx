@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { LogNodeData } from '../../../flow-types.js';
+import { LogNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';

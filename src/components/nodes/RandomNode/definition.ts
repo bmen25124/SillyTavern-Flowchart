@@ -1,9 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, RandomNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { RandomNode } from './RandomNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const RandomNodeDataSchema = z.object({
+  mode: z.enum(['number', 'array']).optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  _version: z.number().optional(),
+});
+export type RandomNodeData = z.infer<typeof RandomNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = RandomNodeDataSchema.parse(node.data);
@@ -23,14 +32,14 @@ const execute: NodeExecutor = async (node, input) => {
   throw new Error(`Unknown random mode: ${mode}`);
 };
 
-export const randomNodeDefinition: NodeDefinition = {
+export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
   type: 'randomNode',
   label: 'Random',
   category: 'Utility',
   component: RandomNode,
   dataSchema: RandomNodeDataSchema,
   currentVersion: 1,
-  initialData: { mode: 'number', min: 0, max: 100, _version: 1 },
+  initialData: { mode: 'number', min: 0, max: 100 },
   handles: {
     inputs: [
       { id: 'mode', type: FlowDataType.STRING },

@@ -1,8 +1,15 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, ExecuteJsNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { ExecuteJsNode } from './ExecuteJsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+export const ExecuteJsNodeDataSchema = z.object({
+  code: z.string().default('return input;'),
+  _version: z.number().optional(),
+});
+export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = ExecuteJsNodeDataSchema.parse(node.data);
@@ -15,14 +22,14 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
   }
 };
 
-export const executeJsNodeDefinition: NodeDefinition = {
+export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   type: 'executeJsNode',
   label: 'Execute JS Code',
   category: 'Utility',
   component: ExecuteJsNode,
   dataSchema: ExecuteJsNodeDataSchema,
   currentVersion: 1,
-  initialData: { code: 'return input;', _version: 1 },
+  initialData: { code: 'return input;' },
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: null, type: FlowDataType.ANY }],

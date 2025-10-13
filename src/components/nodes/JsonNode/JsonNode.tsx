@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { JsonNodeData, JsonNodeItem } from '../../../flow-types.js';
+import { JsonNodeData, JsonNodeItem } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
 

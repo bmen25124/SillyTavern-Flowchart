@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { JsonNodeItem, JsonNodeData } from '../flow-types.js';
+import { JsonNodeData, JsonNodeItem } from '../components/nodes/JsonNode/definition.js';
 
 function jsonItemToZod(item: JsonNodeItem): z.ZodType {
   switch (item.type) {

@@ -1,10 +1,17 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, GetChatMessageNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { GetChatMessageNode } from './GetChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const GetChatMessageNodeDataSchema = z.object({
+  messageId: z.string().default('last'),
+  _version: z.number().optional(),
+});
+export type GetChatMessageNodeData = z.infer<typeof GetChatMessageNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = GetChatMessageNodeDataSchema.parse(node.data);
@@ -41,14 +48,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   };
 };
 
-export const getChatMessageNodeDefinition: NodeDefinition = {
+export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData> = {
   type: 'getChatMessageNode',
   label: 'Get Chat Message',
   category: 'Chat',
   component: GetChatMessageNode,
   dataSchema: GetChatMessageNodeDataSchema,
   currentVersion: 1,
-  initialData: { messageId: 'last', _version: 1 },
+  initialData: { messageId: 'last' },
   handles: {
     inputs: [{ id: 'messageId', type: FlowDataType.ANY }],
     outputs: [

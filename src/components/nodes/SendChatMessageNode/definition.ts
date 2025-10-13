@@ -1,9 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, SendChatMessageNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { SendChatMessageNode } from './SendChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const SendChatMessageNodeDataSchema = z.object({
+  message: z.string().default(''),
+  role: z.enum(['user', 'assistant', 'system']).default('assistant'),
+  name: z.string().optional(),
+  _version: z.number().optional(),
+});
+export type SendChatMessageNodeData = z.infer<typeof SendChatMessageNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = SendChatMessageNodeDataSchema.parse(node.data);
@@ -18,14 +27,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { messageId: newChatLength - 1 };
 };
 
-export const sendChatMessageNodeDefinition: NodeDefinition = {
+export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeData> = {
   type: 'sendChatMessageNode',
   label: 'Send Chat Message',
   category: 'Chat',
   component: SendChatMessageNode,
   dataSchema: SendChatMessageNodeDataSchema,
   currentVersion: 1,
-  initialData: { message: '', role: 'assistant', _version: 1 },
+  initialData: { message: '', role: 'assistant' },
   handles: {
     inputs: [
       { id: 'message', type: FlowDataType.STRING },

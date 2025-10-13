@@ -15,7 +15,7 @@ import {
   PickRegexScriptNodeData,
   PickStringToolsOperationNodeData,
   PickTypeConverterTargetNodeData,
-} from '../../../flow-types.js';
+} from './definition.js';
 import { PromptEngineeringMode } from '../../../config.js';
 import { world_names } from 'sillytavern-utils-lib/config';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';

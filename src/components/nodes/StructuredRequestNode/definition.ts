@@ -1,12 +1,22 @@
 import { Node, Edge } from '@xyflow/react';
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, StructuredRequestNodeDataSchema, FieldDefinition } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { StructuredRequestNode } from './StructuredRequestNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { FieldDefinition } from '../SchemaNode/definition.js';
+
+export const StructuredRequestNodeDataSchema = z.object({
+  profileId: z.string().default(''),
+  schemaName: z.string().default('responseSchema'),
+  promptEngineeringMode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  maxResponseToken: z.number().default(1000),
+  _version: z.number().optional(),
+});
+export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
@@ -75,7 +85,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { ...result, result };
 };
 
-export const structuredRequestNodeDefinition: NodeDefinition = {
+export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNodeData> = {
   type: 'structuredRequestNode',
   label: 'Structured Request',
   category: 'API Request',
@@ -87,7 +97,6 @@ export const structuredRequestNodeDefinition: NodeDefinition = {
     schemaName: 'mySchema',
     promptEngineeringMode: PromptEngineeringMode.NATIVE,
     maxResponseToken: 1000,
-    _version: 1,
   },
   handles: {
     inputs: [

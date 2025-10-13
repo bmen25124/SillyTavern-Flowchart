@@ -1,9 +1,33 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, JsonNodeDataSchema, JsonNodeData, JsonNodeItem } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { JsonNode } from './JsonNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+// Recursive types and schema for JsonNode
+const baseJsonNodeItemSchema = z.object({
+  id: z.string(),
+  key: z.string(), // Key is always present, but ignored for array children.
+  type: z.enum(['string', 'number', 'boolean', 'object', 'array']),
+});
+
+type JsonNodeItemPlain = z.infer<typeof baseJsonNodeItemSchema>;
+
+export type JsonNodeItem = JsonNodeItemPlain & {
+  value: string | number | boolean | JsonNodeItem[];
+};
+
+export const JsonNodeItemSchema: z.ZodType<JsonNodeItem> = baseJsonNodeItemSchema.extend({
+  value: z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.array(JsonNodeItemSchema)])),
+});
+
+export const JsonNodeDataSchema = z.object({
+  rootType: z.enum(['object', 'array']).default('object'),
+  items: z.array(JsonNodeItemSchema).default([]),
+  _version: z.number().optional(),
+});
+export type JsonNodeData = z.infer<typeof JsonNodeDataSchema>;
 
 const execute: NodeExecutor = async (node) => {
   const data = JsonNodeDataSchema.parse(node.data);
@@ -70,14 +94,14 @@ function inferSchemaFromJsonNode(data: JsonNodeData): z.ZodType {
   return z.object(shape);
 }
 
-export const jsonNodeDefinition: NodeDefinition = {
+export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   type: 'jsonNode',
   label: 'JSON',
   category: 'JSON',
   component: JsonNode,
   dataSchema: JsonNodeDataSchema,
   currentVersion: 1,
-  initialData: { items: [], rootType: 'object', _version: 1 },
+  initialData: { items: [], rootType: 'object' },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   execute,
   getDynamicHandles: (node) => ({

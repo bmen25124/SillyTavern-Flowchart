@@ -1,10 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, GetLorebookEntryNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { GetLorebookEntryNode } from './GetLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const GetLorebookEntryNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  entryUid: z.number().optional(),
+  _version: z.number().optional(),
+});
+export type GetLorebookEntryNodeData = z.infer<typeof GetLorebookEntryNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = GetLorebookEntryNodeDataSchema.parse(node.data);
@@ -23,14 +31,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { entry, key: entry.key.join(', '), content: entry.content, comment: entry.comment };
 };
 
-export const getLorebookEntryNodeDefinition: NodeDefinition = {
+export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNodeData> = {
   type: 'getLorebookEntryNode',
   label: 'Get Lorebook Entry',
   category: 'Lorebook',
   component: GetLorebookEntryNode,
   dataSchema: GetLorebookEntryNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: '', entryUid: undefined, _version: 1 },
+  initialData: { worldName: '', entryUid: undefined },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },

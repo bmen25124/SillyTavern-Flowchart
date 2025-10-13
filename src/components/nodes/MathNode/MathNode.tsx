@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { MathNodeData } from '../../../flow-types.js';
+import { MathNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';

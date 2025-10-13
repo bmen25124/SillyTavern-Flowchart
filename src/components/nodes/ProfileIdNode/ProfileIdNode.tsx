@@ -1,7 +1,7 @@
 import React, { FC, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { ProfileIdNodeData } from '../../../flow-types.js';
+import { ProfileIdNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STConnectionProfileSelect } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';

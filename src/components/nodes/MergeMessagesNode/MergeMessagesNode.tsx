@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from '../BaseNode.js';
-import { MergeMessagesNodeData } from '../../../flow-types.js';
+import { MergeMessagesNodeData } from './definition.js';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';

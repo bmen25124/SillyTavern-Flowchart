@@ -1,9 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, MathNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { MathNode } from './MathNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const MathNodeDataSchema = z.object({
+  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).optional(),
+  a: z.number().optional(),
+  b: z.number().optional(),
+  _version: z.number().optional(),
+});
+export type MathNodeData = z.infer<typeof MathNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = MathNodeDataSchema.parse(node.data);
@@ -31,14 +40,14 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
-export const mathNodeDefinition: NodeDefinition = {
+export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
   type: 'mathNode',
   label: 'Math',
   category: 'Utility',
   component: MathNode,
   dataSchema: MathNodeDataSchema,
   currentVersion: 1,
-  initialData: { operation: 'add', a: 0, b: 0, _version: 1 },
+  initialData: { operation: 'add', a: 0, b: 0 },
   handles: {
     inputs: [
       { id: 'operation', type: FlowDataType.STRING },

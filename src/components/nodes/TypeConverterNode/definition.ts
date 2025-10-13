@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, TypeConverterNodeDataSchema, TypeConverterNodeData } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { TypeConverterNode } from './TypeConverterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const TypeConverterNodeDataSchema = z.object({
+  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+  _version: z.number().optional(),
+});
+export type TypeConverterNodeData = z.infer<typeof TypeConverterNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = TypeConverterNodeDataSchema.parse(node.data);
@@ -49,14 +56,14 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
-export const typeConverterNodeDefinition: NodeDefinition = {
+export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> = {
   type: 'typeConverterNode',
   label: 'Type Converter',
   category: 'Utility',
   component: TypeConverterNode,
   dataSchema: TypeConverterNodeDataSchema,
   currentVersion: 1,
-  initialData: { targetType: 'string', _version: 1 },
+  initialData: { targetType: 'string' },
   handles: {
     inputs: [
       { id: 'value', type: FlowDataType.ANY },

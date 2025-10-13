@@ -1,8 +1,15 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, ManualTriggerNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { ManualTriggerNode } from './ManualTriggerNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+export const ManualTriggerNodeDataSchema = z.object({
+  payload: z.string().default('{}'),
+  _version: z.number().optional(),
+});
+export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
 
 const execute: NodeExecutor = async (node) => {
   const data = ManualTriggerNodeDataSchema.parse(node.data);
@@ -13,14 +20,14 @@ const execute: NodeExecutor = async (node) => {
   }
 };
 
-export const manualTriggerNodeDefinition: NodeDefinition = {
+export const manualTriggerNodeDefinition: NodeDefinition<ManualTriggerNodeData> = {
   type: 'manualTriggerNode',
   label: 'Manual Trigger',
   category: 'Trigger',
   component: ManualTriggerNode,
   dataSchema: ManualTriggerNodeDataSchema,
   currentVersion: 1,
-  initialData: { payload: '{\n}', _version: 1 },
+  initialData: { payload: '{\n}' },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   execute,
 };

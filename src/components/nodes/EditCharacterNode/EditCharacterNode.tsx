@@ -1,7 +1,7 @@
 import React, { FC, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { EditCharacterNodeData } from '../../../flow-types.js';
+import { EditCharacterNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';

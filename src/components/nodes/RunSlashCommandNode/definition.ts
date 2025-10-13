@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, RunSlashCommandNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { RunSlashCommandNode } from './RunSlashCommandNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const RunSlashCommandNodeDataSchema = z.object({
+  command: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = RunSlashCommandNodeDataSchema.parse(node.data);
@@ -23,14 +30,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { result: result.pipe ?? '' };
 };
 
-export const runSlashCommandNodeDefinition: NodeDefinition = {
+export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeData> = {
   type: 'runSlashCommandNode',
   label: 'Run Slash Command',
   category: 'Utility',
   component: RunSlashCommandNode,
   dataSchema: RunSlashCommandNodeDataSchema,
   currentVersion: 1,
-  initialData: { command: '', _version: 1 },
+  initialData: { command: '' },
   handles: {
     inputs: [{ id: 'command', type: FlowDataType.STRING }],
     outputs: [{ id: 'result', type: FlowDataType.STRING }],

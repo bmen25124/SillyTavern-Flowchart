@@ -1,17 +1,6 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import {
-  FlowDataType,
-  PickCharacterNodeDataSchema,
-  PickLorebookNodeDataSchema,
-  PickMathOperationNodeDataSchema,
-  PickPromptEngineeringModeNodeDataSchema,
-  PickPromptNodeDataSchema,
-  PickRandomModeNodeDataSchema,
-  PickRegexModeNodeDataSchema,
-  PickRegexScriptNodeDataSchema,
-  PickStringToolsOperationNodeDataSchema,
-  PickTypeConverterTargetNodeDataSchema,
-} from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import {
   PickCharacterNode,
   PickLorebookNode,
@@ -28,6 +17,68 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
 
+// Schemas
+export const PickCharacterNodeDataSchema = z.object({
+  characterAvatar: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type PickCharacterNodeData = z.infer<typeof PickCharacterNodeDataSchema>;
+
+export const PickLorebookNodeDataSchema = z.object({
+  worldName: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type PickLorebookNodeData = z.infer<typeof PickLorebookNodeDataSchema>;
+
+export const PickPromptNodeDataSchema = z.object({
+  promptName: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type PickPromptNodeData = z.infer<typeof PickPromptNodeDataSchema>;
+
+export const PickRegexScriptNodeDataSchema = z.object({
+  scriptId: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type PickRegexScriptNodeData = z.infer<typeof PickRegexScriptNodeDataSchema>;
+
+export const PickMathOperationNodeDataSchema = z.object({
+  operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
+  _version: z.number().optional(),
+});
+export type PickMathOperationNodeData = z.infer<typeof PickMathOperationNodeDataSchema>;
+
+export const PickStringToolsOperationNodeDataSchema = z.object({
+  operation: z.enum(['merge', 'split', 'join']).default('merge'),
+  _version: z.number().optional(),
+});
+export type PickStringToolsOperationNodeData = z.infer<typeof PickStringToolsOperationNodeDataSchema>;
+
+export const PickPromptEngineeringModeNodeDataSchema = z.object({
+  mode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  _version: z.number().optional(),
+});
+export type PickPromptEngineeringModeNodeData = z.infer<typeof PickPromptEngineeringModeNodeDataSchema>;
+
+export const PickRandomModeNodeDataSchema = z.object({
+  mode: z.enum(['number', 'array']).default('number'),
+  _version: z.number().optional(),
+});
+export type PickRandomModeNodeData = z.infer<typeof PickRandomModeNodeDataSchema>;
+
+export const PickRegexModeNodeDataSchema = z.object({
+  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  _version: z.number().optional(),
+});
+export type PickRegexModeNodeData = z.infer<typeof PickRegexModeNodeDataSchema>;
+
+export const PickTypeConverterTargetNodeDataSchema = z.object({
+  targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+  _version: z.number().optional(),
+});
+export type PickTypeConverterTargetNodeData = z.infer<typeof PickTypeConverterTargetNodeDataSchema>;
+
+// Executors
 const pickerExecutors: Record<string, NodeExecutor> = {
   pickCharacterNode: async (node) => ({ avatar: PickCharacterNodeDataSchema.parse(node.data).characterAvatar }),
   pickLorebookNode: async (node) => ({ name: PickLorebookNodeDataSchema.parse(node.data).worldName }),
@@ -47,6 +98,7 @@ const pickerExecutors: Record<string, NodeExecutor> = {
   }),
 };
 
+// Definitions
 const definitions: NodeDefinition[] = [
   {
     type: 'pickCharacterNode',
@@ -55,7 +107,7 @@ const definitions: NodeDefinition[] = [
     component: PickCharacterNode,
     dataSchema: PickCharacterNodeDataSchema,
     currentVersion: 1,
-    initialData: { characterAvatar: '', _version: 1 },
+    initialData: { characterAvatar: '' },
     handles: { inputs: [], outputs: [{ id: 'avatar', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickCharacterNode,
   },
@@ -66,7 +118,7 @@ const definitions: NodeDefinition[] = [
     component: PickLorebookNode,
     dataSchema: PickLorebookNodeDataSchema,
     currentVersion: 1,
-    initialData: { worldName: '', _version: 1 },
+    initialData: { worldName: '' },
     handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickLorebookNode,
   },
@@ -77,7 +129,7 @@ const definitions: NodeDefinition[] = [
     component: PickPromptNode,
     dataSchema: PickPromptNodeDataSchema,
     currentVersion: 1,
-    initialData: { promptName: '', _version: 1 },
+    initialData: { promptName: '' },
     handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickPromptNode,
   },
@@ -88,7 +140,7 @@ const definitions: NodeDefinition[] = [
     component: PickRegexScriptNode,
     dataSchema: PickRegexScriptNodeDataSchema,
     currentVersion: 1,
-    initialData: { scriptId: '', _version: 1 },
+    initialData: { scriptId: '' },
     handles: { inputs: [], outputs: [{ id: 'id', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickRegexScriptNode,
   },
@@ -99,7 +151,7 @@ const definitions: NodeDefinition[] = [
     component: PickMathOperationNode,
     dataSchema: PickMathOperationNodeDataSchema,
     currentVersion: 1,
-    initialData: { operation: 'add', _version: 1 },
+    initialData: { operation: 'add' },
     handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickMathOperationNode,
   },
@@ -110,7 +162,7 @@ const definitions: NodeDefinition[] = [
     component: PickStringToolsOperationNode,
     dataSchema: PickStringToolsOperationNodeDataSchema,
     currentVersion: 1,
-    initialData: { operation: 'merge', _version: 1 },
+    initialData: { operation: 'merge' },
     handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickStringToolsOperationNode,
   },
@@ -121,7 +173,7 @@ const definitions: NodeDefinition[] = [
     component: PickPromptEngineeringModeNode,
     dataSchema: PickPromptEngineeringModeNodeDataSchema,
     currentVersion: 1,
-    initialData: { mode: PromptEngineeringMode.NATIVE, _version: 1 },
+    initialData: { mode: PromptEngineeringMode.NATIVE },
     handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickPromptEngineeringModeNode,
   },
@@ -132,7 +184,7 @@ const definitions: NodeDefinition[] = [
     component: PickRandomModeNode,
     dataSchema: PickRandomModeNodeDataSchema,
     currentVersion: 1,
-    initialData: { mode: 'number', _version: 1 },
+    initialData: { mode: 'number' },
     handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickRandomModeNode,
   },
@@ -143,7 +195,7 @@ const definitions: NodeDefinition[] = [
     component: PickRegexModeNode,
     dataSchema: PickRegexModeNodeDataSchema,
     currentVersion: 1,
-    initialData: { mode: 'sillytavern', _version: 1 },
+    initialData: { mode: 'sillytavern' },
     handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickRegexModeNode,
   },
@@ -154,7 +206,7 @@ const definitions: NodeDefinition[] = [
     component: PickTypeConverterTargetNode,
     dataSchema: PickTypeConverterTargetNodeDataSchema,
     currentVersion: 1,
-    initialData: { targetType: 'string', _version: 1 },
+    initialData: { targetType: 'string' },
     handles: { inputs: [], outputs: [{ id: 'type', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickTypeConverterTargetNode,
   },

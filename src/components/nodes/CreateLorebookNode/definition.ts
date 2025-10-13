@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, CreateLorebookNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { CreateLorebookNode } from './CreateLorebookNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const CreateLorebookNodeDataSchema = z.object({
+  worldName: z.string().optional(),
+  _version: z.number().optional(),
+});
+export type CreateLorebookNodeData = z.infer<typeof CreateLorebookNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = CreateLorebookNodeDataSchema.parse(node.data);
@@ -15,14 +22,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return worldName;
 };
 
-export const createLorebookNodeDefinition: NodeDefinition = {
+export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData> = {
   type: 'createLorebookNode',
   label: 'Create Lorebook',
   category: 'Lorebook',
   component: CreateLorebookNode,
   dataSchema: CreateLorebookNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: 'My Lorebook', _version: 1 },
+  initialData: { worldName: 'My Lorebook' },
   handles: {
     inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
     outputs: [{ id: null, type: FlowDataType.STRING }],

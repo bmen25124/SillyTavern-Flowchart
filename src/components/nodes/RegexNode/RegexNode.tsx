@@ -1,7 +1,7 @@
 import React, { FC, useState, useEffect, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { RegexNodeData } from '../../../flow-types.js';
+import { RegexNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STSelect, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';

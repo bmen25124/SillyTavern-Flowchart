@@ -1,11 +1,17 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, GetCharacterNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { GetCharacterNode } from './GetCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const GetCharacterNodeDataSchema = z.object({
+  characterAvatar: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type GetCharacterNodeData = z.infer<typeof GetCharacterNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = GetCharacterNodeDataSchema.parse(node.data);
@@ -33,14 +39,14 @@ const CharacterDataSchema = z.object({
   tags: z.array(z.string()).describe('A list of tags.'),
 });
 
-export const getCharacterNodeDefinition: NodeDefinition = {
+export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = {
   type: 'getCharacterNode',
   label: 'Get Character',
   category: 'Character',
   component: GetCharacterNode,
   dataSchema: GetCharacterNodeDataSchema,
   currentVersion: 1,
-  initialData: { characterAvatar: '', _version: 1 },
+  initialData: { characterAvatar: '' },
   handles: {
     inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
     outputs: [

@@ -1,10 +1,19 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, RegexNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { RegexNode } from './RegexNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const RegexNodeDataSchema = z.object({
+  mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  scriptId: z.string().default(''),
+  findRegex: z.string().default(''),
+  replaceString: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type RegexNodeData = z.infer<typeof RegexNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = RegexNodeDataSchema.parse(node.data);
@@ -47,14 +56,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { result, matches: matches ?? [] };
 };
 
-export const regexNodeDefinition: NodeDefinition = {
+export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
   type: 'regexNode',
   label: 'Regex',
   category: 'Utility',
   component: RegexNode,
   dataSchema: RegexNodeDataSchema,
   currentVersion: 1,
-  initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '', _version: 1 },
+  initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '' },
   handles: {
     inputs: [
       { id: 'string', type: FlowDataType.STRING },

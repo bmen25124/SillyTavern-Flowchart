@@ -4,7 +4,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { BaseNode } from '../BaseNode.js';
-import { ExecuteJsNodeData } from '../../../flow-types.js';
+import { ExecuteJsNodeData } from './definition.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 

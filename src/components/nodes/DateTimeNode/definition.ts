@@ -1,8 +1,15 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, DateTimeNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { DateTimeNode } from './DateTimeNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+export const DateTimeNodeDataSchema = z.object({
+  format: z.string().optional(),
+  _version: z.number().optional(),
+});
+export type DateTimeNodeData = z.infer<typeof DateTimeNodeDataSchema>;
 
 const execute: NodeExecutor = async () => {
   const now = new Date();
@@ -18,14 +25,14 @@ const execute: NodeExecutor = async () => {
   };
 };
 
-export const dateTimeNodeDefinition: NodeDefinition = {
+export const dateTimeNodeDefinition: NodeDefinition<DateTimeNodeData> = {
   type: 'dateTimeNode',
   label: 'Date/Time',
   category: 'Utility',
   component: DateTimeNode,
   dataSchema: DateTimeNodeDataSchema,
   currentVersion: 1,
-  initialData: { _version: 1 },
+  initialData: {},
   handles: {
     inputs: [{ id: 'format', type: FlowDataType.STRING }],
     outputs: [

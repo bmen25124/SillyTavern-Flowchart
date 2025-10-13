@@ -1,7 +1,7 @@
 import React, { FC, useMemo } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { StructuredRequestNodeData } from '../../../flow-types.js';
+import { StructuredRequestNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { PromptEngineeringMode } from '../../../config.js';

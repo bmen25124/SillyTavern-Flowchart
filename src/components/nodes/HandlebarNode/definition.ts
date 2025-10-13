@@ -1,10 +1,17 @@
+import { z } from 'zod';
 import Handlebars from 'handlebars';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, HandlebarNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { HandlebarNode } from './HandlebarNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const HandlebarNodeDataSchema = z.object({
+  template: z.string().default('Hello, {{name}}!'),
+  _version: z.number().optional(),
+});
+export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = HandlebarNodeDataSchema.parse(node.data);
@@ -20,14 +27,14 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
-export const handlebarNodeDefinition: NodeDefinition = {
+export const handlebarNodeDefinition: NodeDefinition<HandlebarNodeData> = {
   type: 'handlebarNode',
   label: 'Handlebar',
   category: 'Utility',
   component: HandlebarNode,
   dataSchema: HandlebarNodeDataSchema,
   currentVersion: 1,
-  initialData: { template: 'Hello, {{name}}!', _version: 1 },
+  initialData: { template: 'Hello, {{name}}!' },
   handles: {
     inputs: [
       { id: 'template', type: FlowDataType.STRING },

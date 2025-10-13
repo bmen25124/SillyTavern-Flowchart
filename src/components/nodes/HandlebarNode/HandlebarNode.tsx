@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { HandlebarNodeData } from '../../../flow-types.js';
+import { HandlebarNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STTextarea } from 'sillytavern-utils-lib/components';
 import { useIsConnected } from '../../../hooks/useIsConnected.js';

@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { NodeProps, NodeResizer, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { GroupNodeData } from '../../../flow-types.js';
+import { GroupNodeData } from './definition.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 
 export type GroupNodeProps = NodeProps<Node<GroupNodeData>>;

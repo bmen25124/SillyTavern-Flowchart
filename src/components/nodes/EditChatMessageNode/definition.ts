@@ -1,10 +1,18 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, EditChatMessageNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { EditChatMessageNode } from './EditChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+
+export const EditChatMessageNodeDataSchema = z.object({
+  messageId: z.number().optional(), // Optional is correct here as it's a required input connection
+  message: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = EditChatMessageNodeDataSchema.parse(node.data);
@@ -23,14 +31,14 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   return { messageObject: structuredClone(message) };
 };
 
-export const editChatMessageNodeDefinition: NodeDefinition = {
+export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeData> = {
   type: 'editChatMessageNode',
   label: 'Edit Chat Message',
   category: 'Chat',
   component: EditChatMessageNode,
   dataSchema: EditChatMessageNodeDataSchema,
   currentVersion: 1,
-  initialData: { message: '', _version: 1 },
+  initialData: { message: '' },
   handles: {
     inputs: [
       { id: 'messageId', type: FlowDataType.NUMBER },

@@ -1,8 +1,15 @@
+import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
-import { FlowDataType, MergeObjectsNodeDataSchema } from '../../../flow-types.js';
+import { FlowDataType } from '../../../flow-types.js';
 import { MergeObjectsNode } from './MergeObjectsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+
+export const MergeObjectsNodeDataSchema = z.object({
+  inputCount: z.number().min(1).default(2),
+  _version: z.number().optional(),
+});
+export type MergeObjectsNodeData = z.infer<typeof MergeObjectsNodeDataSchema>;
 
 const MERGE_OBJECTS_HANDLE_PREFIX = 'object_';
 
@@ -16,14 +23,14 @@ const execute: NodeExecutor = async (node, input) => {
   return Object.assign({}, ...objectsToMerge);
 };
 
-export const mergeObjectsNodeDefinition: NodeDefinition = {
+export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = {
   type: 'mergeObjectsNode',
   label: 'Merge Objects',
   category: 'Utility',
   component: MergeObjectsNode,
   dataSchema: MergeObjectsNodeDataSchema,
   currentVersion: 1,
-  initialData: { inputCount: 2, _version: 1 },
+  initialData: { inputCount: 2 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,

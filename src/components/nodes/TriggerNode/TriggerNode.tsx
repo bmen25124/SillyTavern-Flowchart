@@ -4,7 +4,8 @@ import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { BaseNode } from '../BaseNode.js';
-import { TriggerNodeData, EventNameParameters } from '../../../flow-types.js';
+import { TriggerNodeData } from './definition.js';
+import { EventNameParameters } from '../../../flow-types.js';
 
 export type TriggerNodeProps = NodeProps<Node<TriggerNodeData>>;
 

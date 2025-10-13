@@ -3,10 +3,11 @@ import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { EventNameParameters, IfNodeData } from '../../../flow-types.js';
+import { EventNameParameters } from '../../../flow-types.js';
 import { z } from 'zod';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { BaseNode } from '../BaseNode.js';
+import { IfNodeData } from './definition.js';
 
 function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
   let interfaceString = '{\n';
