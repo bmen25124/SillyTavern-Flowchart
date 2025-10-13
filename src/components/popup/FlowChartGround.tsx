@@ -155,6 +155,41 @@ const FlowCanvas: FC<{
     [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled],
   );
 
+  const openNodeCreationMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
+      if (!editorArea) return;
+
+      const bounds = editorArea.getBoundingClientRect();
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      const createNode = (nodeType: string, data: any) => {
+        addNode({
+          type: nodeType,
+          position: { x: position.x - 75, y: position.y - 25 },
+          data,
+        });
+      };
+
+      menuJustOpened.current = true;
+      setContextMenu({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+        items: registrator.allNodeDefinitions.map((def) => ({
+          label: def.label,
+          action: () => {
+            createNode(def.type, structuredClone(def.initialData));
+            setContextMenu(null);
+          },
+        })),
+        searchTerm: '',
+        showSearch: true,
+      });
+    },
+    [screenToFlowPosition, addNode, setContextMenu],
+  );
+
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
       if (!connectingNode.current || wasConnectionSuccessful.current) {
@@ -363,6 +398,7 @@ const FlowCanvas: FC<{
         onConnectEnd={onConnectEnd}
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
+        onPaneContextMenu={openNodeCreationMenu}
         nodeTypes={registrator.nodeTypes}
         colorMode="dark"
         fitView
