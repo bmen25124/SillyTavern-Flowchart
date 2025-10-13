@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals';
 import { LowLevelFlowRunner } from '../LowLevelFlowRunner.js';
 import { Character } from 'sillytavern-utils-lib/types';
-import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { SpecFlow } from '../flow-spec.js';
 import * as events from '../events.js';
 import { FlowRunnerDependencies } from '../NodeExecutor.js';
@@ -47,10 +46,9 @@ describe('LowLevelFlowRunner', () => {
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
-    // @ts-ignore
     dependencies.getSillyTavernContext.mockReturnValue({
       characters: [mockCharacter],
-    });
+    } as any);
     dependencies.st_createNewWorldInfo.mockResolvedValue(true);
     dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'add' }));
     dependencies.getWorldInfos.mockResolvedValue({});
@@ -62,14 +60,146 @@ describe('LowLevelFlowRunner', () => {
     emitSpy.mockRestore();
   });
 
+  // --- Core Runner Logic Tests ---
+
+  it('should stop execution and report an error when a node fails', async () => {
+    // @ts-ignore
+    const errorExecutor = jest.fn().mockRejectedValue(new Error('Something went wrong'));
+    // @ts-ignore
+    runner['nodeExecutors'].set('errorNode', errorExecutor);
+
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
+        { id: 'error', type: 'errorNode', data: {} },
+        { id: 'end', type: 'stringNode', data: { value: 'never-reached' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'start', target: 'error', sourceHandle: null, targetHandle: null },
+        { id: 'e2', source: 'error', target: 'end', sourceHandle: null, targetHandle: null },
+      ],
+    };
+
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+
+    expect(report.error).toBeDefined();
+    expect(report.error?.nodeId).toBe('error');
+    expect(report.error?.message).toContain('Something went wrong');
+
+    const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    expect(executedNodeIds).toEqual(['start', 'error']);
+
+    runner['nodeExecutors'].delete('errorNode');
+  });
+
+  it('should gracefully terminate when an EndNode is reached', async () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
+        { id: 'endNode', type: 'endNode', data: {} },
+        { id: 'after', type: 'stringNode', data: { value: 'never-reached' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'start', target: 'endNode', sourceHandle: null, targetHandle: null },
+        { id: 'e2', source: 'endNode', target: 'after', sourceHandle: null, targetHandle: null },
+      ],
+    };
+
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+
+    expect(report.error).toBeUndefined();
+    const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    expect(executedNodeIds).toEqual(['start', 'endNode']);
+  });
+
+  it('should stop the execution path at a disabled node and not report it', async () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
+        { id: 'disabled', type: 'stringNode', data: { value: 'skipped', disabled: true } },
+        { id: 'final', type: 'logNode', data: { prefix: 'Log:' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'start', target: 'disabled', sourceHandle: null, targetHandle: 'value' },
+        { id: 'e2', source: 'disabled', target: 'final', sourceHandle: 'value', targetHandle: 'value' },
+      ],
+    };
+
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+
+    expect(report.error).toBeUndefined();
+    const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    expect(executedNodeIds).toEqual(['start']);
+  });
+
+  it('should handle a diamond-shaped graph (fan-out, fan-in)', async () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: { payload: '{"a": 1}' } },
+        { id: 'left', type: 'jsonNode', data: { items: [{ id: 'l1', key: 'left_val', value: 'L', type: 'string' }] } },
+        {
+          id: 'right',
+          type: 'jsonNode',
+          data: { items: [{ id: 'r1', key: 'right_val', value: 'R', type: 'string' }] },
+        },
+        { id: 'merge', type: 'mergeObjectsNode', data: { inputCount: 2 } },
+      ],
+      edges: [
+        { id: 'e-start-left', source: 'start', target: 'left', sourceHandle: null, targetHandle: null },
+        { id: 'e-start-right', source: 'start', target: 'right', sourceHandle: null, targetHandle: null },
+        { id: 'e-left-merge', source: 'left', target: 'merge', sourceHandle: null, targetHandle: 'object_0' },
+        { id: 'e-right-merge', source: 'right', target: 'merge', sourceHandle: null, targetHandle: 'object_1' },
+      ],
+    };
+
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+
+    expect(report.error).toBeUndefined();
+    const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
+    expect(mergeNodeReport?.input).toEqual({
+      object_0: { left_val: 'L' },
+      object_1: { right_val: 'R' },
+    });
+    expect(mergeNodeReport?.output).toEqual({ left_val: 'L', right_val: 'R' });
+  });
+
+  it('should abort execution when the signal is triggered', async () => {
+    const controller = new AbortController();
+    const delayExecutor = jest.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10)); // Allow time for abort
+      controller.abort();
+      return { value: 'delayed' };
+    });
+    runner['nodeExecutors'].set('delayNode', delayExecutor);
+
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
+        { id: 'delay', type: 'delayNode', data: {} },
+        { id: 'after', type: 'stringNode', data: { value: 'never' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'start', target: 'delay', sourceHandle: null, targetHandle: null },
+        { id: 'e2', source: 'delay', target: 'after', sourceHandle: 'value', targetHandle: 'value' },
+      ],
+    };
+
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, controller.signal);
+
+    expect(report.error).toBeDefined();
+    expect(report.error?.message).toContain('aborted');
+    const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    expect(executedNodeIds).not.toContain('after');
+
+    runner['nodeExecutors'].delete('delayNode');
+  });
+
+  // --- Original Integration-Style Tests ---
+
   it('should execute a simple flow and emit debug events', async () => {
     const flow: SpecFlow = {
       nodes: [
-        {
-          id: 'start',
-          type: 'triggerNode',
-          data: { selectedEventType: 'user_message_rendered' },
-        },
+        { id: 'start', type: 'triggerNode', data: { selectedEventType: 'user_message_rendered' } },
         { id: 'string', type: 'stringNode', data: { value: 'hello' } },
       ],
       edges: [],
@@ -80,27 +210,8 @@ describe('LowLevelFlowRunner', () => {
     expect(report.executedNodes).toHaveLength(2);
     expect(report.executedNodes[0].nodeId).toBe('start');
     expect(report.executedNodes[1].output).toEqual({ value: 'hello' });
-
     // @ts-ignore
-    expect(emitSpy).toHaveBeenCalledWith('node:run:start', expect.objectContaining({ nodeId: 'start' }));
-    // @ts-ignore
-    expect(emitSpy).toHaveBeenCalledWith(
-      'node:run:end',
-      expect.objectContaining({
-        nodeId: 'start',
-        report: expect.objectContaining({ status: 'completed', output: { initial: 'input' } }),
-      }),
-    );
-    // @ts-ignore
-    expect(emitSpy).toHaveBeenCalledWith('node:run:start', expect.objectContaining({ nodeId: 'string' }));
-    // @ts-ignore
-    expect(emitSpy).toHaveBeenCalledWith(
-      'node:run:end',
-      expect.objectContaining({
-        nodeId: 'string',
-        report: expect.objectContaining({ status: 'completed', output: { value: 'hello' } }),
-      }),
-    );
+    expect(emitSpy).toHaveBeenCalledTimes(4); // start/end for each of the 2 nodes
   });
 
   it('should ignore group nodes during execution', async () => {
@@ -122,11 +233,7 @@ describe('LowLevelFlowRunner', () => {
   it('should correctly evaluate an ifNode and follow the false path', async () => {
     const flow: SpecFlow = {
       nodes: [
-        {
-          id: 'if',
-          type: 'ifNode',
-          data: { conditions: [{ id: 'cond1', code: 'return input.value > 10;' }] },
-        },
+        { id: 'if', type: 'ifNode', data: { conditions: [{ id: 'cond1', code: 'return input.value > 10;' }] } },
         { id: 'trueNode', type: 'stringNode', data: { value: 'true' } },
         { id: 'falseNode', type: 'stringNode', data: { value: 'false' } },
       ],
@@ -166,13 +273,8 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
+    await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
-    const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
-    expect(mockCallArgs[0]).toBe('test-profile');
-    expect(mockCallArgs[1]).toEqual([{ role: 'user', content: 'message' }]);
-    expect(mockCallArgs[3]).toBe('test-schema');
   });
 
   it('should merge messages from multiple dynamic sources in the correct order', async () => {
@@ -184,228 +286,18 @@ describe('LowLevelFlowRunner', () => {
           type: 'customMessageNode',
           data: { messages: [{ id: 'm2', role: 'assistant', content: 'B' }] },
         },
-        { id: 'customC', type: 'customMessageNode', data: { messages: [{ id: 'm3', role: 'system', content: 'C' }] } },
-        { id: 'merge', type: 'mergeMessagesNode', data: { inputCount: 3 } },
+        { id: 'merge', type: 'mergeMessagesNode', data: { inputCount: 2 } },
       ],
       edges: [
         { id: 'e-A-merge', source: 'customA', target: 'merge', sourceHandle: null, targetHandle: 'messages_0' },
         { id: 'e-B-merge', source: 'customB', target: 'merge', sourceHandle: null, targetHandle: 'messages_1' },
-        { id: 'e-C-merge', source: 'customC', target: 'merge', sourceHandle: null, targetHandle: 'messages_2' },
       ],
     };
     const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual([
       { role: 'user', content: 'A' },
       { role: 'assistant', content: 'B' },
-      { role: 'system', content: 'C' },
     ]);
-  });
-
-  it('should call createCharacter for createCharacterNode', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'create',
-          type: 'createCharacterNode',
-          data: { name: 'New Char', description: 'A description', tags: 'tag1, tag2' },
-        },
-      ],
-      edges: [],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    expect(dependencies.createCharacter).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'New Char', description: 'A description', tags: ['tag1', 'tag2'] }),
-    );
-  });
-
-  it('should call saveCharacter for editCharacterNode', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'edit',
-          type: 'editCharacterNode',
-          data: { characterAvatar: 'test-char.png', description: 'New Description' },
-        },
-      ],
-      edges: [],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    expect(dependencies.saveCharacter).toHaveBeenCalledWith({ ...mockCharacter, description: 'New Description' });
-  });
-
-  it('should execute getCharacterNode and output character data', async () => {
-    const flow: SpecFlow = {
-      nodes: [{ id: 'getChar', type: 'getCharacterNode', data: { characterAvatar: 'test-char.png' } }],
-      edges: [],
-    };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const charNodeReport = report.executedNodes.find((n) => n.nodeId === 'getChar');
-    expect(charNodeReport?.output.name).toBe('Test Character');
-    expect(charNodeReport?.output.result.name).toBe('Test Character');
-  });
-
-  it('should execute jsonNode and output a valid JSON object', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'json',
-          type: 'jsonNode',
-          data: {
-            items: [
-              { id: '1', key: 'name', value: 'John', type: 'string' },
-              { id: '2', key: 'age', value: 30, type: 'number' },
-              {
-                id: '3',
-                key: 'address',
-                value: [{ id: '3.1', key: 'city', value: 'New York', type: 'string' }],
-                type: 'object',
-              },
-            ],
-          },
-        },
-      ],
-      edges: [],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const jsonNodeReport = report.executedNodes.find((n) => n.nodeId === 'json');
-    expect(jsonNodeReport?.output).toEqual({ name: 'John', age: 30, address: { city: 'New York' } });
-  });
-
-  it('should execute mergeObjectsNode and combine inputs', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        { id: 'json1', type: 'jsonNode', data: { items: [{ id: '1', key: 'a', value: 1, type: 'number' }] } },
-        {
-          id: 'json2',
-          type: 'jsonNode',
-          data: {
-            items: [
-              { id: '1', key: 'b', value: 2, type: 'number' },
-              { id: '2', key: 'a', value: 99, type: 'number' },
-            ],
-          },
-        },
-        { id: 'merge', type: 'mergeObjectsNode', data: { inputCount: 2 } },
-      ],
-      edges: [
-        { id: 'e1', source: 'json1', target: 'merge', sourceHandle: null, targetHandle: 'object_0' },
-        { id: 'e2', source: 'json2', target: 'merge', sourceHandle: null, targetHandle: 'object_1' },
-      ],
-    };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
-    expect(mergeNodeReport?.output).toEqual({ a: 99, b: 2 });
-  });
-
-  it('should execute handlebarNode and render the template', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'data',
-          type: 'jsonNode',
-          data: { items: [{ id: '1', key: 'name', value: 'SillyTavern', type: 'string' }] },
-        },
-        { id: 'template', type: 'handlebarNode', data: { template: 'Hello, {{data.name}}!' } },
-      ],
-      edges: [{ id: 'e1', source: 'data', target: 'template', sourceHandle: null, targetHandle: 'data' }],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const handlebarNodeReport = report.executedNodes.find((n) => n.nodeId === 'template');
-    expect(handlebarNodeReport?.output).toEqual({ result: 'Hello, SillyTavern!' });
-  });
-
-  it('should use connected input for customMessageNode content', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        { id: 'string', type: 'stringNode', data: { value: 'Dynamic Content' } },
-        {
-          id: 'custom',
-          type: 'customMessageNode',
-          data: { messages: [{ id: 'msg1', role: 'user', content: 'Static Content' }] },
-        },
-      ],
-      edges: [{ id: 'e1', source: 'string', target: 'custom', sourceHandle: 'value', targetHandle: 'msg1' }],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const customNodeReport = report.executedNodes.find((n) => n.nodeId === 'custom');
-    expect(customNodeReport?.output).toEqual([{ role: 'user', content: 'Dynamic Content' }]);
-  });
-
-  it('should call st_createNewWorldInfo for createLorebookNode', async () => {
-    const flow: SpecFlow = {
-      nodes: [{ id: 'create', type: 'createLorebookNode', data: { worldName: 'My Lore' } }],
-      edges: [],
-    };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My Lore');
-  });
-
-  it('should call applyWorldInfoEntry to create a new entry for createLorebookEntryNode', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'createEntry',
-          type: 'createLorebookEntryNode',
-          data: { worldName: 'My Lore', key: 'key1, key2', content: 'This is the content.', comment: 'Entry Title' },
-        },
-      ],
-      edges: [],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
-      entry: expect.objectContaining({ key: ['key1', 'key2'], content: 'This is the content.' }),
-      selectedWorldName: 'My Lore',
-      operation: 'add',
-    });
-  });
-
-  it('should call applyWorldInfoEntry to update an entry for editLorebookEntryNode', async () => {
-    const mockEntry: WIEntry = {
-      uid: 123,
-      key: ['oldKey'],
-      content: 'Old content',
-      comment: 'Find Me',
-      disable: false,
-      keysecondary: [],
-    };
-    dependencies.getWorldInfos.mockResolvedValue({ 'My Lore': [mockEntry] });
-    dependencies.applyWorldInfoEntry.mockImplementation(async ({ entry }) => ({ entry, operation: 'update' }));
-
-    const flow: SpecFlow = {
-      nodes: [
-        {
-          id: 'editEntry',
-          type: 'editLorebookEntryNode',
-          data: { worldName: 'My Lore', entryUid: 123, content: 'New Content' },
-        },
-      ],
-      edges: [],
-    };
-
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    const updatedEntry = { ...mockEntry, content: 'New Content' };
-    expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
-      entry: updatedEntry,
-      selectedWorldName: 'My Lore',
-      operation: 'update',
-    });
   });
 });

@@ -62,13 +62,6 @@ export class LowLevelFlowRunner {
 
         // Skip disabled nodes, but pass control flow through
         if (node.data?.disabled) {
-          nodeOutputs[nodeId] = {};
-          report.executedNodes.push({ nodeId: node.id, type: node.type, input: {}, output: '[DISABLED]' });
-          const outgoingEdges = adj.get(nodeId) || [];
-          for (const edge of outgoingEdges) {
-            inDegree[edge.target]--;
-            if (inDegree[edge.target] === 0) queue.push(edge.target);
-          }
           continue;
         }
 
