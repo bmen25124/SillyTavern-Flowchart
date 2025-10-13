@@ -78,7 +78,7 @@ function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Da
       ...item,
       timestamp: item.timestamp.toISOString(),
     }));
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(storable));
+    localStorage.setItem(HISTORY_STORAGE_KEY, safeJsonStringify(storable, 0));
   } catch (e: any) {
     console.error('[FlowChart] Failed to save execution history:', e);
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
