@@ -538,7 +538,7 @@ const FlowManager: FC = () => {
       return;
     }
     clearRun();
-    flowRunner.runManualTriggers(settings.activeFlow);
+    flowRunner.runFlowManually(settings.activeFlow);
   };
 
   const handleCopyFlow = async () => {
@@ -641,7 +641,11 @@ const FlowManager: FC = () => {
             Fix Errors ({errors.length})
           </STButton>
         )}
-        <STButton color="primary" onClick={handleRunFlow} title="Run Manual Triggers">
+        <STButton
+          color="primary"
+          onClick={handleRunFlow}
+          title="Run the flow starting from Manual Triggers, or from the beginning if none exist."
+        >
           <i className="fa-solid fa-play"></i> Run
         </STButton>
         <STButton onClick={handleCopyFlow} title="Copy Flow JSON">

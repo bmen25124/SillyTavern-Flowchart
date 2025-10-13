@@ -229,27 +229,27 @@ class FlowRunner {
     return this.executeFlow(flowId, initialInput);
   }
 
-  async runManualTriggers(flowId: string) {
+  async runFlowManually(flowId: string) {
     const flow = settingsManager.getSettings().flows[flowId];
     if (!flow) {
       st_echo('error', `Flow "${flowId}" not found for manual run.`);
       return;
     }
     const manualTriggers = flow.nodes.filter((node) => node.type === 'manualTriggerNode');
-    if (manualTriggers.length === 0) {
-      st_echo('info', `No Manual Trigger nodes found in flow "${flowId}".`);
-      return;
-    }
-    st_echo('info', `Executing ${manualTriggers.length} manual trigger(s) for flow "${flowId}"...`);
-    for (const triggerNode of manualTriggers) {
-      let initialInput = {};
-      try {
-        initialInput = JSON.parse(triggerNode.data.payload);
-      } catch (e) {
-        st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);
-        continue;
+
+    if (manualTriggers.length > 0) {
+      for (const triggerNode of manualTriggers) {
+        let initialInput = {};
+        try {
+          initialInput = JSON.parse(triggerNode.data.payload);
+        } catch (e) {
+          st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);
+          continue;
+        }
+        await this.executeFlow(flowId, initialInput);
       }
-      await this.executeFlow(flowId, initialInput);
+    } else {
+      await this.executeFlow(flowId, {});
     }
   }
 }
