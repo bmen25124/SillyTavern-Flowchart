@@ -22,7 +22,7 @@ const execute: NodeExecutor = async (node, input) => {
   if (typeof obj !== 'object' || obj === null) throw new Error('Input is not a valid object.');
 
   const value = get(obj, path, undefined);
-  return value;
+  return { value: value };
 };
 
 // Helper to recursively find a Zod type within a nested Zod schema based on a dot-notation path.

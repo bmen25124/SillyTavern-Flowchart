@@ -99,21 +99,21 @@ describe('Node Executors', () => {
     it('should get a top-level property', async () => {
       const node = createMockNode(getPropertyNodeDefinition, { path: 'name' });
       const result = await execute(node, { object: { name: 'Alice', age: 30 } }, context);
-      expect(result).toBe('Alice');
+      expect(result).toEqual({ value: 'Alice' });
     });
 
     it('should get a nested property', async () => {
       const node = createMockNode(getPropertyNodeDefinition, { path: 'address.city' });
       const obj = { name: 'Alice', address: { city: 'Wonderland' } };
       const result = await execute(node, { object: obj }, context);
-      expect(result).toBe('Wonderland');
+      expect(result).toEqual({ value: 'Wonderland' });
     });
 
     it('should return undefined for a non-existent path', async () => {
       const node = createMockNode(getPropertyNodeDefinition, { path: 'address.zip' });
       const obj = { name: 'Alice', address: { city: 'Wonderland' } };
       const result = await execute(node, { object: obj }, context);
-      expect(result).toBeUndefined();
+      expect(result).toEqual({ value: undefined });
     });
 
     it('should throw an error if input is not an object', async () => {
