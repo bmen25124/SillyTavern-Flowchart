@@ -117,10 +117,20 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
     const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-    if (!schemaEdge) return { inputs: [], outputs: [] };
+
+    if (!schemaEdge) {
+      // No schema connected, result is a plain string.
+      return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.STRING }] };
+    }
 
     const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return { inputs: [], outputs: [] };
+    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
+      // Connection exists but source isn't a valid schema node.
+      return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.STRING }] };
+    }
+
+    const fullSchema = buildZodSchemaFromFields(schemaNode.data.fields as FieldDefinition[]);
+    const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema: fullSchema };
 
     const fieldHandles = (schemaNode.data.fields as FieldDefinition[]).map((field) => ({
       id: field.name,
@@ -128,7 +138,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       schema: buildZodSchema(field),
     }));
 
-    return { inputs: [], outputs: fieldHandles };
+    return { inputs: [], outputs: [resultHandle, ...fieldHandles] };
   },
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection !== 'output') return undefined;

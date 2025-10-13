@@ -43,113 +43,6 @@ type ContextMenuState = {
   showSearch: boolean;
 };
 
-// Pre-computes which nodes can connect to which other nodes
-function computeCompatibilityMap() {
-  const sourceCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
-  const targetCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
-
-  const mockNodes: Node[] = registrator.allNodeDefinitions.map((def) => ({
-    id: `temp-${def.type}`,
-    type: def.type,
-    position: { x: 0, y: 0 },
-    data: structuredClone(def.initialData),
-  }));
-
-  // --- Source Compatibility (Dragging from an output) ---
-  for (const sourceDef of registrator.allNodeDefinitions) {
-    const sourceMap = new Map<string | null, CompatibilityInfo[]>();
-    const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
-    const sourceHandles = [
-      ...sourceDef.handles.outputs,
-      ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode, [], []).outputs : []),
-    ];
-
-    for (const sourceHandle of sourceHandles) {
-      const compatibleTargets: CompatibilityInfo[] = [];
-      for (const targetDef of registrator.allNodeDefinitions) {
-        const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
-        const targetHandles = [
-          ...targetDef.handles.inputs,
-          ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode, [], []).inputs : []),
-        ];
-
-        for (const targetHandle of targetHandles) {
-          if (
-            checkConnectionValidity(
-              {
-                source: sourceNode.id,
-                sourceHandle: sourceHandle.id,
-                target: targetNode.id,
-                targetHandle: targetHandle.id,
-              },
-              mockNodes,
-              [],
-            )
-          ) {
-            compatibleTargets.push({
-              nodeType: targetDef.type,
-              nodeLabel: targetHandle.id ? `${targetDef.label} (${targetHandle.id})` : targetDef.label,
-              sourceHandle: sourceHandle.id, // Store the full context
-              targetHandle: targetHandle.id, // Store the full context
-            });
-          }
-        }
-      }
-      sourceMap.set(sourceHandle.id, compatibleTargets);
-    }
-    sourceCompatibilityMap.set(sourceDef.type, sourceMap);
-  }
-
-  // --- Target Compatibility (Dragging from an input) ---
-  for (const targetDef of registrator.allNodeDefinitions) {
-    const targetMap = new Map<string | null, CompatibilityInfo[]>();
-    const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
-    const targetHandles = [
-      ...targetDef.handles.inputs,
-      ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(targetNode, [], []).inputs : []),
-    ];
-
-    for (const targetHandle of targetHandles) {
-      const compatibleSources: CompatibilityInfo[] = [];
-      for (const sourceDef of registrator.allNodeDefinitions) {
-        const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
-        const sourceHandles = [
-          ...sourceDef.handles.outputs,
-          ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(sourceNode, [], []).outputs : []),
-        ];
-
-        for (const sourceHandle of sourceHandles) {
-          if (
-            checkConnectionValidity(
-              {
-                source: sourceNode.id,
-                sourceHandle: sourceHandle.id,
-                target: targetNode.id,
-                targetHandle: targetHandle.id,
-              },
-              mockNodes,
-              [],
-            )
-          ) {
-            compatibleSources.push({
-              nodeType: sourceDef.type,
-              nodeLabel: sourceHandle.id ? `${sourceDef.label} (${sourceHandle.id})` : sourceDef.label,
-              sourceHandle: sourceHandle.id,
-              targetHandle: targetHandle.id,
-            });
-          }
-        }
-      }
-      targetMap.set(targetHandle.id, compatibleSources);
-    }
-    targetCompatibilityMap.set(targetDef.type, targetMap);
-  }
-
-  return { sourceCompatibilityMap, targetCompatibilityMap };
-}
-
-const compatibilityMap = computeCompatibilityMap();
-
 const FlowCanvas: FC<{
   invalidNodeIds: Set<string>;
 }> = ({ invalidNodeIds }) => {
@@ -234,24 +127,104 @@ const FlowCanvas: FC<{
 
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
-      if (!connectingNode.current) return;
-      if (wasConnectionSuccessful.current) {
-        connectingNode.current = null;
+      if (!connectingNode.current || wasConnectionSuccessful.current) {
+        if (connectingNode.current) connectingNode.current = null;
+        if (wasConnectionSuccessful.current) wasConnectionSuccessful.current = false; // Reset for next connection
         return;
       }
+
       event.stopPropagation();
       const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
-      const startNode = getNodes().find((n) => n.id === startNodeId);
+      const allCurrentNodes = getNodes();
+      const allCurrentEdges = edges;
+      const startNode = allCurrentNodes.find((n) => n.id === startNodeId);
+
       if (!startNode || !startNode.type) {
         connectingNode.current = null;
         return;
       }
-      const compatibleNodes =
-        handleType === 'source'
-          ? (compatibilityMap.sourceCompatibilityMap.get(startNode.type)?.get(startHandleId) ?? [])
-          : (compatibilityMap.targetCompatibilityMap.get(startNode.type)?.get(startHandleId) ?? []);
-      connectingNode.current = null;
-      if (compatibleNodes.length === 0) return;
+
+      const compatibleNodes: CompatibilityInfo[] = [];
+
+      if (handleType === 'source') {
+        // Dragging from an output/source handle, find compatible target nodes
+        for (const targetDef of registrator.allNodeDefinitions) {
+          const tempTargetNode = {
+            id: 'temp-target',
+            type: targetDef.type,
+            data: targetDef.initialData,
+            position: { x: 0, y: 0 },
+          } as Node;
+          const targetHandles = [
+            ...targetDef.handles.inputs,
+            ...(targetDef.getDynamicHandles ? targetDef.getDynamicHandles(tempTargetNode, [], []).inputs : []),
+          ];
+
+          for (const targetHandle of targetHandles) {
+            if (
+              checkConnectionValidity(
+                {
+                  source: startNode.id,
+                  sourceHandle: startHandleId,
+                  target: tempTargetNode.id,
+                  targetHandle: targetHandle.id,
+                },
+                [...allCurrentNodes, tempTargetNode],
+                allCurrentEdges,
+              )
+            ) {
+              compatibleNodes.push({
+                nodeType: targetDef.type,
+                nodeLabel: targetHandle.id ? `${targetDef.label} (${targetHandle.id})` : targetDef.label,
+                sourceHandle: startHandleId,
+                targetHandle: targetHandle.id,
+              });
+            }
+          }
+        }
+      } else {
+        // Dragging from an input/target handle, find compatible source nodes
+        for (const sourceDef of registrator.allNodeDefinitions) {
+          const tempSourceNode = {
+            id: 'temp-source',
+            type: sourceDef.type,
+            data: sourceDef.initialData,
+            position: { x: 0, y: 0 },
+          } as Node;
+          const sourceHandles = [
+            ...sourceDef.handles.outputs,
+            ...(sourceDef.getDynamicHandles ? sourceDef.getDynamicHandles(tempSourceNode, [], []).outputs : []),
+          ];
+
+          for (const sourceHandle of sourceHandles) {
+            if (
+              checkConnectionValidity(
+                {
+                  source: tempSourceNode.id,
+                  sourceHandle: sourceHandle.id,
+                  target: startNode.id,
+                  targetHandle: startHandleId,
+                },
+                [...allCurrentNodes, tempSourceNode],
+                allCurrentEdges,
+              )
+            ) {
+              compatibleNodes.push({
+                nodeType: sourceDef.type,
+                nodeLabel: sourceHandle.id ? `${sourceDef.label} (${sourceHandle.id})` : sourceDef.label,
+                sourceHandle: sourceHandle.id,
+                targetHandle: startHandleId,
+              });
+            }
+          }
+        }
+      }
+
+      if (compatibleNodes.length === 0) {
+        connectingNode.current = null;
+        return;
+      }
+
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
@@ -263,6 +236,7 @@ const FlowCanvas: FC<{
       const position = screenToFlowPosition({ x: clientX, y: clientY });
       const menuX = clientX - bounds.left;
       const menuY = clientY - bounds.top;
+
       const createAndConnectNode = (nodeType: string, sourceHandle: string | null, targetHandle: string | null) => {
         const nodeDef = registrator.nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
@@ -278,6 +252,7 @@ const FlowCanvas: FC<{
             : { source: newNode.id, sourceHandle: sourceHandle, target: startNodeId, targetHandle: targetHandle };
         setTimeout(() => onConnect(connection as Connection), 10);
       };
+
       if (compatibleNodes.length === 1) {
         const { nodeType, sourceHandle, targetHandle } = compatibleNodes[0];
         createAndConnectNode(nodeType, sourceHandle, targetHandle);
@@ -303,7 +278,7 @@ const FlowCanvas: FC<{
       }
       connectingNode.current = null;
     },
-    [getNodes, screenToFlowPosition, addNode, onConnect, setContextMenu],
+    [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu],
   );
 
   const nodesWithDynamicClasses = useMemo(
