@@ -58,20 +58,67 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
   },
   handles: { inputs: [], outputs: [] },
   execute,
+  // MODIFIED the logic to build a dynamic schema for 'allArgs'
   getDynamicHandles: (node) => {
     const data = node.data;
-    const namedOutputs = data.arguments.map((arg) => ({ id: arg.name, type: mapArgTypeToFlowType(arg.type) }));
+    const allArgsShape: Record<string, z.ZodType> = {};
+
+    const namedOutputs = data.arguments.map((arg) => {
+      let schema: z.ZodType;
+      switch (arg.type) {
+        case 'number':
+          schema = z.number();
+          break;
+        case 'boolean':
+          schema = z.boolean();
+          break;
+        case 'list':
+          schema = z.array(z.any());
+          break;
+        default:
+          schema = z.string();
+      }
+
+      if (!arg.isRequired) {
+        schema = schema.optional();
+      }
+      schema = schema.describe(arg.description || `The '${arg.name}' argument.`);
+
+      // Build the shape for the 'allArgs' object while we're at it.
+      allArgsShape[arg.name] = schema;
+
+      return {
+        id: arg.name,
+        type: mapArgTypeToFlowType(arg.type),
+        schema: schema,
+      };
+    });
+
+    // Add the 'unnamed' argument to the shape and create the final schema
+    const unnamedSchema = z.string().describe('A single string containing all text after the named arguments.');
+    allArgsShape['unnamed'] = unnamedSchema;
+    const allArgsSchema = z.object(allArgsShape);
 
     const outputs = [
       ...namedOutputs,
-      { id: 'allArgs', type: FlowDataType.OBJECT, schema: z.any().describe('An object containing all arguments.') },
+      { id: 'allArgs', type: FlowDataType.OBJECT, schema: allArgsSchema },
       {
         id: 'unnamed',
         type: FlowDataType.STRING,
-        schema: z.string().describe('A single string containing all text after the named arguments.'),
+        schema: unnamedSchema,
       },
     ];
     return { inputs: [], outputs };
+  },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection !== 'output' || !handleId) return undefined;
+    if (handleId === 'allArgs') return FlowDataType.OBJECT;
+    if (handleId === 'unnamed') return FlowDataType.STRING;
+
+    const data = node.data;
+    // @ts-ignore
+    const arg = data.arguments.find((a: ArgumentDefinition) => a.name === handleId);
+    return arg ? mapArgTypeToFlowType(arg.type) : undefined;
   },
 };
 
