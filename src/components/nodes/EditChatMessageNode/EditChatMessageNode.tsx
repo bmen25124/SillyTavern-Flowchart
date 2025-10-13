@@ -27,7 +27,7 @@ const fields = [
   }),
 ];
 
-export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected }) => {
+export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('editChatMessageNode');
@@ -38,7 +38,7 @@ export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected
 
   return (
     <BaseNode id={id} title="Edit Chat Message" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div title={schemaText}>
         <Handle type="source" position={Position.Right} id="messageObject" />
       </div>

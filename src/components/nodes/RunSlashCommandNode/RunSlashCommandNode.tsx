@@ -20,7 +20,7 @@ const fields = [
   }),
 ];
 
-export const RunSlashCommandNode: FC<RunSlashCommandNodeProps> = ({ id, selected }) => {
+export const RunSlashCommandNode: FC<RunSlashCommandNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RunSlashCommandNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('runSlashCommandNode');
@@ -31,7 +31,7 @@ export const RunSlashCommandNode: FC<RunSlashCommandNodeProps> = ({ id, selected
 
   return (
     <BaseNode id={id} title="Run Slash Command" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title={schemaText}>
           <span>Result (Pipe)</span>

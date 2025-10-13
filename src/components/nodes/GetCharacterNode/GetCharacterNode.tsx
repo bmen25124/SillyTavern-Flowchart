@@ -28,7 +28,7 @@ const fields = [
   }),
 ];
 
-export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected }) => {
+export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetCharacterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
@@ -54,7 +54,13 @@ export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected }) =>
 
   return (
     <BaseNode id={id} title="Get Character" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         {definition.handles.outputs.map((handle) => {
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;

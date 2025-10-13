@@ -29,7 +29,7 @@ const fields = [
   }),
 ];
 
-export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected }) => {
+export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as TypeConverterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('typeConverterNode');
@@ -41,7 +41,7 @@ export const TypeConverterNode: FC<TypeConverterNodeProps> = ({ id, selected }) 
   return (
     <BaseNode id={id} title="Type Converter" selected={selected}>
       <Handle type="target" position={Position.Left} id="value" />
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div
         style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
         title={schemaText}

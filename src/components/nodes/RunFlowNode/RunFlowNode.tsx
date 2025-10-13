@@ -12,7 +12,7 @@ import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 
 export type RunFlowNodeProps = NodeProps<Node<RunFlowNodeData>>;
 
-export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected }) => {
+export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RunFlowNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const settings = settingsManager.getSettings();
@@ -48,7 +48,7 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Run Flow" selected={selected}>
       <Handle type="target" position={Position.Left} id={null} style={{ top: '10%' }} />
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
 
       <div style={{ marginTop: '10px' }}>
         <label>Parameters (JSON)</label>

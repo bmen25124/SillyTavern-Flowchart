@@ -29,7 +29,7 @@ const fields = [
   }),
 ];
 
-export const GetLorebookNode: FC<GetLorebookNodeProps> = ({ id, selected }) => {
+export const GetLorebookNode: FC<GetLorebookNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
@@ -60,7 +60,13 @@ export const GetLorebookNode: FC<GetLorebookNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Get Lorebook" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title={schemaText}>
           <span>Entries (Array)</span>

@@ -20,7 +20,7 @@ const fields = [
   }),
 ];
 
-export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected }) => {
+export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('setVariableNode');
@@ -33,7 +33,7 @@ export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected }) => {
     <BaseNode id={id} title="Set Variable" selected={selected}>
       <Handle type="target" position={Position.Left} id="value" style={{ top: '15%' }} />
 
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
 
       <div
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}

@@ -47,7 +47,7 @@ const fields = [
   createFieldConfig({ id: 'content', label: 'New Content', component: STTextarea, props: { rows: 2 } }),
 ];
 
-export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, selected }) => {
+export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditLorebookEntryNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allWorldsData, setAllWorldsData] = useState<Record<string, WIEntry[]>>({});
@@ -89,7 +89,13 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
 
   return (
     <BaseNode id={id} title="Edit Lorebook Entry" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

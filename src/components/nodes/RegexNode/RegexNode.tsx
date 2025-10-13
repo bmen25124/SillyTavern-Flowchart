@@ -42,7 +42,7 @@ const fields = [
   }),
 ];
 
-export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
+export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RegexNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
@@ -80,7 +80,13 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected }) => {
     <BaseNode id={id} title="Regex" selected={selected}>
       <Handle type="target" position={Position.Left} id="string" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+        <NodeFieldRenderer
+          nodeId={id}
+          nodeType={type}
+          fields={dynamicFields}
+          data={data}
+          updateNodeData={updateNodeData}
+        />
 
         {mode === 'custom' && (
           <>

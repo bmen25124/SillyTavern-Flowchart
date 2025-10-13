@@ -20,7 +20,7 @@ const fields = [
   }),
 ];
 
-export const DateTimeNode: FC<DateTimeNodeProps> = ({ id, selected }) => {
+export const DateTimeNode: FC<DateTimeNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as DateTimeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('dateTimeNode');
@@ -29,7 +29,7 @@ export const DateTimeNode: FC<DateTimeNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Date/Time" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         {definition.handles.outputs.map((handle) => {
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;

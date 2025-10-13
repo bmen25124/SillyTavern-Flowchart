@@ -156,6 +156,28 @@
   overflow: visible;
 }
 
+// Styles for handles
+.handle-label {
+  color: var(--text-color-secondary);
+  font-size: 10px;
+  margin-left: 4px;
+  font-style: italic;
+}
+
+.static-value-preview {
+  padding: 5px;
+  background: var(--SmartThemeChatTintColor);
+  border-radius: 3px;
+  margin-top: 5px;
+  color: var(--text-color-secondary);
+  font-style: italic;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--SmartThemeBorderColor);
+}
+
 // Main Layout for Ground Tab
 .flowchart-ground-manager {
   display: flex;

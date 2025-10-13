@@ -11,6 +11,7 @@ import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
+import { FlowDataTypeColors } from '../../../flow-types.js';
 
 export type LLMRequestNodeProps = NodeProps<Node<LLMRequestNodeData>>;
 
@@ -50,7 +51,7 @@ const fields = [
   }),
 ];
 
-export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
+export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as LLMRequestNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const allNodes = useFlowStore((state) => state.nodes);
@@ -61,9 +62,6 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
   const isMessagesConnected = useIsConnected(id, 'messages');
   const isSchemaConnected = useIsConnected(id, 'schema');
 
-  // This effect cleans up dangling connections to hidden fields.
-  // When the schema input is disconnected, we must remove any edges that were
-  // connected to the now-hidden `schemaName` or `promptEngineeringMode` fields.
   useEffect(() => {
     if (!isSchemaConnected) {
       const handlesToClear = ['schemaName', 'promptEngineeringMode'];
@@ -132,16 +130,27 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="LLM Request" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+        <NodeFieldRenderer
+          nodeId={id}
+          nodeType={type}
+          fields={dynamicFields}
+          data={data}
+          updateNodeData={updateNodeData}
+        />
 
         <div style={{ position: 'relative' }}>
           <Handle
             type="target"
             position={Position.Left}
             id="messages"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+            style={{
+              top: '0.5rem',
+              transform: 'translateY(-50%)',
+              backgroundColor: FlowDataTypeColors.messages,
+            }}
           />
           <label style={{ marginLeft: '10px' }}>Messages</label>
+          <span className="handle-label">(messages)</span>
           {!isMessagesConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
         </div>
 
@@ -150,9 +159,10 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
             type="target"
             position={Position.Left}
             id="schema"
-            style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
+            style={{ top: '0.5rem', transform: 'translateY(-50%)', backgroundColor: FlowDataTypeColors.schema }}
           />
           <label style={{ marginLeft: '10px' }}>Schema (Optional)</label>
+          <span className="handle-label">(schema)</span>
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
@@ -167,12 +177,21 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
               title={schemaText}
             >
-              <span>{label}</span>
+              <div>
+                <span>{label}</span>
+                <span className="handle-label">({handle.type})</span>
+              </div>
               <Handle
                 type="source"
                 position={Position.Right}
                 id={handle.id!}
-                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+                style={{
+                  position: 'relative',
+                  transform: 'none',
+                  right: 0,
+                  top: 0,
+                  backgroundColor: FlowDataTypeColors[handle.type],
+                }}
               />
             </div>
           );

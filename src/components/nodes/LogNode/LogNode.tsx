@@ -18,7 +18,7 @@ const fields = [
   }),
 ];
 
-export const LogNode: React.FC<LogNodeProps> = ({ id, selected }) => {
+export const LogNode: React.FC<LogNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as LogNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -27,7 +27,7 @@ export const LogNode: React.FC<LogNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Log Message" selected={selected}>
       <Handle type="target" position={Position.Left} id="value" />
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <Handle type="source" position={Position.Right} id="value" />
     </BaseNode>
   );

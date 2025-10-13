@@ -29,7 +29,7 @@ const fields = [
   }),
 ];
 
-export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected }) => {
+export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetPromptNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('getPromptNode');
@@ -56,7 +56,13 @@ export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Get Prompt" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <div title={schemaText}>
         <Handle type="source" position={Position.Right} />
       </div>

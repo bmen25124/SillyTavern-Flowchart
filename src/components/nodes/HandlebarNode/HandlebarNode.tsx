@@ -21,7 +21,7 @@ const fields = [
   }),
 ];
 
-export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
+export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const isDataConnected = useIsConnected(id, 'data');
@@ -32,7 +32,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Handlebar Template" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+        <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
         <div style={{ position: 'relative' }}>
           <Handle
             type="target"

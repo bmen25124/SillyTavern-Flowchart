@@ -26,7 +26,7 @@ const fields = [
   }),
 ];
 
-export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
+export const RandomNode: FC<RandomNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RandomNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const edges = useFlowStore((state) => state.edges);
@@ -56,7 +56,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Random" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+        <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
 
         {mode === 'number' && (
           <>

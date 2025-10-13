@@ -22,3 +22,15 @@ export enum FlowDataType {
   STRUCTURED_RESULT = 'structuredResult',
   ANY = 'any',
 }
+
+export const FlowDataTypeColors: Record<FlowDataType, string> = {
+  [FlowDataType.STRING]: '#f4e04d',
+  [FlowDataType.NUMBER]: '#4df48c',
+  [FlowDataType.BOOLEAN]: '#f44d4d',
+  [FlowDataType.OBJECT]: '#4d8cf4',
+  [FlowDataType.MESSAGES]: '#a94df4',
+  [FlowDataType.SCHEMA]: '#f4a94d',
+  [FlowDataType.PROFILE_ID]: '#4df4e0',
+  [FlowDataType.STRUCTURED_RESULT]: '#4d8cf4',
+  [FlowDataType.ANY]: '#ffffff',
+};

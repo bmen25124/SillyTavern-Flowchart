@@ -28,6 +28,8 @@ import { checkConnectionValidity } from '../../utils/connection-logic.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { registrator } from '../nodes/autogen-imports.js';
 import { SpecFlow } from '../../flow-spec.js';
+import { getHandleSpec } from '../../utils/handle-logic.js';
+import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
 
 type CompatibilityInfo = {
   nodeType: string;
@@ -336,11 +338,24 @@ const FlowCanvas: FC<{
     return contextMenu.items.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
   }, [contextMenu, debouncedSearchTerm]);
 
+  const styledEdges = useMemo(() => {
+    const allNodes = getNodes();
+    return edges.map((edge) => {
+      const sourceNode = allNodes.find((n) => n.id === edge.source);
+      if (!sourceNode) return edge;
+
+      const handleSpec = getHandleSpec(sourceNode, edge.sourceHandle || null, 'output', allNodes, edges);
+      const color = FlowDataTypeColors[handleSpec?.type ?? FlowDataType.ANY];
+
+      return { ...edge, style: { stroke: color, strokeWidth: 2 } };
+    });
+  }, [nodes, edges, getNodes]);
+
   return (
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
         nodes={nodesWithDynamicClasses}
-        edges={edges}
+        edges={styledEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

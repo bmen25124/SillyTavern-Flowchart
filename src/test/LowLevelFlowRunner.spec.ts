@@ -43,6 +43,7 @@ describe('LowLevelFlowRunner', () => {
       executeSlashCommandsWithOptions: jest.fn(),
       st_runRegexScript: jest.fn(),
       makeSimpleRequest: jest.fn(),
+      executeSubFlow: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
@@ -74,7 +75,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, { initial: 'input' }, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, { initial: 'input' }, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(report.executedNodes).toHaveLength(2);
     expect(report.executedNodes[0].nodeId).toBe('start');
@@ -110,7 +111,7 @@ describe('LowLevelFlowRunner', () => {
       ],
       edges: [],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(report.executedNodes.length).toBe(2);
     const groupNodeReport = report.executedNodes.find((n) => n.nodeId === 'group');
@@ -135,7 +136,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, { value: 5 }, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, { value: 5 }, dependencies, 0);
     expect(report.error).toBeUndefined();
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
     expect(executedNodeIds).toContain('if');
@@ -165,7 +166,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
     const mockCallArgs = dependencies.makeStructuredRequest.mock.calls[0];
@@ -192,7 +193,7 @@ describe('LowLevelFlowRunner', () => {
         { id: 'e-C-merge', source: 'customC', target: 'merge', sourceHandle: null, targetHandle: 'messages_2' },
       ],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual([
@@ -214,7 +215,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(dependencies.createCharacter).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'New Char', description: 'A description', tags: ['tag1', 'tag2'] }),
@@ -233,7 +234,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(dependencies.saveCharacter).toHaveBeenCalledWith({ ...mockCharacter, description: 'New Description' });
   });
@@ -243,7 +244,7 @@ describe('LowLevelFlowRunner', () => {
       nodes: [{ id: 'getChar', type: 'getCharacterNode', data: { characterAvatar: 'test-char.png' } }],
       edges: [],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const charNodeReport = report.executedNodes.find((n) => n.nodeId === 'getChar');
     expect(charNodeReport?.output.name).toBe('Test Character');
@@ -273,7 +274,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const jsonNodeReport = report.executedNodes.find((n) => n.nodeId === 'json');
     expect(jsonNodeReport?.output).toEqual({ name: 'John', age: 30, address: { city: 'New York' } });
@@ -300,7 +301,7 @@ describe('LowLevelFlowRunner', () => {
         { id: 'e2', source: 'json2', target: 'merge', sourceHandle: null, targetHandle: 'object_1' },
       ],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual({ a: 99, b: 2 });
@@ -319,7 +320,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [{ id: 'e1', source: 'data', target: 'template', sourceHandle: null, targetHandle: 'data' }],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const handlebarNodeReport = report.executedNodes.find((n) => n.nodeId === 'template');
     expect(handlebarNodeReport?.output).toEqual({ result: 'Hello, SillyTavern!' });
@@ -338,7 +339,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [{ id: 'e1', source: 'string', target: 'custom', sourceHandle: 'value', targetHandle: 'msg1' }],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const customNodeReport = report.executedNodes.find((n) => n.nodeId === 'custom');
     expect(customNodeReport?.output).toEqual([{ role: 'user', content: 'Dynamic Content' }]);
@@ -349,7 +350,7 @@ describe('LowLevelFlowRunner', () => {
       nodes: [{ id: 'create', type: 'createLorebookNode', data: { worldName: 'My Lore' } }],
       edges: [],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My Lore');
   });
@@ -366,7 +367,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({
       entry: expect.objectContaining({ key: ['key1', 'key2'], content: 'This is the content.' }),
@@ -398,7 +399,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies);
+    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     expect(report.error).toBeUndefined();
     const updatedEntry = { ...mockEntry, content: 'New Content' };
     expect(dependencies.applyWorldInfoEntry).toHaveBeenCalledWith({

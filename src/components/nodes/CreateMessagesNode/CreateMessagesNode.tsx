@@ -29,7 +29,7 @@ const fields = [
   }),
 ];
 
-export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected }) => {
+export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateMessagesNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -57,7 +57,13 @@ export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected }
 
   return (
     <BaseNode id={id} title="Create Messages" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

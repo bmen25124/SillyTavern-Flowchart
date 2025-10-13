@@ -42,7 +42,7 @@ const fields = [
   }),
 ];
 
-export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
+export const MathNode: FC<MathNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as MathNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('mathNode');
@@ -53,7 +53,7 @@ export const MathNode: FC<MathNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Math Operation" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div
         style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
         title={schemaText}

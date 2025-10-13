@@ -30,7 +30,7 @@ const fields = [
   createFieldConfig({ id: 'content', label: 'Content', component: STTextarea, props: { rows: 2 } }),
 ];
 
-export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, selected }) => {
+export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateLorebookEntryNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [lorebookNames, setLorebookNames] = useState<string[]>([]);
@@ -58,7 +58,13 @@ export const CreateLorebookEntryNode: FC<CreateLorebookEntryNodeProps> = ({ id, 
 
   return (
     <BaseNode id={id} title="Create Lorebook Entry" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

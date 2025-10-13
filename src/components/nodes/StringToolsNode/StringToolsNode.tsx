@@ -33,7 +33,7 @@ const fields = [
   }),
 ];
 
-export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
+export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StringToolsNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const edges = useFlowStore((state) => state.edges);
@@ -119,7 +119,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="String Tools" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+        <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
         <hr />
         {renderInputs()}
       </div>

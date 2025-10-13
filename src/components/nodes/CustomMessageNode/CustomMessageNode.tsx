@@ -7,7 +7,7 @@ import { STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components
 
 export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 
-export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) => {
+export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CustomMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const edges = useFlowStore((state) => state.edges);

@@ -46,7 +46,7 @@ const fields = [
   }),
 ];
 
-export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, selected }) => {
+export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetLorebookEntryNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const [allWorldsData, setAllWorldsData] = useState<Record<string, WIEntry[]>>({});
@@ -89,7 +89,13 @@ export const GetLorebookEntryNode: FC<GetLorebookEntryNodeProps> = ({ id, select
 
   return (
     <BaseNode id={id} title="Get Lorebook Entry" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         {definition.handles.outputs.map((handle) => {
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;

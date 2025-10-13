@@ -33,7 +33,7 @@ const fields = [
   createFieldConfig({ id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } }),
 ];
 
-export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, selected }) => {
+export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditCharacterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
@@ -55,7 +55,13 @@ export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, selected }) 
 
   return (
     <BaseNode id={id} title="Edit Character" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

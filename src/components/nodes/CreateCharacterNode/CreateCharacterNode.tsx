@@ -19,7 +19,7 @@ const fields = [
   createFieldConfig({ id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } }),
 ];
 
-export const CreateCharacterNode: FC<CreateCharacterNodeProps> = ({ id, selected }) => {
+export const CreateCharacterNode: FC<CreateCharacterNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateCharacterNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -27,7 +27,7 @@ export const CreateCharacterNode: FC<CreateCharacterNodeProps> = ({ id, selected
 
   return (
     <BaseNode id={id} title="Create Character" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

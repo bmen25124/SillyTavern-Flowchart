@@ -30,7 +30,7 @@ const fields = [
   createFieldConfig({ id: 'name', label: 'Name (Optional)', component: STInput, props: { type: 'text' } }),
 ];
 
-export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected }) => {
+export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SendChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('sendChatMessageNode');
@@ -41,7 +41,7 @@ export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected
 
   return (
     <BaseNode id={id} title="Send Chat Message" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
       <div title={schemaText}>
         <Handle type="source" position={Position.Right} id="messageId" />
       </div>

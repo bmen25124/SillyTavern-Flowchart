@@ -21,7 +21,7 @@ const fields = [
   }),
 ];
 
-export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
+export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ProfileIdNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -49,7 +49,13 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Profile ID" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer
+        nodeId={id}
+        nodeType={type}
+        fields={dynamicFields}
+        data={data}
+        updateNodeData={updateNodeData}
+      />
       <Handle type="source" position={Position.Right} />
     </BaseNode>
   );

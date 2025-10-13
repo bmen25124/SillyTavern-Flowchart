@@ -19,7 +19,7 @@ const fields = [
   }),
 ];
 
-export const RemoveChatMessageNode: FC<RemoveChatMessageNodeProps> = ({ id, selected }) => {
+export const RemoveChatMessageNode: FC<RemoveChatMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RemoveChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
 
@@ -27,7 +27,7 @@ export const RemoveChatMessageNode: FC<RemoveChatMessageNodeProps> = ({ id, sele
 
   return (
     <BaseNode id={id} title="Remove Chat Message" selected={selected}>
-      <NodeFieldRenderer nodeId={id} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
     </BaseNode>
   );
 };
