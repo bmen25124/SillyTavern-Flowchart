@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { CustomMessageNodeData } from './definition.js';
@@ -10,7 +10,21 @@ export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CustomMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const edges = useEdges();
+  const edges = useFlowStore((state) => state.edges);
+  const setEdges = useFlowStore((state) => state.setEdges);
+  const allEdges = useEdges(); // For UI check
+
+  useEffect(() => {
+    if (!data) return;
+    const existingHandleIds = new Set(data.messages.flatMap((m) => [m.id, `${m.id}_role`]));
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle)),
+    );
+
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [data?.messages, id, setEdges, edges]);
 
   if (!data) return null;
 
@@ -33,7 +47,8 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected }) 
     updateNodeData(id, { messages: newMessages });
   };
 
-  const isConnected = (handleId: string) => edges.some((edge) => edge.target === id && edge.targetHandle === handleId);
+  const isConnected = (handleId: string) =>
+    allEdges.some((edge) => edge.target === id && edge.targetHandle === handleId);
 
   return (
     <BaseNode id={id} title="Custom Messages" selected={selected}>

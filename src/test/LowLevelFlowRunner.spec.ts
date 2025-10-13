@@ -42,6 +42,7 @@ describe('LowLevelFlowRunner', () => {
       st_updateMessageBlock: jest.fn(),
       executeSlashCommandsWithOptions: jest.fn(),
       st_runRegexScript: jest.fn(),
+      makeSimpleRequest: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });
@@ -142,14 +143,14 @@ describe('LowLevelFlowRunner', () => {
     expect(executedNodeIds).toContain('falseNode');
   });
 
-  it('should call makeStructuredRequest for structuredRequestNode', async () => {
+  it('should call makeStructuredRequest for llmRequestNode', async () => {
     const flow: SpecFlow = {
       nodes: [
         { id: 'createMsg', type: 'createMessagesNode', data: { profileId: 'test-profile' } },
         { id: 'schema', type: 'schemaNode', data: { fields: [{ id: 'f1', name: 'name', type: 'string' }] } },
         {
           id: 'request',
-          type: 'structuredRequestNode',
+          type: 'llmRequestNode',
           data: {
             profileId: 'test-profile',
             schemaName: 'test-schema',

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from '../BaseNode.js';
 import { MergeMessagesNodeData } from './definition.js';
@@ -10,18 +10,31 @@ import { registrator } from '../autogen-imports.js';
 export type MergeMessagesNodeProps = NodeProps<Node<MergeMessagesNodeData>>;
 
 export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected }) => {
-  const { data, updateNodeData } = useFlowStore(
+  const { data, updateNodeData, edges, setEdges } = useFlowStore(
     (state) => ({
       data: state.nodes.find((n) => n.id === id)?.data as MergeMessagesNodeData,
       updateNodeData: state.updateNodeData,
+      edges: state.edges,
+      setEdges: state.setEdges,
     }),
     shallow,
   );
 
-  if (!data) return null;
-
   const definition = registrator.nodeDefinitionMap.get('mergeMessagesNode')!;
-  const inputCount = data.inputCount ?? 2;
+  const inputCount = data?.inputCount ?? 2;
+
+  useEffect(() => {
+    const existingHandleIds = new Set(Array.from({ length: inputCount }, (_, i) => definition.getDynamicHandleId!(i)));
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle)),
+    );
+
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [inputCount, id, setEdges, edges, definition]);
+
+  if (!data) return null;
 
   const setInputCount = (count: number) => {
     updateNodeData(id, { inputCount: Math.max(1, count) });

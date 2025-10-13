@@ -7,6 +7,7 @@ import { z } from 'zod';
 // It simplifies the type signature for individual node logic.
 export interface FlowRunnerDependencies {
   getBaseMessagesForProfile: (profileId: string, lastMessageId?: number) => Promise<any[]>;
+  makeSimpleRequest: (profileId: string, messages: any[], maxResponseToken: number) => Promise<string>;
   makeStructuredRequest: (
     profileId: string,
     messages: any[],

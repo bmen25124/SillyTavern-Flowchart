@@ -1,7 +1,7 @@
-import React, { FC, useMemo } from 'react';
+import React, { FC, useMemo, useEffect } from 'react';
 import { Handle, Position, useEdges, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { StructuredRequestNodeData } from './definition.js';
+import { LLMRequestNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { PromptEngineeringMode } from '../../../config.js';
@@ -12,7 +12,7 @@ import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 
-export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;
+export type LLMRequestNodeProps = NodeProps<Node<LLMRequestNodeData>>;
 
 const fields = [
   createFieldConfig({
@@ -50,15 +50,32 @@ const fields = [
   }),
 ];
 
-export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, selected }) => {
-  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StructuredRequestNodeData;
+export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as LLMRequestNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const allNodes = useFlowStore((state) => state.nodes);
+  const setEdges = useFlowStore((state) => state.setEdges);
   const currentNode = useFlowStore((state) => state.nodesMap.get(id));
   const edges = useEdges();
 
   const isMessagesConnected = useIsConnected(id, 'messages');
   const isSchemaConnected = useIsConnected(id, 'schema');
+
+  // This effect cleans up dangling connections to hidden fields.
+  // When the schema input is disconnected, we must remove any edges that were
+  // connected to the now-hidden `schemaName` or `promptEngineeringMode` fields.
+  useEffect(() => {
+    if (!isSchemaConnected) {
+      const handlesToClear = ['schemaName', 'promptEngineeringMode'];
+      const filteredEdges = edges.filter(
+        (edge) => !(edge.target === id && handlesToClear.includes(edge.targetHandle || '')),
+      );
+
+      if (filteredEdges.length < edges.length) {
+        setEdges(filteredEdges);
+      }
+    }
+  }, [isSchemaConnected, id, setEdges, edges]);
 
   const outputHandles = useMemo(() => {
     if (!currentNode) return [];
@@ -76,9 +93,14 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
     return [...staticHandles, ...dynamicHandles.outputs];
   }, [currentNode, allNodes, edges]);
 
+  const visibleFields = useMemo(() => {
+    if (isSchemaConnected) return fields;
+    return fields.filter((f) => f.id !== 'schemaName' && f.id !== 'promptEngineeringMode');
+  }, [isSchemaConnected]);
+
   const dynamicFields = useMemo(
     () =>
-      fields.map((field) => {
+      visibleFields.map((field) => {
         if (field.id === 'profileId') {
           return {
             ...field,
@@ -102,13 +124,13 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
         }
         return field;
       }),
-    [data?.profileId, data?.promptEngineeringMode, updateNodeData, id],
+    [visibleFields, data?.profileId, data?.promptEngineeringMode, updateNodeData, id],
   );
 
   if (!data) return null;
 
   return (
-    <BaseNode id={id} title="Structured Request" selected={selected}>
+    <BaseNode id={id} title="LLM Request" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <NodeFieldRenderer nodeId={id} fields={dynamicFields} data={data} updateNodeData={updateNodeData} />
 
@@ -130,14 +152,14 @@ export const StructuredRequestNode: FC<StructuredRequestNodeProps> = ({ id, sele
             id="schema"
             style={{ top: '0.5rem', transform: 'translateY(-50%)' }}
           />
-          <label style={{ marginLeft: '10px' }}>Schema</label>
-          {!isSchemaConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
+          <label style={{ marginLeft: '10px' }}>Schema (Optional)</label>
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         {outputHandles.map((handle) => {
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
-          const label = handle.id === 'result' ? 'Result (Full Object)' : handle.id;
+          const label =
+            handle.id === 'result' ? (isSchemaConnected ? 'Result (Full Object)' : 'Result (String)') : handle.id;
 
           return (
             <div

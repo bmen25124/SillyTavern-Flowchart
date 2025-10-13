@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { StringToolsNodeData } from './definition.js';
@@ -36,12 +36,35 @@ const fields = [
 export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as StringToolsNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-
-  if (!data) return null;
+  const edges = useFlowStore((state) => state.edges);
+  const setEdges = useFlowStore((state) => state.setEdges);
 
   const definition = registrator.nodeDefinitionMap.get('stringToolsNode')!;
-  const inputCount = data.inputCount ?? 2;
-  const operation = data.operation ?? 'merge';
+  const inputCount = data?.inputCount ?? 2;
+  const operation = data?.operation ?? 'merge';
+
+  useEffect(() => {
+    const currentHandles = new Set<string>();
+    if (operation === 'merge') {
+      for (let i = 0; i < inputCount; i++) {
+        currentHandles.add(definition.getDynamicHandleId!(i));
+      }
+    } else if (operation === 'split') {
+      currentHandles.add('string');
+    } else if (operation === 'join') {
+      currentHandles.add('array');
+    }
+
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.target === id && edge.targetHandle && !currentHandles.has(edge.targetHandle)),
+    );
+
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [operation, inputCount, id, setEdges, edges, definition]);
+
+  if (!data) return null;
 
   const setInputCount = (count: number) => {
     updateNodeData(id, { inputCount: Math.max(1, count) });

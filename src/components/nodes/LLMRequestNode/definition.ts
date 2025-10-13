@@ -2,21 +2,21 @@ import { Node, Edge } from '@xyflow/react';
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { StructuredRequestNode } from './StructuredRequestNode.js';
+import { LLMRequestNode } from './LLMRequestNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { FieldDefinition } from '../SchemaNode/definition.js';
 
-export const StructuredRequestNodeDataSchema = z.object({
+export const LLMRequestNodeDataSchema = z.object({
   profileId: z.string().default(''),
   schemaName: z.string().default('responseSchema'),
   promptEngineeringMode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
   maxResponseToken: z.number().default(1000),
   _version: z.number().optional(),
 });
-export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
+export type LLMRequestNodeData = z.infer<typeof LLMRequestNodeDataSchema>;
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
@@ -64,33 +64,39 @@ function buildZodSchemaFromFields(fields: FieldDefinition[]): z.ZodObject<any> {
 }
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
-  const data = StructuredRequestNodeDataSchema.parse(node.data);
+  const data = LLMRequestNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
-  const schemaName = resolveInput(input, data, 'schemaName');
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
-  const promptEngineeringMode = resolveInput(input, data, 'promptEngineeringMode');
   const { messages, schema } = input;
 
-  if (!profileId || !schema || !messages || maxResponseToken === undefined) {
-    throw new Error('Missing required inputs: profileId, schema, messages, and maxResponseToken.');
+  if (!profileId || !messages || maxResponseToken === undefined) {
+    throw new Error('Missing required inputs: profileId, messages, and maxResponseToken.');
   }
-  const result = await dependencies.makeStructuredRequest(
-    profileId,
-    messages,
-    schema,
-    schemaName || 'response',
-    promptEngineeringMode,
-    maxResponseToken,
-  );
-  return { ...result, result };
+
+  if (schema) {
+    const schemaName = resolveInput(input, data, 'schemaName');
+    const promptEngineeringMode = resolveInput(input, data, 'promptEngineeringMode');
+    const result = await dependencies.makeStructuredRequest(
+      profileId,
+      messages,
+      schema,
+      schemaName || 'response',
+      promptEngineeringMode,
+      maxResponseToken,
+    );
+    return { ...result, result };
+  } else {
+    const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken);
+    return { result };
+  }
 };
 
-export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNodeData> = {
-  type: 'structuredRequestNode',
-  label: 'Structured Request',
+export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
+  type: 'llmRequestNode',
+  label: 'LLM Request',
   category: 'API Request',
-  component: StructuredRequestNode,
-  dataSchema: StructuredRequestNodeDataSchema,
+  component: LLMRequestNode,
+  dataSchema: LLMRequestNodeDataSchema,
   currentVersion: 1,
   initialData: {
     profileId: '',
@@ -106,7 +112,7 @@ export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNo
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
       { id: 'promptEngineeringMode', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.STRUCTURED_RESULT }],
+    outputs: [{ id: 'result', type: FlowDataType.ANY }],
   },
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
@@ -116,22 +122,24 @@ export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNo
     const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return { inputs: [], outputs: [] };
 
-    const schema = buildZodSchemaFromFields(schemaNode.data.fields);
-    const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema };
     const fieldHandles = (schemaNode.data.fields as FieldDefinition[]).map((field) => ({
       id: field.name,
       type: zodTypeToFlowType(buildZodSchema(field)),
       schema: buildZodSchema(field),
     }));
 
-    return { inputs: [], outputs: [resultHandle, ...fieldHandles] };
+    return { inputs: [], outputs: fieldHandles };
   },
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection !== 'output') return undefined;
-    if (handleId === 'result') return FlowDataType.STRUCTURED_RESULT;
 
     const schemaEdge = edges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-    if (!schemaEdge) return undefined;
+
+    if (!schemaEdge) {
+      return handleId === 'result' ? FlowDataType.STRING : undefined;
+    }
+
+    if (handleId === 'result') return FlowDataType.STRUCTURED_RESULT;
 
     const schemaNode = nodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return undefined;
@@ -143,4 +151,4 @@ export const structuredRequestNodeDefinition: NodeDefinition<StructuredRequestNo
   },
 };
 
-registrator.register(structuredRequestNodeDefinition);
+registrator.register(llmRequestNodeDefinition);

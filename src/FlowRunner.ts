@@ -1,7 +1,7 @@
 import { EventNameParameters } from './flow-types.js';
 import { sendChatMessage, st_createNewWorldInfo, st_echo, st_runRegexScript } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
-import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
+import { makeSimpleRequest, getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
@@ -108,6 +108,7 @@ class FlowRunner {
   private getDependencies(): FlowRunnerDependencies {
     return {
       getBaseMessagesForProfile,
+      makeSimpleRequest,
       makeStructuredRequest,
       getSillyTavernContext: () => SillyTavern.getContext(),
       createCharacter,

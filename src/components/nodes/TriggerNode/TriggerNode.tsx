@@ -1,4 +1,4 @@
-import React, { FC, useMemo } from 'react';
+import React, { FC, useMemo, useEffect } from 'react';
 import { NodeProps, Node, Handle, Position } from '@xyflow/react';
 import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
@@ -12,6 +12,8 @@ export type TriggerNodeProps = NodeProps<Node<TriggerNodeData>>;
 export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as TriggerNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const edges = useFlowStore((state) => state.edges);
+  const setEdges = useFlowStore((state) => state.setEdges);
 
   const outputHandles = useMemo(() => {
     if (!data?.selectedEventType) return null;
@@ -33,6 +35,18 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected }) => {
       </div>
     ));
   }, [data?.selectedEventType]);
+
+  useEffect(() => {
+    if (!data) return;
+    const eventParams = EventNameParameters[data.selectedEventType] || {};
+    const existingHandleIds = new Set(Object.keys(eventParams));
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)),
+    );
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [data?.selectedEventType, id, setEdges, edges]);
 
   if (!data) return null;
 

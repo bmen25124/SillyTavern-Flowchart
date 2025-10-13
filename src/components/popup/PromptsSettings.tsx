@@ -4,12 +4,12 @@ import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import {
   DEFAULT_SETTINGS,
   settingsManager,
-  STRUCTURED_REQUEST_JSON_PROMPT_KEY,
-  STRUCTURED_REQUEST_XML_PROMPT_KEY,
+  LLM_REQUEST_JSON_PROMPT_KEY,
+  LLM_REQUEST_XML_PROMPT_KEY,
 } from '../../config.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 
-const CORE_PROMPTS = [STRUCTURED_REQUEST_JSON_PROMPT_KEY, STRUCTURED_REQUEST_XML_PROMPT_KEY];
+const CORE_PROMPTS = [LLM_REQUEST_JSON_PROMPT_KEY, LLM_REQUEST_XML_PROMPT_KEY];
 
 export const PromptsSettings: FC = () => {
   const forceUpdate = useForceUpdate();

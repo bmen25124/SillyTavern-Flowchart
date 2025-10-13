@@ -11,8 +11,8 @@ export enum PromptEngineeringMode {
   XML = 'xml',
 }
 
-export const STRUCTURED_REQUEST_JSON_PROMPT_KEY = 'json';
-export const STRUCTURED_REQUEST_XML_PROMPT_KEY = 'xml';
+export const LLM_REQUEST_JSON_PROMPT_KEY = 'json';
+export const LLM_REQUEST_XML_PROMPT_KEY = 'xml';
 
 export interface ExtensionSettings {
   version: string;
@@ -60,8 +60,8 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   formatVersion: FORMAT_VERSION,
   enabled: true,
   prompts: {
-    [STRUCTURED_REQUEST_JSON_PROMPT_KEY]: DEFAULT_PROMPT_JSON,
-    [STRUCTURED_REQUEST_XML_PROMPT_KEY]: DEFAULT_PROMPT_XML,
+    [LLM_REQUEST_JSON_PROMPT_KEY]: DEFAULT_PROMPT_JSON,
+    [LLM_REQUEST_XML_PROMPT_KEY]: DEFAULT_PROMPT_XML,
   },
   activeFlow: 'Default',
   flows: {

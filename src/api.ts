@@ -80,6 +80,18 @@ async function makeRequest(
   });
 }
 
+export async function makeSimpleRequest(
+  profileId: string,
+  baseMessages: Message[],
+  maxResponseToken: number,
+): Promise<string> {
+  const response = (await makeRequest(profileId, baseMessages, maxResponseToken, {})) as ExtractedData;
+  if (!response?.content) {
+    throw new Error('LLM request failed to return content.');
+  }
+  return response.content as string;
+}
+
 export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
   profileId: string,
   baseMessages: Message[],

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { RandomNodeData } from './definition.js';
@@ -29,13 +29,29 @@ const fields = [
 export const RandomNode: FC<RandomNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RandomNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const edges = useFlowStore((state) => state.edges);
+  const setEdges = useFlowStore((state) => state.setEdges);
 
   const isMinConnected = useIsConnected(id, 'min');
   const isMaxConnected = useIsConnected(id, 'max');
 
-  if (!data) return null;
+  const mode = data?.mode ?? 'number';
 
-  const mode = data.mode ?? 'number';
+  useEffect(() => {
+    const handlesToClear: string[] = [];
+    if (mode === 'number') handlesToClear.push('array');
+    if (mode === 'array') handlesToClear.push('min', 'max');
+
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.target === id && handlesToClear.includes(edge.targetHandle || '')),
+    );
+
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [mode, id, setEdges, edges]);
+
+  if (!data) return null;
 
   return (
     <BaseNode id={id} title="Random" selected={selected}>

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -26,11 +26,12 @@ function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
 export type IfNodeProps = NodeProps<Node<IfNodeData>>;
 
 export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
-  const { data, nodes, edges, updateNodeData } = useFlowStore((state) => ({
+  const { data, nodes, edges, updateNodeData, setEdges } = useFlowStore((state) => ({
     data: state.nodesMap.get(id)?.data as IfNodeData,
     nodes: state.nodes,
     edges: state.edges,
     updateNodeData: state.updateNodeData,
+    setEdges: state.setEdges,
   }));
 
   const typeDeclarations = useMemo(() => {
@@ -65,6 +66,18 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
     const eventSchema = EventNameParameters[eventType];
     return eventSchema ? zodSchemaToTypescript(eventSchema) : '';
   }, [id, nodes, edges]);
+
+  useEffect(() => {
+    if (!data) return;
+    const existingHandleIds = new Set(data.conditions.map((c) => c.id));
+    const filteredEdges = edges.filter(
+      (edge) => !(edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)),
+    );
+
+    if (filteredEdges.length < edges.length) {
+      setEdges(filteredEdges);
+    }
+  }, [data?.conditions, id, setEdges, edges]);
 
   if (!data) return null;
 
