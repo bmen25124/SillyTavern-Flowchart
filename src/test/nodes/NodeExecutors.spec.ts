@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { createMockContext, createMockNode, mockDependencies } from './mockNodeExecutor.js';
 import { FlowRunnerDependencies, NodeExecutorContext } from '../../NodeExecutor.js';
+import { z } from 'zod';
 
 import { stringNodeDefinition } from '../../components/nodes/StringNode/definition.js';
 import { numberNodeDefinition } from '../../components/nodes/NumberNode/definition.js';
@@ -10,6 +11,12 @@ import { getVariableNodeDefinition } from '../../components/nodes/GetVariableNod
 import { ifNodeDefinition } from '../../components/nodes/IfNode/definition.js';
 import { executeJsNodeDefinition } from '../../components/nodes/ExecuteJsNode/definition.js';
 import { createLorebookNodeDefinition } from '../../components/nodes/CreateLorebookNode/definition.js';
+import { getPropertyNodeDefinition } from '../../components/nodes/GetPropertyNode/definition.js';
+import { randomNodeDefinition } from '../../components/nodes/RandomNode/definition.js';
+import { regexNodeDefinition } from '../../components/nodes/RegexNode/definition.js';
+import { runSlashCommandNodeDefinition } from '../../components/nodes/RunSlashCommandNode/definition.js';
+import { llmRequestNodeDefinition } from '../../components/nodes/LLMRequestNode/definition.js';
+import { PromptEngineeringMode } from '../../config.js';
 
 describe('Node Executors', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -25,13 +32,13 @@ describe('Node Executors', () => {
     const { execute } = stringNodeDefinition;
 
     it('should return the static value when no input is connected', async () => {
-      const node = createMockNode('stringNode', { value: 'static text' });
+      const node = createMockNode(stringNodeDefinition, { value: 'static text' });
       const result = await execute(node, {}, context);
       expect(result).toEqual({ value: 'static text' });
     });
 
     it('should return the connected input value, converting it to a string', async () => {
-      const node = createMockNode('stringNode', { value: 'static text' });
+      const node = createMockNode(stringNodeDefinition, { value: 'static text' });
       const result = await execute(node, { value: 123 }, context);
       expect(result).toEqual({ value: '123' });
     });
@@ -41,13 +48,13 @@ describe('Node Executors', () => {
     const { execute } = numberNodeDefinition;
 
     it('should return the static value', async () => {
-      const node = createMockNode('numberNode', { value: 42 });
+      const node = createMockNode(numberNodeDefinition, { value: 42 });
       const result = await execute(node, {}, context);
       expect(result).toEqual({ value: 42 });
     });
 
     it('should prioritize and convert the connected input value', async () => {
-      const node = createMockNode('numberNode', { value: 99 });
+      const node = createMockNode(numberNodeDefinition, { value: 99 });
       const result = await execute(node, { value: '123.45' }, context);
       expect(result).toEqual({ value: 123.45 });
     });
@@ -58,20 +65,73 @@ describe('Node Executors', () => {
     const { execute } = mathNodeDefinition;
 
     it('should add two numbers from static data', async () => {
-      const node = createMockNode('mathNode', { operation: 'add', a: 5, b: 3 });
+      const node = createMockNode(mathNodeDefinition, { operation: 'add', a: 5, b: 3 });
       const result = await execute(node, {}, context);
       expect(result).toEqual({ result: 8 });
     });
 
     it('should subtract two numbers from connected inputs', async () => {
-      const node = createMockNode('mathNode', { operation: 'subtract' });
+      const node = createMockNode(mathNodeDefinition, { operation: 'subtract' });
       const result = await execute(node, { a: 10, b: 4 }, context);
       expect(result).toEqual({ result: 6 });
     });
 
     it('should throw an error on division by zero', async () => {
-      const node = createMockNode('mathNode', { operation: 'divide', a: 10, b: 0 });
+      const node = createMockNode(mathNodeDefinition, { operation: 'divide', a: 10, b: 0 });
       await expect(execute(node, {}, context)).rejects.toThrow('Division by zero.');
+    });
+  });
+
+  describe('GetPropertyNode', () => {
+    const { execute } = getPropertyNodeDefinition;
+
+    it('should get a top-level property', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'name' });
+      const result = await execute(node, { object: { name: 'Alice', age: 30 } }, context);
+      expect(result).toBe('Alice');
+    });
+
+    it('should get a nested property', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'address.city' });
+      const obj = { name: 'Alice', address: { city: 'Wonderland' } };
+      const result = await execute(node, { object: obj }, context);
+      expect(result).toBe('Wonderland');
+    });
+
+    it('should return undefined for a non-existent path', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'address.zip' });
+      const obj = { name: 'Alice', address: { city: 'Wonderland' } };
+      const result = await execute(node, { object: obj }, context);
+      expect(result).toBeUndefined();
+    });
+
+    it('should throw an error if input is not an object', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'some.path' });
+      await expect(execute(node, { object: 'not-an-object' }, context)).rejects.toThrow('Input is not a valid object.');
+    });
+  });
+
+  describe('RandomNode', () => {
+    const { execute } = randomNodeDefinition;
+
+    it('should generate a random number within range', async () => {
+      const node = createMockNode(randomNodeDefinition, { mode: 'number', min: 10, max: 20 });
+      const { result } = await execute(node, {}, context);
+      expect(result).toBeGreaterThanOrEqual(10);
+      expect(result).toBeLessThanOrEqual(20);
+    });
+
+    it('should pick a random element from an array', async () => {
+      const node = createMockNode(randomNodeDefinition, { mode: 'array' });
+      const inputArray = ['a', 'b', 'c'];
+      const { result } = await execute(node, { array: inputArray }, context);
+      expect(inputArray).toContain(result);
+    });
+
+    it('should throw if array is empty or not provided for array mode', async () => {
+      const node = createMockNode(randomNodeDefinition, { mode: 'array' });
+      await expect(execute(node, { array: [] }, context)).rejects.toThrow('Input is not a non-empty array.');
+      await expect(execute(node, {}, context)).rejects.toThrow('Input is not a non-empty array.');
     });
   });
 
@@ -82,7 +142,7 @@ describe('Node Executors', () => {
 
     it('should set a variable in the execution context and then retrieve it', async () => {
       // Set the variable
-      const setNode = createMockNode('setVariableNode', { variableName: 'myVar' });
+      const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'myVar' });
       const setValue = { data: 'test-data' };
       const setResult = await setExecute(setNode, { value: setValue }, context);
 
@@ -91,7 +151,7 @@ describe('Node Executors', () => {
       expect(context.executionVariables.get('myVar')).toBe(setValue);
 
       // Get the variable
-      const getNode = createMockNode('getVariableNode', { variableName: 'myVar' });
+      const getNode = createMockNode(getVariableNodeDefinition, { variableName: 'myVar' });
       const getResult = await getExecute(getNode, {}, context);
 
       // Verify retrieval
@@ -99,7 +159,7 @@ describe('Node Executors', () => {
     });
 
     it('GetVariableNode should throw if variable does not exist', async () => {
-      const getNode = createMockNode('getVariableNode', { variableName: 'nonExistentVar' });
+      const getNode = createMockNode(getVariableNodeDefinition, { variableName: 'nonExistentVar' });
       await expect(getExecute(getNode, {}, context)).rejects.toThrow('Execution variable "nonExistentVar" not found.');
     });
   });
@@ -110,10 +170,10 @@ describe('Node Executors', () => {
 
     it('should return the condition ID for the first true simple condition', async () => {
       const trueConditionId = crypto.randomUUID();
-      const node = createMockNode('ifNode', {
+      const node = createMockNode(ifNodeDefinition, {
         conditions: [
-          { id: 'false-cond', mode: 'simple', operator: 'equals', value: 'wrong' },
-          { id: trueConditionId, mode: 'simple', operator: 'equals', value: 'correct' },
+          { id: 'false-cond', mode: 'simple', operator: 'equals', value: 'wrong', code: '', inputProperty: '' },
+          { id: trueConditionId, mode: 'simple', operator: 'equals', value: 'correct', code: '', inputProperty: '' },
         ],
       });
       const result = await execute(node, 'correct', context);
@@ -121,8 +181,10 @@ describe('Node Executors', () => {
     });
 
     it('should return "false" if no conditions are met', async () => {
-      const node = createMockNode('ifNode', {
-        conditions: [{ id: 'some-cond', mode: 'simple', operator: 'equals', value: 'nope' }],
+      const node = createMockNode(ifNodeDefinition, {
+        conditions: [
+          { id: 'some-cond', mode: 'simple', operator: 'equals', value: 'nope', code: '', inputProperty: '' },
+        ],
       });
       const result = await execute(node, 'a different value', context);
       expect(result).toEqual({ activatedHandle: 'false' });
@@ -130,8 +192,17 @@ describe('Node Executors', () => {
 
     it('should execute advanced code and return the ID on truthy result', async () => {
       const trueConditionId = crypto.randomUUID();
-      const node = createMockNode('ifNode', {
-        conditions: [{ id: trueConditionId, mode: 'advanced', code: 'return input.value > 10;' }],
+      const node = createMockNode(ifNodeDefinition, {
+        conditions: [
+          {
+            id: trueConditionId,
+            mode: 'advanced',
+            code: 'return input.value > 10;',
+            inputProperty: '',
+            operator: 'equals',
+            value: '',
+          },
+        ],
       });
       const result = await execute(node, { value: 20 }, context);
       expect(result).toEqual({ activatedHandle: trueConditionId });
@@ -143,7 +214,7 @@ describe('Node Executors', () => {
     const { execute } = executeJsNodeDefinition;
 
     it('should execute code and return the result', async () => {
-      const node = createMockNode('executeJsNode', { code: 'return input.a + input.b;' });
+      const node = createMockNode(executeJsNodeDefinition, { code: 'return input.a + input.b;' });
       const result = await execute(node, { a: 10, b: 5 }, context);
       expect(result).toBe(15);
     });
@@ -151,7 +222,9 @@ describe('Node Executors', () => {
     it('should have access to variables and stContext', async () => {
       context.executionVariables.set('myVar', 100);
       dependencies.getSillyTavernContext.mockReturnValue({ test: 'context' } as any);
-      const node = createMockNode('executeJsNode', { code: 'return variables.myVar + (stContext.test ? 1 : 0);' });
+      const node = createMockNode(executeJsNodeDefinition, {
+        code: 'return variables.myVar + (stContext.test ? 1 : 0);',
+      });
       const result = await execute(node, {}, context);
       expect(result).toBe(101);
     });
@@ -162,7 +235,7 @@ describe('Node Executors', () => {
 
     it('should call the dependency to create a new lorebook', async () => {
       dependencies.st_createNewWorldInfo.mockResolvedValue(true);
-      const node = createMockNode('createLorebookNode', { worldName: 'My New Lorebook' });
+      const node = createMockNode(createLorebookNodeDefinition, { worldName: 'My New Lorebook' });
       const result = await execute(node, {}, context);
 
       expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My New Lorebook');
@@ -171,11 +244,121 @@ describe('Node Executors', () => {
 
     it('should throw if the dependency reports failure', async () => {
       dependencies.st_createNewWorldInfo.mockResolvedValue(false);
-      const node = createMockNode('createLorebookNode', { worldName: 'Existing Lorebook' });
+      const node = createMockNode(createLorebookNodeDefinition, { worldName: 'Existing Lorebook' });
 
       await expect(execute(node, {}, context)).rejects.toThrow(
         'Failed to create lorebook "Existing Lorebook". It might already exist.',
       );
+    });
+  });
+
+  describe('RegexNode', () => {
+    const { execute } = regexNodeDefinition;
+
+    it('should perform a custom regex replacement', async () => {
+      const node = createMockNode(regexNodeDefinition, {
+        mode: 'custom',
+        findRegex: 'world',
+        replaceString: 'planet',
+      });
+      const result = await execute(node, { string: 'hello world' }, context);
+      expect(result).toEqual({ result: 'hello planet', matches: ['world'] });
+    });
+
+    it('should run a SillyTavern regex script', async () => {
+      const mockScript = { id: 'test-script', findRegex: 'quick', replaceString: 'slow' };
+      dependencies.getSillyTavernContext.mockReturnValue({
+        extensionSettings: { regex: [mockScript] },
+      } as any);
+      dependencies.st_runRegexScript.mockReturnValue('The slow brown fox');
+
+      const node = createMockNode(regexNodeDefinition, { mode: 'sillytavern', scriptId: 'test-script' });
+      const result = await execute(node, { string: 'The quick brown fox' }, context);
+
+      expect(dependencies.st_runRegexScript).toHaveBeenCalledWith(mockScript, 'The quick brown fox');
+      expect(result).toEqual({ result: 'The slow brown fox', matches: ['quick'] });
+    });
+
+    it('should throw if a SillyTavern script is not found', async () => {
+      dependencies.getSillyTavernContext.mockReturnValue({
+        extensionSettings: { regex: [] },
+      } as any);
+      const node = createMockNode(regexNodeDefinition, { mode: 'sillytavern', scriptId: 'non-existent' });
+      await expect(execute(node, { string: 'test' }, context)).rejects.toThrow(
+        'Regex with ID "non-existent" not found.',
+      );
+    });
+  });
+
+  describe('RunSlashCommandNode', () => {
+    const { execute } = runSlashCommandNodeDefinition;
+
+    it('should execute a slash command and return the pipe result', async () => {
+      dependencies.executeSlashCommandsWithOptions.mockResolvedValue({
+        isError: false,
+        isAborted: false,
+        pipe: 'Command output',
+      });
+      const node = createMockNode(runSlashCommandNodeDefinition, { command: '/echo test' });
+      const result = await execute(node, {}, context);
+      expect(dependencies.executeSlashCommandsWithOptions).toHaveBeenCalledWith('/echo test');
+      expect(result).toEqual({ result: 'Command output' });
+    });
+
+    it('should throw if the slash command returns an error', async () => {
+      dependencies.executeSlashCommandsWithOptions.mockResolvedValue({
+        isError: true,
+        errorMessage: 'Test error',
+      });
+      const node = createMockNode(runSlashCommandNodeDefinition, { command: '/fail' });
+      await expect(execute(node, {}, context)).rejects.toThrow('Slash command failed: Test error');
+    });
+  });
+
+  describe('LLMRequestNode', () => {
+    const { execute } = llmRequestNodeDefinition;
+
+    it('should make a simple request when no schema is provided', async () => {
+      dependencies.makeSimpleRequest.mockResolvedValue('Simple response');
+      const node = createMockNode(llmRequestNodeDefinition, {
+        profileId: 'test-profile',
+        maxResponseToken: 50,
+      });
+      const messages = [{ role: 'user', content: 'Hi' }];
+      const result = await execute(node, { profileId: 'test-profile', messages, maxResponseToken: 50 }, context);
+      expect(dependencies.makeSimpleRequest).toHaveBeenCalledWith('test-profile', messages, 50);
+      expect(result).toEqual({ result: 'Simple response' });
+    });
+
+    it('should make a structured request when a schema is provided', async () => {
+      const structuredResponse = { name: 'Alice', age: 30 };
+      dependencies.makeStructuredRequest.mockResolvedValue(structuredResponse);
+      const testSchema = z.object({ name: z.string(), age: z.number() });
+      const node = createMockNode(llmRequestNodeDefinition, {
+        profileId: 'test-profile',
+        schemaName: 'person',
+        promptEngineeringMode: PromptEngineeringMode.NATIVE,
+        maxResponseToken: 100,
+      });
+      const messages = [{ role: 'user', content: 'Extract person' }];
+      const result = await execute(
+        node,
+        { profileId: 'test-profile', messages, schema: testSchema, maxResponseToken: 100 },
+        context,
+      );
+
+      expect(dependencies.makeStructuredRequest).toHaveBeenCalledWith(
+        'test-profile',
+        messages,
+        testSchema,
+        'person',
+        'native',
+        100,
+      );
+      expect(result).toEqual({
+        ...structuredResponse,
+        result: structuredResponse,
+      });
     });
   });
 });

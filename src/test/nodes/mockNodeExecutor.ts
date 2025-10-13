@@ -1,6 +1,8 @@
 import { jest } from '@jest/globals';
 import { SpecFlow, SpecNode } from '../../flow-spec.js';
 import { FlowRunnerDependencies, NodeExecutorContext } from '../../NodeExecutor.js';
+import { NodeDefinition } from '../../components/nodes/definitions/types.js';
+import { z } from 'zod';
 
 export const mockDependencies = (): jest.Mocked<FlowRunnerDependencies> => ({
   getBaseMessagesForProfile: jest.fn(),
@@ -32,8 +34,11 @@ export const createMockContext = (
   ...overrides,
 });
 
-export const createMockNode = (type: string, data: any): SpecNode => ({
+export const createMockNode = <TDef extends NodeDefinition<any>>(
+  definition: TDef,
+  data: Partial<z.infer<TDef['dataSchema']>>,
+): SpecNode => ({
   id: 'test-node',
-  type,
+  type: definition.type,
   data,
 });
