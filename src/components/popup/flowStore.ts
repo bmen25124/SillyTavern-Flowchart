@@ -12,10 +12,16 @@ import {
 import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 import { runMigrations } from '../../migrations.js';
 
+type Clipboard = {
+  nodes: Node[];
+  edges: Edge[];
+};
+
 type FlowState = {
   nodes: Node[];
   edges: Edge[];
   nodesMap: Map<string, Node>;
+  clipboard: Clipboard | null;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
@@ -27,6 +33,8 @@ type FlowState = {
   duplicateNode: (nodeId: string) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  copySelection: () => void;
+  paste: (position: { x: number; y: number }) => void;
 };
 
 const toSpecNode = (node: Node): SpecNode => ({
@@ -67,6 +75,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: [],
   edges: [],
   nodesMap: new Map(),
+  clipboard: null,
   setNodes: (nodes) => {
     set({ nodes, nodesMap: new Map(nodes.map((n) => [n.id, n])) });
   },
@@ -162,6 +171,64 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       return {
         nodes: newNodes,
         nodesMap: new Map(newNodes.map((n) => [n.id, n])),
+      };
+    });
+  },
+  copySelection: () => {
+    const { nodes, edges } = get();
+    const selectedNodes = nodes.filter((n) => n.selected);
+    if (selectedNodes.length === 0) return;
+
+    const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+    const selectedEdges = edges.filter((e) => selectedNodeIds.has(e.source) && selectedNodeIds.has(e.target));
+
+    set({ clipboard: { nodes: structuredClone(selectedNodes), edges: structuredClone(selectedEdges) } });
+  },
+  paste: (position) => {
+    const { clipboard } = get();
+    if (!clipboard || clipboard.nodes.length === 0) return;
+
+    const idMapping = new Map<string, string>();
+    const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
+
+    const minX = Math.min(...clipboard.nodes.map((n) => n.position.x));
+    const minY = Math.min(...clipboard.nodes.map((n) => n.position.y));
+
+    clipboard.nodes.forEach((node) => {
+      const newId = crypto.randomUUID();
+      idMapping.set(node.id, newId);
+      newNodes.push({
+        ...node,
+        id: newId,
+        selected: true,
+        position: {
+          x: position.x + (node.position.x - minX),
+          y: position.y + (node.position.y - minY),
+        },
+      });
+    });
+
+    clipboard.edges.forEach((edge) => {
+      const newSource = idMapping.get(edge.source);
+      const newTarget = idMapping.get(edge.target);
+      if (newSource && newTarget) {
+        newEdges.push({
+          ...edge,
+          id: crypto.randomUUID(),
+          source: newSource,
+          target: newTarget,
+        });
+      }
+    });
+
+    set((state) => {
+      const deselectNodes = state.nodes.map((n) => ({ ...n, selected: false }));
+      const finalNodes = [...deselectNodes, ...newNodes];
+      return {
+        nodes: finalNodes,
+        edges: [...state.edges, ...newEdges],
+        nodesMap: new Map(finalNodes.map((n) => [n.id, n])),
       };
     });
   },

@@ -27,6 +27,7 @@ import { useFlowRunStore } from './flowRunStore.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { registrator } from '../nodes/autogen-imports.js';
+import { SpecFlow } from '../../flow-spec.js';
 
 type CompatibilityInfo = {
   nodeType: string;
@@ -398,30 +399,13 @@ const FlowCanvas: FC<{
 };
 
 const FlowManager: FC = () => {
-  const { nodes, edges, loadFlow, getSpecFlow, addNode, setNodes, setEdges } = useFlowStore();
+  const { nodes, edges, loadFlow, getSpecFlow, setNodes, setEdges, copySelection, paste } = useFlowStore();
   const { getNodes, setViewport, getViewport, screenToFlowPosition } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const copyBuffer = useRef<Node[]>([]);
-  const mousePosRef = useRef({ x: 0, y: 0 });
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const { isVisualizationVisible, runId, runStatus, toggleVisualization, clearRun } = useFlowRunStore();
-
-  useEffect(() => {
-    const onMouseMove = (event: MouseEvent) => {
-      if (flowWrapperRef.current) {
-        const bounds = flowWrapperRef.current.getBoundingClientRect();
-        mousePosRef.current = {
-          x: event.clientX - bounds.left,
-          y: event.clientY - bounds.top,
-        };
-      }
-    };
-    const wrapper = flowWrapperRef.current;
-    wrapper?.addEventListener('mousemove', onMouseMove);
-    return () => wrapper?.removeEventListener('mousemove', onMouseMove);
-  }, []);
 
   useEffect(() => {
     let settingsChanged = false;
@@ -460,43 +444,40 @@ const FlowManager: FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!document.querySelector('.flowchart-data-popup')?.contains(document.activeElement)) return;
+      const isPopupActive = !!document.querySelector('.flowchart-data-popup');
+      const isInputFocused =
+        document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+
+      if (!isPopupActive || isInputFocused) return;
+
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'c') {
-          const selectedNodes = getNodes().filter((n) => n.selected);
-          if (selectedNodes.length > 0) {
-            const minX = Math.min(...selectedNodes.map((n) => n.position.x));
-            const minY = Math.min(...selectedNodes.map((n) => n.position.y));
-            copyBuffer.current = structuredClone(
-              selectedNodes.map((n) => ({
-                ...n,
-                selected: true,
-                position: { x: n.position.x - minX, y: n.position.y - minY },
-              })),
-            );
-            st_echo('info', `${selectedNodes.length} node(s) copied.`);
+          event.preventDefault();
+          copySelection();
+          const selectedCount = getNodes().filter((n) => n.selected).length;
+          if (selectedCount > 0) {
+            st_echo('info', `${selectedCount} node(s) copied.`);
           }
         } else if (event.key === 'v') {
-          if (copyBuffer.current.length > 0) {
-            const flowPos = screenToFlowPosition({
-              x: mousePosRef.current.x + (flowWrapperRef.current?.getBoundingClientRect().left || 0),
-              y: mousePosRef.current.y + (flowWrapperRef.current?.getBoundingClientRect().top || 0),
+          event.preventDefault();
+          const flowWrapperBounds = flowWrapperRef.current?.getBoundingClientRect();
+          const reactFlowPane = document.querySelector('.react-flow__pane');
+
+          if (flowWrapperBounds && reactFlowPane) {
+            const paneBounds = reactFlowPane.getBoundingClientRect();
+            const position = screenToFlowPosition({
+              x: paneBounds.x + paneBounds.width / 2,
+              y: paneBounds.y + paneBounds.height / 2,
             });
-            getNodes().forEach((n) => (n.selected = false));
-            copyBuffer.current.forEach((nodeToPaste) => {
-              addNode({
-                ...nodeToPaste,
-                position: { x: flowPos.x + nodeToPaste.position.x, y: flowPos.y + nodeToPaste.position.y },
-              });
-            });
-            st_echo('info', `${copyBuffer.current.length} node(s) pasted.`);
+            paste(position);
           }
         }
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [getNodes, addNode, screenToFlowPosition]);
+  }, [copySelection, paste, getNodes, screenToFlowPosition]);
 
   const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
 
@@ -582,6 +563,29 @@ const FlowManager: FC = () => {
     }
   };
 
+  const handlePasteFlow = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (!clipboardText) {
+        st_echo('error', 'Clipboard is empty.');
+        return;
+      }
+
+      const parsedData = JSON.parse(clipboardText);
+
+      // Basic validation
+      if (!parsedData || !Array.isArray(parsedData.nodes) || !Array.isArray(parsedData.edges)) {
+        throw new Error('Parsed JSON is not a valid flow structure.');
+      }
+
+      loadFlow(parsedData as SpecFlow);
+      st_echo('info', 'Flow pasted from clipboard, replacing current flow.');
+    } catch (error) {
+      console.error('Failed to paste flow:', error);
+      st_echo('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.');
+    }
+  };
+
   const handleScreenshot = useCallback(async () => {
     const flowElement = document.querySelector<HTMLElement>('.react-flow');
     if (!flowElement) {
@@ -623,7 +627,7 @@ const FlowManager: FC = () => {
 
         const link = document.createElement('a');
         link.href = dataUrl;
-        link.download = `flowchart-${settings.activeFlow}.png`;
+        link.download = `flowchart-${settings.flows[settings.activeFlow].name}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -684,6 +688,9 @@ const FlowManager: FC = () => {
         )}
         <STButton onClick={handleCopyFlow} title="Copy Flow JSON">
           <i className="fa-solid fa-copy"></i>
+        </STButton>
+        <STButton onClick={handlePasteFlow} title="Paste Flow from Clipboard">
+          <i className="fa-solid fa-paste"></i>
         </STButton>
         <STButton onClick={handleScreenshot} title="Take Screenshot">
           <i className="fa-solid fa-camera"></i>
