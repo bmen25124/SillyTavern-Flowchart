@@ -35,6 +35,14 @@ type CompatibilityInfo = {
   targetHandle: string | null;
 };
 
+type ContextMenuState = {
+  x: number;
+  y: number;
+  items: { label: string; action: () => void }[];
+  searchTerm?: string;
+  showSearch: boolean;
+};
+
 // Pre-computes which nodes can connect to which other nodes
 function computeCompatibilityMap() {
   const sourceCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
@@ -145,17 +153,21 @@ const compatibilityMap = computeCompatibilityMap();
 const FlowCanvas: FC<{
   invalidNodeIds: Set<string>;
 }> = ({ invalidNodeIds }) => {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect: baseOnConnect, addNode } = useFlowStore();
-  const { screenToFlowPosition, getNodes } = useReactFlow();
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect: baseOnConnect,
+    addNode,
+    duplicateNode,
+  } = useFlowStore();
+  const { screenToFlowPosition, getNodes, deleteElements } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    options: { label: string; action: () => void }[];
-    searchTerm: string;
-  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const debouncedSearchTerm = useDebounce(contextMenu?.searchTerm ?? '', 200);
   const wasConnectionSuccessful = useRef(false);
+  const menuJustOpened = useRef(false);
   const { isVisualizationVisible, nodeReports, activeNodeId } = useFlowRunStore((state) => ({
     isVisualizationVisible: state.isVisualizationVisible,
     nodeReports: state.nodeReports,
@@ -180,6 +192,46 @@ const FlowCanvas: FC<{
     wasConnectionSuccessful.current = false;
   }, []);
 
+  const onPaneClick = useCallback(() => {
+    if (menuJustOpened.current) {
+      menuJustOpened.current = false;
+      return;
+    }
+    setContextMenu(null);
+  }, []);
+
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
+      if (!editorArea) return;
+      const bounds = editorArea.getBoundingClientRect();
+      menuJustOpened.current = true;
+      setContextMenu({
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+        showSearch: false,
+        items: [
+          {
+            label: 'Duplicate',
+            action: () => {
+              duplicateNode(node.id);
+              setContextMenu(null);
+            },
+          },
+          {
+            label: 'Delete',
+            action: () => {
+              deleteElements({ nodes: [node] });
+              setContextMenu(null);
+            },
+          },
+        ],
+      });
+    },
+    [duplicateNode, deleteElements, setContextMenu],
+  );
+
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
       if (!connectingNode.current) return;
@@ -187,44 +239,34 @@ const FlowCanvas: FC<{
         connectingNode.current = null;
         return;
       }
-
       event.stopPropagation();
-
       const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
       const startNode = getNodes().find((n) => n.id === startNodeId);
       if (!startNode || !startNode.type) {
         connectingNode.current = null;
         return;
       }
-
       const compatibleNodes =
         handleType === 'source'
           ? (compatibilityMap.sourceCompatibilityMap.get(startNode.type)?.get(startHandleId) ?? [])
           : (compatibilityMap.targetCompatibilityMap.get(startNode.type)?.get(startHandleId) ?? []);
-
       connectingNode.current = null;
       if (compatibleNodes.length === 0) return;
-
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
       if (!editorArea) {
         connectingNode.current = null;
         return;
       }
       const bounds = editorArea.getBoundingClientRect();
-
       const position = screenToFlowPosition({ x: clientX, y: clientY });
       const menuX = clientX - bounds.left;
       const menuY = clientY - bounds.top;
-
       const createAndConnectNode = (nodeType: string, sourceHandle: string | null, targetHandle: string | null) => {
         const nodeDef = registrator.nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
-
         const nodeXOffset = handleType === 'source' ? 50 : -250;
-
         const newNode = addNode({
           type: nodeType,
           position: { x: position.x + nodeXOffset, y: position.y },
@@ -234,10 +276,8 @@ const FlowCanvas: FC<{
           handleType === 'source'
             ? { source: startNodeId, sourceHandle: sourceHandle, target: newNode.id, targetHandle: targetHandle }
             : { source: newNode.id, sourceHandle: sourceHandle, target: startNodeId, targetHandle: targetHandle };
-
         setTimeout(() => onConnect(connection as Connection), 10);
       };
-
       if (compatibleNodes.length === 1) {
         const { nodeType, sourceHandle, targetHandle } = compatibleNodes[0];
         createAndConnectNode(nodeType, sourceHandle, targetHandle);
@@ -246,11 +286,11 @@ const FlowCanvas: FC<{
         let finalMenuY = menuY;
         if (finalMenuX + 220 > bounds.width) finalMenuX -= 220;
         if (finalMenuY + 300 > bounds.height) finalMenuY = bounds.height - 310;
-
+        menuJustOpened.current = true;
         setContextMenu({
           x: finalMenuX,
           y: finalMenuY,
-          options: compatibleNodes.map(({ nodeType, nodeLabel, sourceHandle, targetHandle }) => ({
+          items: compatibleNodes.map(({ nodeType, nodeLabel, sourceHandle, targetHandle }) => ({
             label: nodeLabel,
             action: () => {
               createAndConnectNode(nodeType, sourceHandle, targetHandle);
@@ -258,9 +298,9 @@ const FlowCanvas: FC<{
             },
           })),
           searchTerm: '',
+          showSearch: true,
         });
       }
-
       connectingNode.current = null;
     },
     [getNodes, screenToFlowPosition, addNode, onConnect, setContextMenu],
@@ -290,10 +330,10 @@ const FlowCanvas: FC<{
 
   const filteredMenuOptions = useMemo(() => {
     if (!contextMenu) return [];
-    if (!debouncedSearchTerm) return contextMenu.options;
+    if (!contextMenu.showSearch || !debouncedSearchTerm) return contextMenu.items;
     const lowerSearch = debouncedSearchTerm.toLowerCase();
-    return contextMenu.options.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
-  }, [contextMenu?.options, debouncedSearchTerm]);
+    return contextMenu.items.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
+  }, [contextMenu, debouncedSearchTerm]);
 
   return (
     <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
@@ -305,6 +345,8 @@ const FlowCanvas: FC<{
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={onPaneClick}
         nodeTypes={registrator.nodeTypes}
         colorMode="dark"
         fitView
@@ -323,24 +365,31 @@ const FlowCanvas: FC<{
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <div className="context-menu-search-wrapper">
-            <STInput
-              type="text"
-              placeholder="Search to add..."
-              value={contextMenu.searchTerm}
-              onChange={(e) =>
-                setContextMenu((currentMenu) => (currentMenu ? { ...currentMenu, searchTerm: e.target.value } : null))
-              }
-              autoFocus
-            />
-          </div>
+          {contextMenu.showSearch && (
+            <div className="context-menu-search-wrapper">
+              <STInput
+                type="text"
+                placeholder="Search to add..."
+                value={contextMenu.searchTerm ?? ''}
+                onChange={(e) =>
+                  setContextMenu((currentMenu) => (currentMenu ? { ...currentMenu, searchTerm: e.target.value } : null))
+                }
+                autoFocus
+              />
+            </div>
+          )}
           <ul>
-            {filteredMenuOptions.map((option, i) => (
-              <li key={i} onClick={option.action} title={option.label}>
-                {option.label}
-              </li>
-            ))}
-            {filteredMenuOptions.length === 0 && <li className="no-results">No matching nodes</li>}
+            {filteredMenuOptions.length > 0 ? (
+              filteredMenuOptions.map((option, i) => (
+                <li key={i} onClick={option.action} title={option.label}>
+                  {option.label}
+                </li>
+              ))
+            ) : contextMenu.showSearch ? (
+              <li className="no-results">No matching nodes</li>
+            ) : (
+              <li className="no-results">No actions</li>
+            )}
           </ul>
         </div>
       )}

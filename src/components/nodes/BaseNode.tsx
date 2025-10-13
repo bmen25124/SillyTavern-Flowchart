@@ -1,7 +1,5 @@
 import { FC, ReactNode } from 'react';
 import { NodeResizer } from '@xyflow/react';
-import { useFlowStore } from '../popup/flowStore.js';
-import { STButton } from 'sillytavern-utils-lib/components';
 import { useFlowRunStore } from '../popup/flowRunStore.js';
 import { NodeRunReport } from './NodeRunReport.js';
 
@@ -13,7 +11,6 @@ type BaseNodeProps = {
 };
 
 export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) => {
-  const duplicateNode = useFlowStore((state) => state.duplicateNode);
   const { isVisualizationVisible, nodeReports, executionOrder } = useFlowRunStore((state) => ({
     isVisualizationVisible: state.isVisualizationVisible,
     nodeReports: state.nodeReports,
@@ -43,7 +40,6 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
       <NodeResizer isVisible={selected} minWidth={180} minHeight={50} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
         <label>{title}</label>
-        <STButton onClick={() => duplicateNode(id)}>Duplicate</STButton>
       </div>
       {children}
       {showReport && <NodeRunReport report={report} />}
