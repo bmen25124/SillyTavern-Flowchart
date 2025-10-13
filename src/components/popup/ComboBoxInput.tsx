@@ -28,7 +28,9 @@ export const ComboBoxInput: FC<ComboBoxInputProps> = ({
   const finalClassName = useMemo(() => {
     const classes: (string | undefined)[] = [];
 
-    classes.push('text_pole');
+    if (!overrideDefaults) {
+      classes.push('text_pole');
+    }
     classes.push(className);
 
     return classes.filter(Boolean).join(' ');
