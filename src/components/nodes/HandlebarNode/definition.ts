@@ -16,8 +16,8 @@ export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
 const execute: NodeExecutor = async (node, input) => {
   const data = HandlebarNodeDataSchema.parse(node.data);
   const template = resolveInput(input, data, 'template');
-  const context = { ...input };
-  delete context.template;
+
+  const context = input;
 
   try {
     const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
@@ -38,7 +38,7 @@ export const handlebarNodeDefinition: NodeDefinition<HandlebarNodeData> = {
   handles: {
     inputs: [
       { id: 'template', type: FlowDataType.STRING },
-      { id: 'data', type: FlowDataType.OBJECT },
+      { id: 'data', type: FlowDataType.ANY },
     ],
     outputs: [{ id: 'result', type: FlowDataType.STRING }],
   },

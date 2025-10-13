@@ -14,14 +14,13 @@ export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 const execute: NodeExecutor = async (node, input) => {
   const data = ProfileIdNodeDataSchema.parse(node.data);
 
-  let resolvedId: string | undefined;
-  if (typeof input === 'string') {
-    resolvedId = input;
-  } else if (typeof input === 'object' && input !== null) {
-    resolvedId = input.profileId ?? input.value;
+  const connectedValue = input;
+
+  if (connectedValue !== undefined && connectedValue !== null && String(connectedValue).trim() !== '') {
+    return String(connectedValue);
   }
 
-  return resolvedId && typeof resolvedId === 'string' ? resolvedId : data.profileId;
+  return data.profileId;
 };
 
 export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { HandlebarNodeData } from './definition.js';
@@ -9,6 +9,7 @@ import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
+import { z } from 'zod';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
 
@@ -27,6 +28,8 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
   const isDataConnected = useIsConnected(id, 'data');
   const inputSchema = useInputSchema(id, 'data');
 
+  const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
+
   if (!data) return null;
 
   return (
@@ -42,7 +45,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
           />
           <label style={{ marginLeft: '10px' }}>Data (Context)</label>
           {!isDataConnected && <span style={{ fontSize: '10px', color: '#888' }}> (Requires connection)</span>}
-          {isDataConnected && inputSchema && (
+          {isDataConnected && isInputAnObject && inputSchema && (
             <div style={{ fontSize: '10px', color: '#aaa', marginTop: '5px', marginLeft: '10px' }}>
               <b>Available properties in `data`:</b>
               <pre

@@ -45,7 +45,10 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     let result = false;
 
     if (condition.mode === 'simple') {
+      // If inputProperty is set, use it to get a value from the input object.
+      // If inputProperty is empty, use the input value directly (works for primitives and objects).
       const propertyValue = condition.inputProperty ? get(input, condition.inputProperty, undefined) : input;
+
       const comparisonValue = input[getConditionValueHandleId(condition.id)] ?? condition.value;
 
       switch (condition.operator) {

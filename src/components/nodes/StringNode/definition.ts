@@ -13,7 +13,9 @@ export type StringNodeData = z.infer<typeof StringNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = StringNodeDataSchema.parse(node.data);
-  const value = input.value ?? data.value;
+
+  const value = input && 'value' in input ? input.value : data.value;
+
   return { value: String(value) };
 };
 

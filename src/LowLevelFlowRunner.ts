@@ -158,22 +158,15 @@ export class LowLevelFlowRunner {
       const sourceOutput = nodeOutputs[edge.source];
       if (sourceOutput === undefined) continue;
 
-      const targetHandle = edge.targetHandle;
-      if (!targetHandle) {
-        Object.assign(inputs, sourceOutput);
-        continue;
-      }
+      const valueToPass =
+        edge.sourceHandle && typeof sourceOutput === 'object' && sourceOutput !== null
+          ? sourceOutput[edge.sourceHandle]
+          : sourceOutput;
 
-      const sourceHandle = edge.sourceHandle;
-      if (
-        sourceHandle &&
-        typeof sourceOutput === 'object' &&
-        sourceOutput !== null &&
-        sourceOutput[sourceHandle] !== undefined
-      ) {
-        inputs[targetHandle] = sourceOutput[sourceHandle];
+      if (edge.targetHandle) {
+        inputs[edge.targetHandle] = valueToPass;
       } else {
-        inputs[targetHandle] = sourceOutput;
+        return valueToPass;
       }
     }
     return inputs;

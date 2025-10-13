@@ -9,6 +9,7 @@ import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { settingsManager } from '../../../config.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
+import { useIsConnected } from '../../../hooks/useIsConnected.js';
 
 export type RunFlowNodeProps = NodeProps<Node<RunFlowNodeData>>;
 
@@ -16,6 +17,7 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RunFlowNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const settings = settingsManager.getSettings();
+  const isParametersConnected = useIsConnected(id, 'parameters');
 
   const flowOptions = useMemo(
     () => Object.entries(settings.flows).map(([id, { name }]) => ({ value: id, label: name })),
@@ -47,22 +49,28 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
 
   return (
     <BaseNode id={id} title="Run Flow" selected={selected}>
-      <Handle type="target" position={Position.Left} id={null} style={{ top: '10%' }} />
+      <Handle type="target" position={Position.Left} id={null} style={{ top: '15%' }} />
+
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
 
-      <div style={{ marginTop: '10px' }}>
-        <label>Parameters (JSON)</label>
-        <Handle type="target" position={Position.Left} id="parameters" style={{ top: '60%' }} />
-        <CodeMirror
-          className="nodrag"
-          value={data.parameters || '{}'}
-          height="100px"
-          extensions={[javascript({})]}
-          width="100%"
-          onChange={(value) => updateNodeData(id, { parameters: value })}
-          theme={'dark'}
-          style={{ cursor: 'text' }}
-        />
+      <div style={{ marginTop: '10px', position: 'relative' }}>
+        <Handle type="target" position={Position.Left} id="parameters" style={{ top: '1rem' }} />
+
+        <label style={{ marginLeft: '10px' }}>Parameters (JSON)</label>
+        {!isParametersConnected ? (
+          <CodeMirror
+            className="nodrag"
+            value={data.parameters || '{}'}
+            height="100px"
+            extensions={[javascript({})]}
+            width="100%"
+            onChange={(value) => updateNodeData(id, { parameters: value })}
+            theme={'dark'}
+            style={{ cursor: 'text', marginTop: '5px' }}
+          />
+        ) : (
+          <div style={{ padding: '5px 0 0 10px', color: '#888', fontStyle: 'italic' }}>Value from connection</div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>

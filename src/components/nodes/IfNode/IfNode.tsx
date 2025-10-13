@@ -29,14 +29,10 @@ const ConditionEditor: FC<{
   onUpdate: (updatedPartialCondition: Partial<Condition>) => void;
   onRemove: () => void;
   isOnlyCondition: boolean;
-}> = ({ nodeId, condition, onUpdate, onRemove, isOnlyCondition }) => {
-  const inputSchema = useInputSchema(nodeId, null);
+  isInputAnObject: boolean;
+  availableProperties: string[];
+}> = ({ nodeId, condition, onUpdate, onRemove, isOnlyCondition, isInputAnObject, availableProperties }) => {
   const isValueConnected = useIsConnected(nodeId, `value_${condition.id}`);
-
-  const availableProperties = useMemo(() => {
-    if (!inputSchema) return [];
-    return flattenZodSchema(inputSchema);
-  }, [inputSchema]);
 
   const toggleMode = () => {
     if (condition.mode === 'advanced') {
@@ -76,14 +72,16 @@ const ConditionEditor: FC<{
 
       {condition.mode === 'simple' ? (
         <>
-          <ComboBoxInput
-            className="nodrag"
-            value={condition.inputProperty}
-            onChange={(e) => onUpdate({ inputProperty: e.target.value })}
-            options={availableProperties}
-            listId={`${condition.id}-properties`}
-            placeholder="Property path (e.g., name, result.text)"
-          />
+          {isInputAnObject && (
+            <ComboBoxInput
+              className="nodrag"
+              value={condition.inputProperty}
+              onChange={(e) => onUpdate({ inputProperty: e.target.value })}
+              options={availableProperties}
+              listId={`${condition.id}-properties`}
+              placeholder="Property path (e.g., name)"
+            />
+          )}
           <STSelect
             className="nodrag"
             value={condition.operator}
@@ -142,6 +140,12 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   const edges = useEdges();
   const inputSchema = useInputSchema(id, null);
 
+  const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
+  const availableProperties = useMemo(() => {
+    if (!isInputAnObject || !inputSchema) return [];
+    return flattenZodSchema(inputSchema);
+  }, [inputSchema, isInputAnObject]);
+
   useEffect(() => {
     if (!data) return;
     const validSourceHandles = new Set([...data.conditions.map((c) => c.id), 'false']);
@@ -191,7 +195,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {data.conditions.map((condition, index) => (
+        {data.conditions.map((condition) => (
           <ConditionEditor
             key={condition.id}
             nodeId={id}
@@ -199,11 +203,13 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
             onUpdate={(updatedPartial) => updateCondition(condition.id, updatedPartial)}
             onRemove={() => removeCondition(condition.id)}
             isOnlyCondition={data.conditions.length === 1}
+            isInputAnObject={isInputAnObject}
+            availableProperties={availableProperties}
           />
         ))}
         <STButton onClick={addCondition}>Add Else If</STButton>
 
-        {inputSchema && (
+        {isInputAnObject && inputSchema && (
           <details style={{ marginTop: '5px', background: '#2a2a2a', padding: '5px', borderRadius: '3px' }}>
             <summary style={{ color: '#888', fontSize: '11px', cursor: 'pointer' }}>Available Input Properties</summary>
             <pre style={{ fontSize: '10px', color: '#ccc', margin: 0, whiteSpace: 'pre-wrap' }}>

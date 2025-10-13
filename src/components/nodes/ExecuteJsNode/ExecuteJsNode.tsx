@@ -7,6 +7,15 @@ import { BaseNode } from '../BaseNode.js';
 import { ExecuteJsNodeData } from './definition.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
+import { z } from 'zod';
+
+function getZodTypeName(schema: z.ZodType): string {
+  const typeName = (schema._def as any).typeName;
+  if (typeName) {
+    return typeName.replace('Zod', '').toLowerCase();
+  }
+  return 'unknown';
+}
 
 export type ExecuteJsNodeProps = NodeProps<Node<ExecuteJsNodeData>>;
 
@@ -15,6 +24,8 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   useEdges();
   const inputSchema = useInputSchema(id, null);
+
+  const isInputAnObject = inputSchema instanceof z.ZodObject;
 
   if (!data) return null;
 
@@ -28,18 +39,29 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
       <label>Code (`input`, `variables`, and `stContext` are available)</label>
       {inputSchema && (
         <div style={{ fontSize: '10px', color: '#aaa', margin: '5px 0' }}>
-          <b>Available properties in `input`:</b>
-          <pre
-            style={{
-              margin: '2px 0 0 0',
-              background: '#2a2a2a',
-              padding: '4px',
-              borderRadius: '3px',
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {schemaToText(inputSchema)}
-          </pre>
+          {isInputAnObject ? (
+            <>
+              <b>Available properties in `input`:</b>
+              <pre
+                style={{
+                  margin: '2px 0 0 0',
+                  background: '#2a2a2a',
+                  padding: '4px',
+                  borderRadius: '3px',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {schemaToText(inputSchema)}
+              </pre>
+            </>
+          ) : (
+            <>
+              <b>`input` variable will be a:</b>
+              <pre style={{ margin: '2px 0 0 0', background: '#2a2a2a', padding: '4px', borderRadius: '3px' }}>
+                {getZodTypeName(inputSchema)}
+              </pre>
+            </>
+          )}
         </div>
       )}
       <CodeMirror
