@@ -15,29 +15,26 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   let existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
   if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
   existingChar = structuredClone(existingChar);
-  delete (existingChar as any)?.data?.json_data;
-  delete (existingChar as any)?.json_data;
 
-  const updatedChar: Character = { ...existingChar };
   const fields: (keyof typeof data)[] = ['name', 'description', 'first_mes', 'scenario', 'personality', 'mes_example'];
 
   fields.forEach((field) => {
     const value = resolveInput(input, data, field);
     if (value) {
-      (updatedChar as any)[field] = value;
+      (existingChar as any)[field] = value;
     }
   });
 
   const tagsStr = resolveInput(input, data, 'tags');
   if (tagsStr) {
-    updatedChar.tags = tagsStr
+    existingChar.tags = tagsStr
       .split(',')
       .map((t: string) => t.trim())
       .filter(Boolean);
   }
 
-  await dependencies.saveCharacter(updatedChar);
-  return updatedChar.name;
+  await dependencies.saveCharacter(existingChar);
+  return existingChar.name;
 };
 
 export const editCharacterNodeDefinition: NodeDefinition = {
