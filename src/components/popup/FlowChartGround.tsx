@@ -17,11 +17,11 @@ import {
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { STButton, STInput, STSelect } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STPresetSelect, PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
-import { createDefaultFlow, settingsManager } from '../../config.js';
+import { createDefaultFlow, settingsManager, FlowData } from '../../config.js';
 import { toPng } from 'html-to-image';
 import { useFlowRunStore } from './flowRunStore.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
@@ -532,6 +532,15 @@ const FlowManager: FC = () => {
 
   const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
 
+  const flowItems = useMemo(
+    () =>
+      Object.entries(settings.flows).map(([id, { name }]) => ({
+        value: id,
+        label: name,
+      })),
+    [settings.flows],
+  );
+
   const handleSelectChange = (flowId?: string) => {
     if (flowId && settings.flows[flowId]) {
       settings.activeFlow = flowId;
@@ -540,49 +549,57 @@ const FlowManager: FC = () => {
     }
   };
 
-  const { Popup } = SillyTavern.getContext();
-
-  const handleAddFlow = async () => {
-    const newName = await Popup.show.input('New Flow Name', 'Enter a unique name for the new flow.');
-    if (!newName) return;
+  const handleCreateFlow = (newName: string) => {
     if (Object.values(settings.flows).some((f) => f.name === newName)) {
       st_echo('error', `A flow named "${newName}" already exists.`);
-      return;
+      return { confirmed: false };
     }
-    const flowId = crypto.randomUUID();
-    settings.flows[flowId] = { name: newName, flow: createDefaultFlow() };
-    settings.enabledFlows[flowId] = true;
-    settings.activeFlow = flowId;
-    loadFlow(structuredClone(settings.flows[flowId].flow));
-    forceUpdate();
+    return { confirmed: true, value: crypto.randomUUID() };
   };
 
-  const handleRenameFlow = async () => {
-    const currentName = settings.flows[settings.activeFlow].name;
-    const newName = await Popup.show.input('Rename Flow', `Enter a new name for "${currentName}".`, currentName);
-    if (!newName || newName === currentName) return;
-    if (Object.values(settings.flows).some((f) => f.name === newName)) {
+  const handleRenameFlow = (flowId: string, newName: string) => {
+    if (Object.values(settings.flows).some((f) => f.name === newName && f !== settings.flows[flowId])) {
       st_echo('error', `A flow named "${newName}" already exists.`);
-      return;
+      return { confirmed: false };
     }
-    settings.flows[settings.activeFlow].name = newName;
-    forceUpdate();
+    return { confirmed: true };
   };
 
-  const handleDeleteFlow = async () => {
+  const handleDeleteFlow = (flowId: string) => {
     if (Object.keys(settings.flows).length <= 1) {
       st_echo('error', 'Cannot delete the last flow.');
-      return;
+      return false;
     }
-    const currentName = settings.flows[settings.activeFlow].name;
-    const confirmation = await Popup.show.confirm('Delete Flow', `Are you sure you want to delete "${currentName}"?`);
-    if (confirmation) {
-      delete settings.flows[settings.activeFlow];
-      delete settings.enabledFlows[settings.activeFlow];
-      settings.activeFlow = Object.keys(settings.flows)[0];
-      loadFlow(structuredClone(settings.flows[settings.activeFlow].flow));
-      forceUpdate();
+    return true; // STPresetSelect handles confirmation
+  };
+
+  const handleItemsChange = (newItems: PresetItem[]) => {
+    const newFlows: Record<string, FlowData> = {};
+    const newEnabledFlows: Record<string, boolean> = {};
+
+    for (const item of newItems) {
+      const existingFlow = settings.flows[item.value];
+      if (existingFlow) {
+        newFlows[item.value] = { ...existingFlow, name: item.label };
+        newEnabledFlows[item.value] = settings.enabledFlows[item.value] ?? true;
+      } else {
+        newFlows[item.value] = { name: item.label, flow: createDefaultFlow() };
+        newEnabledFlows[item.value] = true;
+      }
     }
+
+    settings.flows = newFlows;
+    settings.enabledFlows = newEnabledFlows;
+
+    if (!settings.flows[settings.activeFlow]) {
+      const newActiveFlowId = newItems[0]?.value || '';
+      settings.activeFlow = newActiveFlowId;
+      if (newActiveFlowId) {
+        loadFlow(structuredClone(settings.flows[newActiveFlowId].flow));
+      }
+    }
+
+    forceUpdate();
   };
 
   const handleClearInvalid = () => {
@@ -709,14 +726,19 @@ const FlowManager: FC = () => {
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <label>Active Flow:</label>
-        <STSelect value={settings.activeFlow} onChange={(e) => handleSelectChange(e.target.value)} style={{ flex: 1 }}>
-          {Object.entries(settings.flows).map(([id, { name }]) => (
-            <option key={id} value={id}>
-              {name} {settings.enabledFlows[id] === false ? '(Disabled)' : ''}
-            </option>
-          ))}
-        </STSelect>
+        <STPresetSelect
+          label="Flow"
+          items={flowItems}
+          value={settings.activeFlow}
+          onChange={handleSelectChange}
+          onItemsChange={handleItemsChange}
+          onCreate={handleCreateFlow}
+          onRename={handleRenameFlow}
+          onDelete={handleDeleteFlow}
+          enableCreate
+          enableRename
+          enableDelete
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <STInput
             type="checkbox"
@@ -727,11 +749,7 @@ const FlowManager: FC = () => {
           />
           <label htmlFor="flow-enabled-toggle">Enabled</label>
         </div>
-        <STButton onClick={handleAddFlow}>+ New</STButton>
-        <STButton onClick={handleRenameFlow}>Rename</STButton>
-        <STButton onClick={handleDeleteFlow} color="danger">
-          Delete
-        </STButton>
+
         <div style={{ flex: 1 }}></div>
         {runId && (
           <>
