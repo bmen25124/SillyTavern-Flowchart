@@ -1,5 +1,5 @@
 import { useMemo, useEffect, FC } from 'react';
-import { Handle, Position, Node, NodeProps } from '@xyflow/react';
+import { Handle, Position, Node, NodeProps, useEdges } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
@@ -139,26 +139,25 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
     updateNodeData: state.updateNodeData,
     setEdges: state.setEdges,
   }));
-  const inputSchema = useInputSchema(id, null); // Use null for the default handle
+  const edges = useEdges();
+  const inputSchema = useInputSchema(id, null);
 
   useEffect(() => {
     if (!data) return;
-    const currentEdges = useFlowStore.getState().edges;
+    const validSourceHandles = new Set([...data.conditions.map((c) => c.id), 'false']);
+    const validTargetHandles = new Set([null, ...data.conditions.map((c) => `value_${c.id}`)]);
 
-    const existingHandleIds = new Set(data.conditions.flatMap((c) => [c.id, `value_${c.id}`]));
-    existingHandleIds.add(null as any); // Add the static main handle
-
-    const filteredEdges = currentEdges.filter(
+    const edgesToRemove = edges.filter(
       (edge) =>
-        !(
-          (edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)) ||
-          (edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle))
-        ),
+        (edge.source === id && edge.sourceHandle && !validSourceHandles.has(edge.sourceHandle)) ||
+        (edge.target === id && edge.targetHandle && !validTargetHandles.has(edge.targetHandle)),
     );
-    if (filteredEdges.length < currentEdges.length) {
-      setEdges(filteredEdges);
+
+    if (edgesToRemove.length > 0) {
+      const edgeIdsToRemove = new Set(edgesToRemove.map((e) => e.id));
+      setEdges(edges.filter((e) => !edgeIdsToRemove.has(e.id)));
     }
-  }, [data?.conditions, id, setEdges]);
+  }, [data?.conditions, id, setEdges, edges]);
 
   if (!data) return null;
 
@@ -187,7 +186,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="If Conditions" selected={selected}>
       <div style={{ position: 'relative', marginBottom: '10px' }}>
-        <Handle type="target" position={Position.Left} id={null} style={{ top: '50%' }} />
+        <Handle type="target" position={Position.Left} style={{ top: '50%' }} />
         <label style={{ marginLeft: '10px' }}>Input</label>
       </div>
 

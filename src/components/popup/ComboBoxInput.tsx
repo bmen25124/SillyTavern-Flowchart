@@ -29,6 +29,7 @@ export const ComboBoxInput: FC<ComboBoxInputProps> = ({
     const classes: (string | undefined)[] = [];
 
     classes.push('text_pole');
+    classes.push(className);
 
     return classes.filter(Boolean).join(' ');
   }, [overrideDefaults, className]);

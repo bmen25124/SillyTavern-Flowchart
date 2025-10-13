@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
@@ -13,6 +13,7 @@ export type ExecuteJsNodeProps = NodeProps<Node<ExecuteJsNodeData>>;
 export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ExecuteJsNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  useEdges();
   const inputSchema = useInputSchema(id, null);
 
   if (!data) return null;
@@ -24,7 +25,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Execute JS Code" selected={selected}>
       <Handle type="target" position={Position.Left} />
-      <label>Code (`input` and `stContext` are available)</label>
+      <label>Code (`input`, `variables`, and `stContext` are available)</label>
       {inputSchema && (
         <div style={{ fontSize: '10px', color: '#aaa', margin: '5px 0' }}>
           <b>Available properties in `input`:</b>

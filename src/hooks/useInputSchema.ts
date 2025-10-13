@@ -38,7 +38,7 @@ export const useInputSchema = (nodeId: string, handleId: string | null): z.ZodTy
       }
       visited.add(`${targetNodeId}-${targetHandleId}`);
 
-      const edge = allEdges.find((e) => e.target === targetNodeId && e.targetHandle === targetHandleId);
+      const edge = allEdges.find((e) => e.target === targetNodeId && e.targetHandle == targetHandleId);
       if (!edge) {
         return undefined;
       }
