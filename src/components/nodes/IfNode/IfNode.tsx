@@ -36,12 +36,9 @@ const ConditionEditor: FC<{
 
   const toggleMode = () => {
     if (condition.mode === 'advanced') {
-      if (confirm('Switching to Simple Mode will discard your custom code. Are you sure?')) {
-        onUpdate({
-          mode: 'simple',
-          operator: 'equals',
-        });
-      }
+      onUpdate({
+        mode: 'simple',
+      });
     } else {
       onUpdate({ mode: 'advanced' });
     }
