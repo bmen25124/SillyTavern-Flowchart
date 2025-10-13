@@ -2,6 +2,7 @@ import { FC } from 'react';
 import { Node, NodeProps, Edge } from '@xyflow/react';
 import { z } from 'zod';
 import { FlowDataType } from '../../../flow-types.js';
+import { NodeExecutor } from '../../../NodeExecutor.js';
 
 export type HandleSpec = {
   id: string | null;
@@ -40,6 +41,7 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
     inputs: HandleSpec[];
     outputs: HandleSpec[];
   };
+  execute: NodeExecutor;
   /**
    * Optional function to dynamically determine the data type of a handle.
    * This is used for nodes with dynamic handles (e.g., based on data or connections).

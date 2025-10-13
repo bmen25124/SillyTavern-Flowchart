@@ -1,5 +1,5 @@
 import { SpecFlow, SpecNode, SpecEdge } from './flow-spec.js';
-import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
+import { registrator } from './components/nodes/autogen-imports.js';
 
 // A function that transforms a node's data from one version to the next.
 type NodeMigration = (data: any) => any;
@@ -61,7 +61,7 @@ export function runMigrations(flow: SpecFlow): SpecFlow {
   let migratedEdges = [...flow.edges];
 
   const migratedNodes = flow.nodes.map((node) => {
-    const definition = nodeDefinitionMap.get(node.type);
+    const definition = registrator.nodeDefinitionMap.get(node.type);
     if (!definition) {
       // Unknown node type, can't migrate.
       return node;

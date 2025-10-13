@@ -1,6 +1,6 @@
 import { Node, Edge } from '@xyflow/react';
-import { nodeDefinitionMap } from '../components/nodes/definitions/definitions.js';
 import { HandleSpec } from '../components/nodes/definitions/types.js';
+import { registrator } from '../components/nodes/autogen-imports.js';
 
 export function getHandleSpec(
   node: Node,
@@ -10,10 +10,9 @@ export function getHandleSpec(
   allEdges: Edge[],
 ): HandleSpec | undefined {
   if (!node.type) return undefined;
-  const definition = nodeDefinitionMap.get(node.type);
+  const definition = registrator.nodeDefinitionMap.get(node.type);
   if (!definition) return undefined;
 
-  // Check dynamic handles first
   if (definition.getDynamicHandles) {
     const dynamicHandles = definition.getDynamicHandles(node, allNodes, allEdges);
     const handle = (direction === 'input' ? dynamicHandles.inputs : dynamicHandles.outputs).find(
@@ -22,7 +21,6 @@ export function getHandleSpec(
     if (handle) return handle;
   }
 
-  // Fallback to static handles
   const staticHandles = direction === 'input' ? definition.handles.inputs : definition.handles.outputs;
   return staticHandles.find((h) => h.id === handleId);
 }

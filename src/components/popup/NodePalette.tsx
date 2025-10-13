@@ -1,7 +1,7 @@
 import { FC, useMemo, useState } from 'react';
 import { useFlowStore } from './flowStore.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { allNodeDefinitions } from '../nodes/definitions/index.js';
+import { registrator } from '../nodes/autogen-imports.js';
 import { NodeDefinition } from '../nodes/definitions/types.js';
 import { useReactFlow } from '@xyflow/react';
 import { useDebounce } from '../../hooks/useDebounce.js';
@@ -13,8 +13,6 @@ export const NodePalette: FC = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
 
   const onNodeClick = (event: React.MouseEvent, nodeType: string, data: any) => {
-    // Place node at center of viewport if clicked, or at mouse pos if dragged (not implemented here but good practice)
-    // For palette click, we place it near the center of the current view
     const flowWrapper = document.querySelector('.react-flow') as HTMLElement;
     const center = {
       x: flowWrapper.clientWidth / 2,
@@ -27,12 +25,13 @@ export const NodePalette: FC = () => {
 
     addNode({
       type: nodeType,
-      position: { x: position.x - 75, y: position.y - 25 }, // approximate center of node
+      position: { x: position.x - 75, y: position.y - 25 },
       data,
     });
   };
 
   const filteredNodes = useMemo(() => {
+    const allNodeDefinitions = registrator.allNodeDefinitions;
     if (!debouncedSearchTerm) {
       return allNodeDefinitions;
     }
@@ -54,7 +53,6 @@ export const NodePalette: FC = () => {
       groups[def.category].push(def);
     }
 
-    // Custom sort order for categories
     const categoryOrder = [
       'Trigger',
       'Logic',
@@ -71,13 +69,9 @@ export const NodePalette: FC = () => {
     return Object.entries(groups).sort(([a], [b]) => {
       const indexA = categoryOrder.indexOf(a);
       const indexB = categoryOrder.indexOf(b);
-      // If both are in the list, sort by list order
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      // If only a is in list, it comes first
       if (indexA !== -1) return -1;
-      // If only b is in list, it comes first
       if (indexB !== -1) return 1;
-      // Otherwise alphabetical
       return a.localeCompare(b);
     });
   }, [filteredNodes]);

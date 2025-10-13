@@ -2,11 +2,13 @@ import { EventNameParameters } from './flow-types.js';
 import { sendChatMessage, st_createNewWorldInfo, st_echo, st_runRegexScript } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
-import { ExecutionReport, LowLevelFlowRunner } from './LowLevelFlowRunner.js';
+import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
 import { settingsManager, st_updateMessageBlock } from './config.js';
 import { useFlowRunStore } from './components/popup/flowRunStore.js';
+import { registrator } from './components/nodes/autogen-imports.js';
+import { FlowRunnerDependencies } from './NodeExecutor.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -27,13 +29,6 @@ function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[
   }
 }
 
-/**
- * Recursively sanitizes and truncates data for storage.
- * - Truncates long strings.
- * - Detects character objects and keeps only essential fields.
- * @param value The data to process.
- * @returns The processed data.
- */
 function sanitizeAndTruncateForHistory(value: any): any {
   if (typeof value === 'string' && value.length > MAX_STRING_LENGTH_IN_HISTORY) {
     return value.substring(0, MAX_STRING_LENGTH_IN_HISTORY) + `... [truncated]`;
@@ -42,7 +37,6 @@ function sanitizeAndTruncateForHistory(value: any): any {
     return value.map(sanitizeAndTruncateForHistory);
   }
   if (typeof value === 'object' && value !== null) {
-    // Character object detection
     if ('name' in value && 'spec' in value && 'spec_version' in value) {
       const sanitizedChar: Record<string, any> = {};
       for (const key of CHARACTER_FIELDS_TO_LOG) {
@@ -54,7 +48,6 @@ function sanitizeAndTruncateForHistory(value: any): any {
       return sanitizedChar;
     }
 
-    // Generic object traversal
     const newObj: Record<string, any> = {};
     for (const key in value) {
       if (Object.prototype.hasOwnProperty.call(value, key)) {
@@ -104,9 +97,16 @@ class FlowRunner {
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
   private isExecuting: boolean = false;
+  private dependencies: FlowRunnerDependencies;
 
   constructor() {
-    this.lowLevelRunner = new LowLevelFlowRunner({
+    this.lowLevelRunner = new LowLevelFlowRunner(registrator.nodeExecutors);
+    this.dependencies = this.getDependencies();
+    this.setupEventListeners();
+  }
+
+  private getDependencies(): FlowRunnerDependencies {
+    return {
       getBaseMessagesForProfile,
       makeStructuredRequest,
       getSillyTavernContext: () => SillyTavern.getContext(),
@@ -121,9 +121,7 @@ class FlowRunner {
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
-    });
-
-    this.setupEventListeners();
+    };
   }
 
   private setupEventListeners() {
@@ -141,53 +139,38 @@ class FlowRunner {
 
   reinitialize() {
     const { eventSource } = SillyTavern.getContext();
-
-    // Unregister old listeners
     for (const [eventType, listener] of this.registeredListeners.entries()) {
-      // @ts-ignore
-      eventSource.removeListener(eventType, listener);
+      eventSource.removeListener(eventType as any, listener);
     }
     this.registeredListeners.clear();
 
     const settings = settingsManager.getSettings();
-    const allFlows = settings.flows;
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
 
-    // Find all trigger nodes and group them by event type
-    for (const flowId in allFlows) {
-      const flow = allFlows[flowId];
+    for (const flowId in settings.flows) {
+      const flow = settings.flows[flowId];
       const { isValid, errors } = validateFlow(flow);
-
       if (!isValid) {
-        st_echo('error', `Flow "${flowId}" is invalid and will not be run. Errors:`);
-        errors.forEach((error) => st_echo('error', `- ${error}`));
+        console.warn(`Flow "${flowId}" is invalid and will not be run. Errors:`, errors);
         continue;
       }
-
-      const triggerNodes = flow.nodes.filter((node) => node.type === 'triggerNode');
-
-      for (const triggerNode of triggerNodes) {
-        const eventType = triggerNode.data.selectedEventType as string;
-        if (eventType) {
-          if (!eventTriggers[eventType]) {
-            eventTriggers[eventType] = [];
-          }
-          eventTriggers[eventType].push({ flowId, nodeId: triggerNode.id });
+      for (const node of flow.nodes) {
+        if (node.type === 'triggerNode' && node.data.selectedEventType) {
+          const eventType = node.data.selectedEventType;
+          if (!eventTriggers[eventType]) eventTriggers[eventType] = [];
+          eventTriggers[eventType].push({ flowId, nodeId: node.id });
         }
       }
     }
 
-    // Register new event listeners
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
         st_echo('info', `FlowChart: Event "${eventType}" triggered.`);
-        const triggers = eventTriggers[eventType];
-        for (const trigger of triggers) {
+        for (const trigger of eventTriggers[eventType]) {
           this.executeFlowFromEvent(trigger.flowId, trigger.nodeId, args);
         }
       };
-      // @ts-ignore
-      eventSource.on(eventType, listener);
+      eventSource.on(eventType as any, listener);
       this.registeredListeners.set(eventType, listener);
     }
   }
@@ -201,17 +184,13 @@ class FlowRunner {
     this.isExecuting = true;
 
     try {
-      const settings = settingsManager.getSettings();
-      const flow = settings.flows[flowId];
-      if (!flow) {
-        console.error(`[FlowChart] Flow with id ${flowId} not found.`);
-        return;
-      }
+      const flow = settingsManager.getSettings().flows[flowId];
+      if (!flow) throw new Error(`Flow with id ${flowId} not found.`);
 
       const runId = crypto.randomUUID();
       eventEmitter.emit('flow:run:start', { runId });
 
-      const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput);
+      const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput, this.dependencies);
 
       if (report.error) {
         st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
@@ -222,54 +201,44 @@ class FlowRunner {
 
       const sanitizedReport = sanitizeReportForHistory(report);
       executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
-
-      if (executionHistory.length > MAX_HISTORY_LENGTH) {
-        executionHistory.pop();
-      }
+      if (executionHistory.length > MAX_HISTORY_LENGTH) executionHistory.pop();
       saveHistory(executionHistory);
 
       return report;
+    } catch (error: any) {
+      console.error(`[FlowChart] Critical error during flow execution: ${error.message}`);
     } finally {
       this.isExecuting = false;
     }
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
-    const settings = settingsManager.getSettings();
-    const flow = settings.flows[flowId];
-    const startNode = flow.nodes.find((n) => n.id === startNodeId);
+    const flow = settingsManager.getSettings().flows[flowId];
+    const startNode = flow?.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
 
-    // Create initial input from event args
     const eventType = startNode.data.selectedEventType as string;
     const paramNames = Object.keys(EventNameParameters[eventType] || {});
-    const initialInput: Record<string, any> = {};
-    paramNames.forEach((name, index) => {
-      initialInput[name] = eventArgs[index];
-    });
+    const initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
 
     return this.executeFlow(flowId, initialInput);
   }
 
   async runManualTriggers(flowId: string) {
-    const settings = settingsManager.getSettings();
-    const flow = settings.flows[flowId];
+    const flow = settingsManager.getSettings().flows[flowId];
     if (!flow) {
       st_echo('error', `Flow "${flowId}" not found for manual run.`);
       return;
     }
-
     const manualTriggers = flow.nodes.filter((node) => node.type === 'manualTriggerNode');
     if (manualTriggers.length === 0) {
       st_echo('info', `No Manual Trigger nodes found in flow "${flowId}".`);
       return;
     }
-
     st_echo('info', `Executing ${manualTriggers.length} manual trigger(s) for flow "${flowId}"...`);
     for (const triggerNode of manualTriggers) {
       let initialInput = {};
       try {
-        // @ts-ignore
         initialInput = JSON.parse(triggerNode.data.payload);
       } catch (e) {
         st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);

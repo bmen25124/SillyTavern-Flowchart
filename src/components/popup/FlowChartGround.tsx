@@ -23,10 +23,10 @@ import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
 import { createDefaultFlow, settingsManager } from '../../config.js';
 import { toPng } from 'html-to-image';
-import { allNodeDefinitions, nodeDefinitionMap, nodeTypes } from '../nodes/definitions/index.js';
 import { useFlowRunStore } from './flowRunStore.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
+import { registrator } from '../nodes/autogen-imports.js';
 
 type CompatibilityInfo = {
   nodeType: string;
@@ -40,7 +40,7 @@ function computeCompatibilityMap() {
   const sourceCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
   const targetCompatibilityMap = new Map<string, Map<string | null, CompatibilityInfo[]>>();
 
-  const mockNodes: Node[] = allNodeDefinitions.map((def) => ({
+  const mockNodes: Node[] = registrator.allNodeDefinitions.map((def) => ({
     id: `temp-${def.type}`,
     type: def.type,
     position: { x: 0, y: 0 },
@@ -48,7 +48,7 @@ function computeCompatibilityMap() {
   }));
 
   // --- Source Compatibility (Dragging from an output) ---
-  for (const sourceDef of allNodeDefinitions) {
+  for (const sourceDef of registrator.allNodeDefinitions) {
     const sourceMap = new Map<string | null, CompatibilityInfo[]>();
     const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
     const sourceHandles = [
@@ -58,7 +58,7 @@ function computeCompatibilityMap() {
 
     for (const sourceHandle of sourceHandles) {
       const compatibleTargets: CompatibilityInfo[] = [];
-      for (const targetDef of allNodeDefinitions) {
+      for (const targetDef of registrator.allNodeDefinitions) {
         const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
         const targetHandles = [
           ...targetDef.handles.inputs,
@@ -93,7 +93,7 @@ function computeCompatibilityMap() {
   }
 
   // --- Target Compatibility (Dragging from an input) ---
-  for (const targetDef of allNodeDefinitions) {
+  for (const targetDef of registrator.allNodeDefinitions) {
     const targetMap = new Map<string | null, CompatibilityInfo[]>();
     const targetNode = mockNodes.find((n) => n.id === `temp-${targetDef.type}`)!;
     const targetHandles = [
@@ -103,7 +103,7 @@ function computeCompatibilityMap() {
 
     for (const targetHandle of targetHandles) {
       const compatibleSources: CompatibilityInfo[] = [];
-      for (const sourceDef of allNodeDefinitions) {
+      for (const sourceDef of registrator.allNodeDefinitions) {
         const sourceNode = mockNodes.find((n) => n.id === `temp-${sourceDef.type}`)!;
         const sourceHandles = [
           ...sourceDef.handles.outputs,
@@ -215,18 +215,15 @@ const FlowCanvas: FC<{
       }
       const bounds = editorArea.getBoundingClientRect();
 
-      // Correctly calculate position for the new NODE
       const position = screenToFlowPosition({ x: clientX, y: clientY });
-
-      // Correctly calculate position for the new MENU
       const menuX = clientX - bounds.left;
       const menuY = clientY - bounds.top;
 
       const createAndConnectNode = (nodeType: string, sourceHandle: string | null, targetHandle: string | null) => {
-        const nodeDef = nodeDefinitionMap.get(nodeType);
+        const nodeDef = registrator.nodeDefinitionMap.get(nodeType);
         if (!nodeDef) return;
 
-        const nodeXOffset = handleType === 'source' ? 50 : -250; // Place left for input, right for output
+        const nodeXOffset = handleType === 'source' ? 50 : -250;
 
         const newNode = addNode({
           type: nodeType,
@@ -238,8 +235,7 @@ const FlowCanvas: FC<{
             ? { source: startNodeId, sourceHandle: sourceHandle, target: newNode.id, targetHandle: targetHandle }
             : { source: newNode.id, sourceHandle: sourceHandle, target: startNodeId, targetHandle: targetHandle };
 
-        // @ts-ignore
-        setTimeout(() => onConnect(connection), 10);
+        setTimeout(() => onConnect(connection as Connection), 10);
       };
 
       if (compatibleNodes.length === 1) {
@@ -309,7 +305,7 @@ const FlowCanvas: FC<{
         onConnect={onConnect}
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
-        nodeTypes={nodeTypes}
+        nodeTypes={registrator.nodeTypes}
         colorMode="dark"
         fitView
         isValidConnection={isValidConnection}
@@ -363,7 +359,6 @@ const FlowManager: FC = () => {
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const { isVisualizationVisible, runId, toggleVisualization, clearRun } = useFlowRunStore();
 
-  // Track mouse position relative to the flow wrapper for accurate pasting
   useEffect(() => {
     const onMouseMove = (event: MouseEvent) => {
       if (flowWrapperRef.current) {
@@ -379,13 +374,11 @@ const FlowManager: FC = () => {
     return () => wrapper?.removeEventListener('mousemove', onMouseMove);
   }, []);
 
-  // Load active flow into store on mount
   useEffect(() => {
     const activeFlowData = settings.flows[settings.activeFlow] || { nodes: [], edges: [] };
     loadFlow(structuredClone(activeFlowData));
-  }, []); // Run only once on mount
+  }, []);
 
-  // Debounced auto-save effect
   useEffect(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -405,7 +398,6 @@ const FlowManager: FC = () => {
     };
   }, [nodes, edges, settings.activeFlow, getSpecFlow]);
 
-  // Copy/Paste effect
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!document.querySelector('.flowchart-data-popup')?.contains(document.activeElement)) return;

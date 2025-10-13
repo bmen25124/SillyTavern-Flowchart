@@ -1,5 +1,5 @@
 import { SpecFlow } from './flow-spec.js';
-import { nodeDefinitionMap } from './components/nodes/definitions/definitions.js';
+import { registrator } from './components/nodes/autogen-imports.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -21,7 +21,7 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
 
   // 1. Validate each node's data
   for (const node of flow.nodes) {
-    const definition = nodeDefinitionMap.get(node.type as string);
+    const definition = registrator.nodeDefinitionMap.get(node.type as string);
     if (definition) {
       const result = definition.dataSchema.safeParse(node.data);
       if (!result.success) {
@@ -31,7 +31,7 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
         errors.push(...formattedErrors);
         invalidNodeIds.add(node.id);
       }
-    } else if (node.type && !nodeDefinitionMap.has(node.type)) {
+    } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
       errors.push(`Node [${node.id}]: Unknown node type "${node.type}".`);
       invalidNodeIds.add(node.id);
     }

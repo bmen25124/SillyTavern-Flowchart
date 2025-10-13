@@ -5,8 +5,9 @@
     "type": "module",
     "main": "src/scripts/main.js",
     "scripts": {
-        "dev": "cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
-        "build": "cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
+        "generate-imports": "node scripts/generate-node-imports.mjs",
+        "dev": "npm run generate-imports && cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
+        "build": "npm run generate-imports && cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
         "prettify": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\" \"src/**/*.scss\""
     },

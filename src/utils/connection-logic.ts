@@ -1,6 +1,6 @@
 import { Connection, Edge, Node } from '@xyflow/react';
-import { nodeDefinitionMap } from '../components/nodes/definitions/definitions.js';
 import { FlowDataType } from '../flow-types.js';
+import { registrator } from '../components/nodes/autogen-imports.js';
 
 function getHandleType(
   node: Node,
@@ -10,7 +10,7 @@ function getHandleType(
   edges: Edge[],
 ): FlowDataType | undefined {
   if (!node.type) return undefined;
-  const definition = nodeDefinitionMap.get(node.type);
+  const definition = registrator.nodeDefinitionMap.get(node.type);
   if (!definition) return undefined;
 
   if (definition.getHandleType) {
@@ -38,12 +38,10 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     return false;
   }
 
-  // Allow connections to/from ANY type
   if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
     return true;
   }
 
-  // Allow PROFILE_ID to be used as a STRING
   if (
     (targetHandleType === FlowDataType.PROFILE_ID && sourceHandleType === FlowDataType.STRING) ||
     (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID)
@@ -51,7 +49,6 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     return true;
   }
 
-  // Allow a STRUCTURED_RESULT to be used as an OBJECT for context, etc.
   if (targetHandleType === FlowDataType.OBJECT && sourceHandleType === FlowDataType.STRUCTURED_RESULT) {
     return true;
   }

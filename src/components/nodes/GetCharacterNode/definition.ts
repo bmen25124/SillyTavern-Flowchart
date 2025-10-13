@@ -1,0 +1,62 @@
+import { z } from 'zod';
+import { NodeDefinition } from '../definitions/types.js';
+import { FlowDataType, GetCharacterNodeDataSchema } from '../../../flow-types.js';
+import { GetCharacterNode } from './GetCharacterNode.js';
+import { registrator } from '../registrator.js';
+import { NodeExecutor } from '../../../NodeExecutor.js';
+import { Character } from 'sillytavern-utils-lib/types';
+
+const resolveInput = <T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] =>
+  input[key as string] ?? staticData[key];
+
+const execute: NodeExecutor = async (node, input, { dependencies }) => {
+  const data = GetCharacterNodeDataSchema.parse(node.data);
+  const characterAvatar = resolveInput(input, data, 'characterAvatar');
+  if (!characterAvatar) throw new Error('No character avatar provided.');
+
+  const stContext = dependencies.getSillyTavernContext();
+  let character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+  if (!character) throw new Error(`Character with avatar ${characterAvatar} not found.`);
+  character = structuredClone(character);
+  delete (character as any)?.data?.json_data;
+  delete (character as any)?.json_data;
+
+  return { ...character, result: character };
+};
+
+const CharacterDataSchema = z.object({
+  name: z.string().describe("The character's name."),
+  avatar: z.string().describe("The character's avatar filename."),
+  description: z.string().describe("The character's description."),
+  first_mes: z.string().describe("The character's first message."),
+  scenario: z.string().describe('The scenario.'),
+  personality: z.string().describe("The character's personality."),
+  mes_example: z.string().describe('Example messages.'),
+  tags: z.array(z.string()).describe('A list of tags.'),
+});
+
+export const getCharacterNodeDefinition: NodeDefinition = {
+  type: 'getCharacterNode',
+  label: 'Get Character',
+  category: 'Character',
+  component: GetCharacterNode,
+  dataSchema: GetCharacterNodeDataSchema,
+  currentVersion: 1,
+  initialData: { characterAvatar: '', _version: 1 },
+  handles: {
+    inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'result', type: FlowDataType.OBJECT, schema: CharacterDataSchema },
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'description', type: FlowDataType.STRING },
+      { id: 'first_mes', type: FlowDataType.STRING },
+      { id: 'scenario', type: FlowDataType.STRING },
+      { id: 'personality', type: FlowDataType.STRING },
+      { id: 'mes_example', type: FlowDataType.STRING },
+      { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
+    ],
+  },
+  execute,
+};
+
+registrator.register(getCharacterNodeDefinition);
