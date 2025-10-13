@@ -3,9 +3,7 @@ import { FlowDataType, MathNodeDataSchema } from '../../../flow-types.js';
 import { MathNode } from './MathNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-
-const resolveInput = <T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] =>
-  input[key as string] ?? staticData[key];
+import { resolveInput } from '../../../utils/node-logic.js';
 
 const execute: NodeExecutor = async (node, input) => {
   const data = MathNodeDataSchema.parse(node.data);

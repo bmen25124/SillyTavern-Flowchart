@@ -6,9 +6,7 @@ import { StructuredRequestNode } from './StructuredRequestNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
-
-const resolveInput = <T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] =>
-  input[key as string] ?? staticData[key];
+import { resolveInput } from '../../../utils/node-logic.js';
 
 function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;

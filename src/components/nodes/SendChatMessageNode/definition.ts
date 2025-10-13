@@ -3,9 +3,7 @@ import { FlowDataType, SendChatMessageNodeDataSchema } from '../../../flow-types
 import { SendChatMessageNode } from './SendChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-
-const resolveInput = <T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] =>
-  input[key as string] ?? staticData[key];
+import { resolveInput } from '../../../utils/node-logic.js';
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = SendChatMessageNodeDataSchema.parse(node.data);

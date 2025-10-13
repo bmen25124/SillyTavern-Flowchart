@@ -3,11 +3,9 @@ import { FlowDataType, StringToolsNodeDataSchema, StringToolsNodeData } from '..
 import { StringToolsNode } from './StringToolsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { resolveInput } from '../../../utils/node-logic.js';
 
 const STRING_TOOLS_MERGE_HANDLE_PREFIX = 'string_';
-
-const resolveInput = <T extends object, K extends keyof T>(input: Record<string, any>, staticData: T, key: K): T[K] =>
-  input[key as string] ?? staticData[key];
 
 const execute: NodeExecutor = async (node, input) => {
   const data = StringToolsNodeDataSchema.parse(node.data);
