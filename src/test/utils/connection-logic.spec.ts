@@ -1,6 +1,5 @@
 import { Node, Edge } from '@xyflow/react';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
-import { FlowDataType } from '../../flow-types.js';
 
 describe('checkConnectionValidity', () => {
   const nodes: Node[] = [

@@ -5,7 +5,7 @@ import { MergeObjectsNodeData } from './definition.js';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 
 export type MergeObjectsNodeProps = NodeProps<Node<MergeObjectsNodeData>>;
 

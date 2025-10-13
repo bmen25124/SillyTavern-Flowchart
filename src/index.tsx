@@ -4,14 +4,11 @@ import { createRoot } from 'react-dom/client';
 import { FlowChartSettings } from './components/Settings.js';
 import { settingsManager } from './config.js';
 
-import { Generator } from 'sillytavern-utils-lib';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { flowRunner } from './FlowRunner.js';
 
 import './styles/main.scss';
 import '@xyflow/react/dist/style.css';
-
-const generator = new Generator();
 
 async function initializeGlobalUI() {}
 

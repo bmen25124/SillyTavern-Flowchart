@@ -19,7 +19,7 @@ describe('useFlowStore', () => {
       nodes: [{ id: '1', type: 'stringNode', data: { value: 'test', _version: 1 }, position: { x: 10, y: 20 } }],
       edges: [],
     };
-    const { loadFlow, nodes } = useFlowStore.getState();
+    const { loadFlow } = useFlowStore.getState();
     loadFlow(flow);
     const updatedNodes = useFlowStore.getState().nodes;
     expect(updatedNodes).toHaveLength(1);
@@ -47,7 +47,6 @@ describe('useFlowStore', () => {
 
     const { nodes } = useFlowStore.getState();
     expect(nodes).toHaveLength(2);
-    const originalNode = nodes.find((n) => n.id === '1');
     const duplicatedNode = nodes.find((n) => n.id !== '1');
 
     expect(duplicatedNode).toBeDefined();

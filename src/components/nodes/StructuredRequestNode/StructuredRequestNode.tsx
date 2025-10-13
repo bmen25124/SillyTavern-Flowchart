@@ -9,7 +9,7 @@ import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import { useIsConnected } from '../../../hooks/useIsConnected.js';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type StructuredRequestNodeProps = NodeProps<Node<StructuredRequestNodeData>>;

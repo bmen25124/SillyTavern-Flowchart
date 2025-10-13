@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useMemo } from 'react';
+import { FC, useState, useEffect, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { GetLorebookNodeData } from './definition.js';
@@ -7,7 +7,7 @@ import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type GetLorebookNodeProps = NodeProps<Node<GetLorebookNodeData>>;

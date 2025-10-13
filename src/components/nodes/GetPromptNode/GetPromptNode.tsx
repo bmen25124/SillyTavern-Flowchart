@@ -1,4 +1,4 @@
-import React, { FC, useMemo } from 'react';
+import { FC, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { GetPromptNodeData } from './definition.js';
@@ -7,7 +7,7 @@ import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { settingsManager } from '../../../config.js';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type GetPromptNodeProps = NodeProps<Node<GetPromptNodeData>>;

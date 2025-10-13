@@ -6,7 +6,7 @@ import { BaseNode } from '../BaseNode.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type GetCharacterNodeProps = NodeProps<Node<GetCharacterNodeData>>;

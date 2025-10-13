@@ -7,7 +7,7 @@ import { STInput } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 
 export type NumberNodeProps = NodeProps<Node<NumberNodeData>>;
 

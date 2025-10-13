@@ -21,7 +21,7 @@ import { world_names } from 'sillytavern-utils-lib/config';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 import { HandleSpec } from '../definitions/types.js';
-import { registrator } from '../registrator.js';
+import { registrator } from '../autogen-imports.js';
 
 // A generic picker for simple, static enum-like values
 const EnumPicker: FC<{
