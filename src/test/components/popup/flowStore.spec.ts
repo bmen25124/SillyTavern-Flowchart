@@ -16,7 +16,7 @@ describe('useFlowStore', () => {
 
   it('should load a flow from spec', () => {
     const flow: SpecFlow = {
-      nodes: [{ id: '1', type: 'stringNode', data: { value: 'test' }, position: { x: 10, y: 20 } }],
+      nodes: [{ id: '1', type: 'stringNode', data: { value: 'test', _version: 1 }, position: { x: 10, y: 20 } }],
       edges: [],
     };
     const { loadFlow, nodes } = useFlowStore.getState();
@@ -28,7 +28,7 @@ describe('useFlowStore', () => {
 
   it('should update node data', () => {
     const flow: SpecFlow = {
-      nodes: [{ id: '1', type: 'stringNode', data: { value: 'initial' }, position: { x: 0, y: 0 } }],
+      nodes: [{ id: '1', type: 'stringNode', data: { value: 'initial', _version: 1 }, position: { x: 0, y: 0 } }],
       edges: [],
     };
     useFlowStore.getState().loadFlow(flow);
@@ -39,7 +39,7 @@ describe('useFlowStore', () => {
 
   it('should duplicate a node', () => {
     const flow: SpecFlow = {
-      nodes: [{ id: '1', type: 'stringNode', data: { value: 'original' }, position: { x: 100, y: 100 } }],
+      nodes: [{ id: '1', type: 'stringNode', data: { value: 'original', _version: 1 }, position: { x: 100, y: 100 } }],
       edges: [],
     };
     useFlowStore.getState().loadFlow(flow);
@@ -52,13 +52,22 @@ describe('useFlowStore', () => {
 
     expect(duplicatedNode).toBeDefined();
     expect(duplicatedNode?.id).not.toBe('1');
-    expect(duplicatedNode?.data).toEqual({ value: 'original' });
+    expect(duplicatedNode?.data).toEqual({ value: 'original', _version: 1 });
     expect(duplicatedNode?.position).toEqual({ x: 150, y: 150 });
   });
 
   it('should convert state to SpecFlow correctly', () => {
     const flow: SpecFlow = {
-      nodes: [{ id: '1', type: 'stringNode', data: { value: 'test' }, position: { x: 10, y: 20 } }],
+      nodes: [
+        {
+          id: '1',
+          type: 'stringNode',
+          data: { value: 'test', _version: 1 },
+          position: { x: 10, y: 20 },
+          width: undefined,
+          height: undefined,
+        },
+      ],
       edges: [],
     };
     useFlowStore.getState().loadFlow(flow);

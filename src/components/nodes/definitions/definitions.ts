@@ -210,7 +210,8 @@ const getCharacterNodeDefinition: BaseNodeDefinition<GetCharacterNodeData> = {
   label: 'Get Character',
   category: 'Character',
   dataSchema: GetCharacterNodeDataSchema,
-  initialData: { characterAvatar: '' },
+  currentVersion: 1,
+  initialData: { characterAvatar: '', _version: 1 },
   handles: {
     inputs: [{ id: 'characterAvatar', type: FlowDataType.STRING }],
     outputs: [
@@ -230,7 +231,8 @@ const createCharacterNodeDefinition: BaseNodeDefinition<CreateCharacterNodeData>
   label: 'Create Character',
   category: 'Character',
   dataSchema: CreateCharacterNodeDataSchema,
-  initialData: { name: 'New Character' },
+  currentVersion: 1,
+  initialData: { name: 'New Character', _version: 1 },
   handles: {
     inputs: [
       { id: 'name', type: FlowDataType.STRING },
@@ -249,7 +251,8 @@ const editCharacterNodeDefinition: BaseNodeDefinition<EditCharacterNodeData> = {
   label: 'Edit Character',
   category: 'Character',
   dataSchema: EditCharacterNodeDataSchema,
-  initialData: { characterAvatar: '' },
+  currentVersion: 1,
+  initialData: { characterAvatar: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'characterAvatar', type: FlowDataType.STRING },
@@ -270,7 +273,8 @@ const triggerNodeDefinition: BaseNodeDefinition<TriggerNodeData> = {
   label: 'Event Trigger',
   category: 'Trigger',
   dataSchema: TriggerNodeDataSchema,
-  initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED },
+  currentVersion: 1,
+  initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED, _version: 1 },
   handles: { inputs: [], outputs: [] },
   getDynamicHandles: (node, _allNodes, _allEdges) => {
     const { data } = node;
@@ -299,7 +303,8 @@ const manualTriggerNodeDefinition: BaseNodeDefinition<ManualTriggerNodeData> = {
   label: 'Manual Trigger',
   category: 'Trigger',
   dataSchema: ManualTriggerNodeDataSchema,
-  initialData: { payload: '{\n}' },
+  currentVersion: 1,
+  initialData: { payload: '{\n}', _version: 1 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
 };
 
@@ -308,7 +313,8 @@ const stringNodeDefinition: BaseNodeDefinition<StringNodeData> = {
   label: 'String',
   category: 'Input',
   dataSchema: StringNodeDataSchema,
-  initialData: { value: 'hello' },
+  currentVersion: 1,
+  initialData: { value: 'hello', _version: 1 },
   handles: {
     inputs: [{ id: 'value', type: FlowDataType.ANY }],
     outputs: [{ id: 'value', type: FlowDataType.STRING }],
@@ -319,7 +325,8 @@ const numberNodeDefinition: BaseNodeDefinition<NumberNodeData> = {
   label: 'Number',
   category: 'Input',
   dataSchema: NumberNodeDataSchema,
-  initialData: { value: 123 },
+  currentVersion: 1,
+  initialData: { value: 123, _version: 1 },
   handles: {
     inputs: [{ id: 'value', type: FlowDataType.ANY }],
     outputs: [{ id: 'value', type: FlowDataType.NUMBER }],
@@ -330,7 +337,8 @@ const profileIdNodeDefinition: BaseNodeDefinition<ProfileIdNodeData> = {
   label: 'Profile ID',
   category: 'Input',
   dataSchema: ProfileIdNodeDataSchema,
-  initialData: { profileId: '' },
+  currentVersion: 1,
+  initialData: { profileId: '', _version: 1 },
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
@@ -342,7 +350,8 @@ const jsonNodeDefinition: BaseNodeDefinition<JsonNodeData> = {
   label: 'JSON',
   category: 'JSON',
   dataSchema: JsonNodeDataSchema,
-  initialData: { items: [], rootType: 'object' },
+  currentVersion: 1,
+  initialData: { items: [], rootType: 'object', _version: 1 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   getDynamicHandles: (node, _allNodes, _allEdges) => {
     return {
@@ -356,7 +365,8 @@ const schemaNodeDefinition: BaseNodeDefinition<SchemaNodeData> = {
   label: 'Schema',
   category: 'JSON',
   dataSchema: SchemaNodeDataSchema,
-  initialData: { fields: [] },
+  currentVersion: 1,
+  initialData: { fields: [], _version: 1 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.SCHEMA }] },
 };
 
@@ -365,7 +375,8 @@ const ifNodeDefinition: BaseNodeDefinition<IfNodeData> = {
   label: 'If',
   category: 'Logic',
   dataSchema: IfNodeDataSchema,
-  initialData: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }] },
+  currentVersion: 1,
+  initialData: { conditions: [{ id: crypto.randomUUID(), code: 'return true;' }], _version: 1 },
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: 'false', type: FlowDataType.ANY }],
@@ -388,7 +399,8 @@ const createLorebookNodeDefinition: BaseNodeDefinition<CreateLorebookNodeData> =
   label: 'Create Lorebook',
   category: 'Lorebook',
   dataSchema: CreateLorebookNodeDataSchema,
-  initialData: { worldName: 'My Lorebook' },
+  currentVersion: 1,
+  initialData: { worldName: 'My Lorebook', _version: 1 },
   handles: {
     inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
     outputs: [{ id: null, type: FlowDataType.STRING }],
@@ -399,7 +411,8 @@ const createLorebookEntryNodeDefinition: BaseNodeDefinition<CreateLorebookEntryN
   label: 'Create Lorebook Entry',
   category: 'Lorebook',
   dataSchema: CreateLorebookEntryNodeDataSchema,
-  initialData: { worldName: '', key: '', content: '', comment: '' },
+  currentVersion: 1,
+  initialData: { worldName: '', key: '', content: '', comment: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },
@@ -415,7 +428,8 @@ const editLorebookEntryNodeDefinition: BaseNodeDefinition<EditLorebookEntryNodeD
   label: 'Edit Lorebook Entry',
   category: 'Lorebook',
   dataSchema: EditLorebookEntryNodeDataSchema,
-  initialData: { worldName: '', entryUid: undefined },
+  currentVersion: 1,
+  initialData: { worldName: '', entryUid: undefined, _version: 1 },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },
@@ -432,7 +446,8 @@ const getLorebookNodeDefinition: BaseNodeDefinition<GetLorebookNodeData> = {
   label: 'Get Lorebook',
   category: 'Lorebook',
   dataSchema: GetLorebookNodeDataSchema,
-  initialData: { worldName: '' },
+  currentVersion: 1,
+  initialData: { worldName: '', _version: 1 },
   handles: {
     inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
     outputs: [{ id: 'entries', type: FlowDataType.OBJECT, schema: WIEntryListSchema }],
@@ -443,7 +458,8 @@ const getLorebookEntryNodeDefinition: BaseNodeDefinition<GetLorebookEntryNodeDat
   label: 'Get Lorebook Entry',
   category: 'Lorebook',
   dataSchema: GetLorebookEntryNodeDataSchema,
-  initialData: { worldName: '', entryUid: undefined },
+  currentVersion: 1,
+  initialData: { worldName: '', entryUid: undefined, _version: 1 },
   handles: {
     inputs: [
       { id: 'worldName', type: FlowDataType.STRING },
@@ -463,7 +479,8 @@ const createMessagesNodeDefinition: BaseNodeDefinition<CreateMessagesNodeData> =
   label: 'Create Messages',
   category: 'API Request',
   dataSchema: CreateMessagesNodeDataSchema,
-  initialData: { profileId: '' },
+  currentVersion: 1,
+  initialData: { profileId: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'profileId', type: FlowDataType.PROFILE_ID },
@@ -477,7 +494,11 @@ const customMessageNodeDefinition: BaseNodeDefinition<CustomMessageNodeData> = {
   label: 'Custom Message',
   category: 'API Request',
   dataSchema: CustomMessageNodeDataSchema,
-  initialData: { messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }] },
+  currentVersion: 1,
+  initialData: {
+    messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }],
+    _version: 1,
+  },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   getDynamicHandles: (node, _allNodes, _allEdges) => ({
     inputs: node.data.messages.flatMap((m) => [
@@ -500,7 +521,8 @@ const mergeMessagesNodeDefinition: BaseNodeDefinition<MergeMessagesNodeData> = {
   label: 'Merge Messages',
   category: 'API Request',
   dataSchema: MergeMessagesNodeDataSchema,
-  initialData: { inputCount: 2 },
+  currentVersion: 1,
+  initialData: { inputCount: 2, _version: 1 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
   getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) ?? false,
@@ -521,11 +543,13 @@ const structuredRequestNodeDefinition: BaseNodeDefinition<StructuredRequestNodeD
   label: 'Structured Request',
   category: 'API Request',
   dataSchema: StructuredRequestNodeDataSchema,
+  currentVersion: 1,
   initialData: {
     profileId: '',
     schemaName: 'mySchema',
     promptEngineeringMode: PromptEngineeringMode.NATIVE,
     maxResponseToken: 1000,
+    _version: 1,
   },
   handles: {
     inputs: [
@@ -600,7 +624,8 @@ const getChatMessageNodeDefinition: BaseNodeDefinition<GetChatMessageNodeData> =
   label: 'Get Chat Message',
   category: 'Chat',
   dataSchema: GetChatMessageNodeDataSchema,
-  initialData: { messageId: 'last' },
+  currentVersion: 1,
+  initialData: { messageId: 'last', _version: 1 },
   handles: {
     inputs: [{ id: 'messageId', type: FlowDataType.ANY }],
     outputs: [
@@ -618,7 +643,8 @@ const editChatMessageNodeDefinition: BaseNodeDefinition<EditChatMessageNodeData>
   label: 'Edit Chat Message',
   category: 'Chat',
   dataSchema: EditChatMessageNodeDataSchema,
-  initialData: { message: '' },
+  currentVersion: 1,
+  initialData: { message: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'messageId', type: FlowDataType.NUMBER },
@@ -632,7 +658,8 @@ const sendChatMessageNodeDefinition: BaseNodeDefinition<SendChatMessageNodeData>
   label: 'Send Chat Message',
   category: 'Chat',
   dataSchema: SendChatMessageNodeDataSchema,
-  initialData: { message: '', role: 'assistant' },
+  currentVersion: 1,
+  initialData: { message: '', role: 'assistant', _version: 1 },
   handles: {
     inputs: [
       { id: 'message', type: FlowDataType.STRING },
@@ -647,7 +674,8 @@ const removeChatMessageNodeDefinition: BaseNodeDefinition<RemoveChatMessageNodeD
   label: 'Remove Chat Message',
   category: 'Chat',
   dataSchema: RemoveChatMessageNodeDataSchema,
-  initialData: {},
+  currentVersion: 1,
+  initialData: { _version: 1 },
   handles: {
     inputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
     outputs: [],
@@ -659,7 +687,8 @@ const logNodeDefinition: BaseNodeDefinition<LogNodeData> = {
   label: 'Log',
   category: 'Utility',
   dataSchema: LogNodeDataSchema,
-  initialData: { prefix: 'Log:' },
+  currentVersion: 1,
+  initialData: { prefix: 'Log:', _version: 1 },
   handles: {
     inputs: [{ id: 'value', type: FlowDataType.ANY }],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
@@ -670,7 +699,8 @@ const handlebarNodeDefinition: BaseNodeDefinition<HandlebarNodeData> = {
   label: 'Handlebar',
   category: 'Utility',
   dataSchema: HandlebarNodeDataSchema,
-  initialData: { template: 'Hello, {{name}}!' },
+  currentVersion: 1,
+  initialData: { template: 'Hello, {{name}}!', _version: 1 },
   handles: {
     inputs: [
       { id: 'template', type: FlowDataType.STRING },
@@ -684,7 +714,8 @@ const mergeObjectsNodeDefinition: BaseNodeDefinition<MergeObjectsNodeData> = {
   label: 'Merge Objects',
   category: 'Utility',
   dataSchema: MergeObjectsNodeDataSchema,
-  initialData: { inputCount: 2 },
+  currentVersion: 1,
+  initialData: { inputCount: 2, _version: 1 },
   handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
   getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
@@ -705,7 +736,8 @@ const groupNodeDefinition: BaseNodeDefinition<GroupNodeData> = {
   label: 'Group',
   category: 'Utility',
   dataSchema: GroupNodeDataSchema,
-  initialData: { label: 'Group' },
+  currentVersion: 1,
+  initialData: { label: 'Group', _version: 1 },
   handles: { inputs: [], outputs: [] },
 };
 const executeJsNodeDefinition: BaseNodeDefinition<ExecuteJsNodeData> = {
@@ -713,7 +745,8 @@ const executeJsNodeDefinition: BaseNodeDefinition<ExecuteJsNodeData> = {
   label: 'Execute JS Code',
   category: 'Utility',
   dataSchema: ExecuteJsNodeDataSchema,
-  initialData: { code: 'return input;' },
+  currentVersion: 1,
+  initialData: { code: 'return input;', _version: 1 },
   handles: {
     inputs: [{ id: null, type: FlowDataType.ANY }],
     outputs: [{ id: null, type: FlowDataType.ANY }],
@@ -724,7 +757,8 @@ const dateTimeNodeDefinition: BaseNodeDefinition<DateTimeNodeData> = {
   label: 'Date/Time',
   category: 'Utility',
   dataSchema: DateTimeNodeDataSchema,
-  initialData: {},
+  currentVersion: 1,
+  initialData: { _version: 1 },
   handles: {
     inputs: [{ id: 'format', type: FlowDataType.STRING }],
     outputs: [
@@ -744,7 +778,8 @@ const randomNodeDefinition: BaseNodeDefinition<RandomNodeData> = {
   label: 'Random',
   category: 'Utility',
   dataSchema: RandomNodeDataSchema,
-  initialData: { mode: 'number', min: 0, max: 100 },
+  currentVersion: 1,
+  initialData: { mode: 'number', min: 0, max: 100, _version: 1 },
   handles: {
     inputs: [
       { id: 'mode', type: FlowDataType.STRING },
@@ -760,7 +795,8 @@ const stringToolsNodeDefinition: BaseNodeDefinition<StringToolsNodeData> = {
   label: 'String Tools',
   category: 'Utility',
   dataSchema: StringToolsNodeDataSchema,
-  initialData: { operation: 'merge', inputCount: 2, delimiter: '' },
+  currentVersion: 1,
+  initialData: { operation: 'merge', inputCount: 2, delimiter: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'operation', type: FlowDataType.STRING },
@@ -805,7 +841,8 @@ const mathNodeDefinition: BaseNodeDefinition<MathNodeData> = {
   label: 'Math',
   category: 'Utility',
   dataSchema: MathNodeDataSchema,
-  initialData: { operation: 'add', a: 0, b: 0 },
+  currentVersion: 1,
+  initialData: { operation: 'add', a: 0, b: 0, _version: 1 },
   handles: {
     inputs: [
       { id: 'operation', type: FlowDataType.STRING },
@@ -820,7 +857,8 @@ const getPromptNodeDefinition: BaseNodeDefinition<GetPromptNodeData> = {
   label: 'Get Prompt',
   category: 'Utility',
   dataSchema: GetPromptNodeDataSchema,
-  initialData: { promptName: '' },
+  currentVersion: 1,
+  initialData: { promptName: '', _version: 1 },
   handles: {
     inputs: [{ id: 'promptName', type: FlowDataType.STRING }],
     outputs: [{ id: null, type: FlowDataType.STRING }],
@@ -831,7 +869,8 @@ const setVariableNodeDefinition: BaseNodeDefinition<SetVariableNodeData> = {
   label: 'Set Variable',
   category: 'Utility',
   dataSchema: SetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar' },
+  currentVersion: 1,
+  initialData: { variableName: 'myVar', _version: 1 },
   handles: {
     inputs: [
       { id: 'value', type: FlowDataType.ANY },
@@ -845,7 +884,8 @@ const getVariableNodeDefinition: BaseNodeDefinition<GetVariableNodeData> = {
   label: 'Get Variable',
   category: 'Utility',
   dataSchema: GetVariableNodeDataSchema,
-  initialData: { variableName: 'myVar' },
+  currentVersion: 1,
+  initialData: { variableName: 'myVar', _version: 1 },
   handles: {
     inputs: [{ id: 'variableName', type: FlowDataType.STRING }],
     outputs: [{ id: 'value', type: FlowDataType.ANY }],
@@ -857,7 +897,8 @@ const regexNodeDefinition: BaseNodeDefinition<RegexNodeData> = {
   label: 'Regex',
   category: 'Utility',
   dataSchema: RegexNodeDataSchema,
-  initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '' },
+  currentVersion: 1,
+  initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '', _version: 1 },
   handles: {
     inputs: [
       { id: 'string', type: FlowDataType.STRING },
@@ -876,7 +917,8 @@ const runSlashCommandNodeDefinition: BaseNodeDefinition<RunSlashCommandNodeData>
   label: 'Run Slash Command',
   category: 'Utility',
   dataSchema: RunSlashCommandNodeDataSchema,
-  initialData: { command: '' },
+  currentVersion: 1,
+  initialData: { command: '', _version: 1 },
   handles: {
     inputs: [{ id: 'command', type: FlowDataType.STRING }],
     outputs: [{ id: 'result', type: FlowDataType.STRING }],
@@ -888,7 +930,8 @@ const typeConverterNodeDefinition: BaseNodeDefinition<TypeConverterNodeData> = {
   label: 'Type Converter',
   category: 'Utility',
   dataSchema: TypeConverterNodeDataSchema,
-  initialData: { targetType: 'string' },
+  currentVersion: 1,
+  initialData: { targetType: 'string', _version: 1 },
   handles: {
     inputs: [
       { id: 'value', type: FlowDataType.ANY },
@@ -921,7 +964,8 @@ const pickCharacterNodeDefinition: BaseNodeDefinition<PickCharacterNodeData> = {
   label: 'Pick Character',
   category: 'Picker',
   dataSchema: PickCharacterNodeDataSchema,
-  initialData: { characterAvatar: '' },
+  currentVersion: 1,
+  initialData: { characterAvatar: '', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'avatar', type: FlowDataType.STRING }] },
 };
 const pickLorebookNodeDefinition: BaseNodeDefinition<PickLorebookNodeData> = {
@@ -929,7 +973,8 @@ const pickLorebookNodeDefinition: BaseNodeDefinition<PickLorebookNodeData> = {
   label: 'Pick Lorebook',
   category: 'Picker',
   dataSchema: PickLorebookNodeDataSchema,
-  initialData: { worldName: '' },
+  currentVersion: 1,
+  initialData: { worldName: '', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
 };
 const pickPromptNodeDefinition: BaseNodeDefinition<PickPromptNodeData> = {
@@ -937,7 +982,8 @@ const pickPromptNodeDefinition: BaseNodeDefinition<PickPromptNodeData> = {
   label: 'Pick Prompt',
   category: 'Picker',
   dataSchema: PickPromptNodeDataSchema,
-  initialData: { promptName: '' },
+  currentVersion: 1,
+  initialData: { promptName: '', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
 };
 const pickRegexScriptNodeDefinition: BaseNodeDefinition<PickRegexScriptNodeData> = {
@@ -945,7 +991,8 @@ const pickRegexScriptNodeDefinition: BaseNodeDefinition<PickRegexScriptNodeData>
   label: 'Pick Regex Script',
   category: 'Picker',
   dataSchema: PickRegexScriptNodeDataSchema,
-  initialData: { scriptId: '' },
+  currentVersion: 1,
+  initialData: { scriptId: '', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'id', type: FlowDataType.STRING }] },
 };
 const pickMathOperationNodeDefinition: BaseNodeDefinition<PickMathOperationNodeData> = {
@@ -953,7 +1000,8 @@ const pickMathOperationNodeDefinition: BaseNodeDefinition<PickMathOperationNodeD
   label: 'Pick Math Operation',
   category: 'Picker',
   dataSchema: PickMathOperationNodeDataSchema,
-  initialData: { operation: 'add' },
+  currentVersion: 1,
+  initialData: { operation: 'add', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
 };
 const pickStringToolsOperationNodeDefinition: BaseNodeDefinition<PickStringToolsOperationNodeData> = {
@@ -961,7 +1009,8 @@ const pickStringToolsOperationNodeDefinition: BaseNodeDefinition<PickStringTools
   label: 'Pick String Operation',
   category: 'Picker',
   dataSchema: PickStringToolsOperationNodeDataSchema,
-  initialData: { operation: 'merge' },
+  currentVersion: 1,
+  initialData: { operation: 'merge', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
 };
 const pickPromptEngineeringModeNodeDefinition: BaseNodeDefinition<PickPromptEngineeringModeNodeData> = {
@@ -969,7 +1018,8 @@ const pickPromptEngineeringModeNodeDefinition: BaseNodeDefinition<PickPromptEngi
   label: 'Pick Prompt Mode',
   category: 'Picker',
   dataSchema: PickPromptEngineeringModeNodeDataSchema,
-  initialData: { mode: PromptEngineeringMode.NATIVE },
+  currentVersion: 1,
+  initialData: { mode: PromptEngineeringMode.NATIVE, _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
 };
 const pickRandomModeNodeDefinition: BaseNodeDefinition<PickRandomModeNodeData> = {
@@ -977,7 +1027,8 @@ const pickRandomModeNodeDefinition: BaseNodeDefinition<PickRandomModeNodeData> =
   label: 'Pick Random Mode',
   category: 'Picker',
   dataSchema: PickRandomModeNodeDataSchema,
-  initialData: { mode: 'number' },
+  currentVersion: 1,
+  initialData: { mode: 'number', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
 };
 const pickRegexModeNodeDefinition: BaseNodeDefinition<PickRegexModeNodeData> = {
@@ -985,7 +1036,8 @@ const pickRegexModeNodeDefinition: BaseNodeDefinition<PickRegexModeNodeData> = {
   label: 'Pick Regex Mode',
   category: 'Picker',
   dataSchema: PickRegexModeNodeDataSchema,
-  initialData: { mode: 'sillytavern' },
+  currentVersion: 1,
+  initialData: { mode: 'sillytavern', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
 };
 const pickTypeConverterTargetNodeDefinition: BaseNodeDefinition<PickTypeConverterTargetNodeData> = {
@@ -993,7 +1045,8 @@ const pickTypeConverterTargetNodeDefinition: BaseNodeDefinition<PickTypeConverte
   label: 'Pick Conversion Type',
   category: 'Picker',
   dataSchema: PickTypeConverterTargetNodeDataSchema,
-  initialData: { targetType: 'string' },
+  currentVersion: 1,
+  initialData: { targetType: 'string', _version: 1 },
   handles: { inputs: [], outputs: [{ id: 'type', type: FlowDataType.STRING }] },
 };
 

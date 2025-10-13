@@ -28,11 +28,13 @@ export const TriggerNodeDataSchema = z.object({
   selectedEventType: z.string().refine((val) => Object.values(EventNames).includes(val as any), {
     message: 'Invalid event type',
   }),
+  _version: z.number().optional(),
 });
 export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;
 
 export const ManualTriggerNodeDataSchema = z.object({
   payload: z.string().default('{}'),
+  _version: z.number().optional(),
 });
 export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
 
@@ -41,12 +43,14 @@ export const IfNodeDataSchema = z.object({
     .array(z.object({ id: z.string(), code: z.string() }))
     .min(1)
     .default([{ id: crypto.randomUUID(), code: 'return true;' }]),
+  _version: z.number().optional(),
 });
 export type IfNodeData = z.infer<typeof IfNodeDataSchema>;
 
 export const CreateMessagesNodeDataSchema = z.object({
   profileId: z.string().default(''),
   lastMessageId: z.number().optional(),
+  _version: z.number().optional(),
 });
 export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema>;
 
@@ -58,31 +62,37 @@ export const CustomMessageNodeDataSchema = z.object({
       content: z.string(),
     }),
   ),
+  _version: z.number().optional(),
 });
 export type CustomMessageNodeData = z.infer<typeof CustomMessageNodeDataSchema>;
 
 export const MergeMessagesNodeDataSchema = z.object({
   inputCount: z.number().min(1).default(2),
+  _version: z.number().optional(),
 });
 export type MergeMessagesNodeData = z.infer<typeof MergeMessagesNodeDataSchema>;
 
 export const MergeObjectsNodeDataSchema = z.object({
   inputCount: z.number().min(1).default(2),
+  _version: z.number().optional(),
 });
 export type MergeObjectsNodeData = z.infer<typeof MergeObjectsNodeDataSchema>;
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),
+  _version: z.number().optional(),
 });
 export type StringNodeData = z.infer<typeof StringNodeDataSchema>;
 
 export const NumberNodeDataSchema = z.object({
   value: z.number(),
+  _version: z.number().optional(),
 });
 export type NumberNodeData = z.infer<typeof NumberNodeDataSchema>;
 
 export const LogNodeDataSchema = z.object({
   prefix: z.string().default('Log:'),
+  _version: z.number().optional(),
 });
 export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
@@ -91,6 +101,7 @@ export const StructuredRequestNodeDataSchema = z.object({
   schemaName: z.string().default('responseSchema'),
   promptEngineeringMode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
   maxResponseToken: z.number().default(1000),
+  _version: z.number().optional(),
 });
 export type StructuredRequestNodeData = z.infer<typeof StructuredRequestNodeDataSchema>;
 
@@ -132,11 +143,13 @@ const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
 
 export const SchemaNodeDataSchema = z.object({
   fields: z.array(FieldDefinitionSchema).default([]),
+  _version: z.number().optional(),
 });
 export type SchemaNodeData = z.infer<typeof SchemaNodeDataSchema>;
 
 export const ProfileIdNodeDataSchema = z.object({
   profileId: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 
@@ -150,22 +163,28 @@ const CharacterFieldsSchema = {
   tags: z.string().optional(), // Comma-separated
 };
 
-export const CreateCharacterNodeDataSchema = z.object(CharacterFieldsSchema);
+export const CreateCharacterNodeDataSchema = z.object({
+  ...CharacterFieldsSchema,
+  _version: z.number().optional(),
+});
 export type CreateCharacterNodeData = z.infer<typeof CreateCharacterNodeDataSchema>;
 
 export const EditCharacterNodeDataSchema = z.object({
   ...CharacterFieldsSchema,
   characterAvatar: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type EditCharacterNodeData = z.infer<typeof EditCharacterNodeDataSchema>;
 
 export const GetCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type GetCharacterNodeData = z.infer<typeof GetCharacterNodeDataSchema>;
 
 export const HandlebarNodeDataSchema = z.object({
   template: z.string().default('Hello, {{name}}!'),
+  _version: z.number().optional(),
 });
 export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
 
@@ -189,11 +208,13 @@ export const JsonNodeItemSchema: z.ZodType<JsonNodeItem> = baseJsonNodeItemSchem
 export const JsonNodeDataSchema = z.object({
   rootType: z.enum(['object', 'array']).default('object'),
   items: z.array(JsonNodeItemSchema).default([]),
+  _version: z.number().optional(),
 });
 export type JsonNodeData = z.infer<typeof JsonNodeDataSchema>;
 
 export const CreateLorebookNodeDataSchema = z.object({
   worldName: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type CreateLorebookNodeData = z.infer<typeof CreateLorebookNodeDataSchema>;
 
@@ -202,6 +223,7 @@ export const CreateLorebookEntryNodeDataSchema = z.object({
   key: z.string().optional(), // comma-separated
   content: z.string().optional(),
   comment: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type CreateLorebookEntryNodeData = z.infer<typeof CreateLorebookEntryNodeDataSchema>;
 
@@ -211,38 +233,45 @@ export const EditLorebookEntryNodeDataSchema = z.object({
   key: z.string().optional(),
   content: z.string().optional(),
   comment: z.string().optional(), // new comment
+  _version: z.number().optional(),
 });
 export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
 
 export const GetLorebookNodeDataSchema = z.object({
   worldName: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type GetLorebookNodeData = z.infer<typeof GetLorebookNodeDataSchema>;
 
 export const GetLorebookEntryNodeDataSchema = z.object({
   worldName: z.string().optional(),
   entryUid: z.number().optional(),
+  _version: z.number().optional(),
 });
 export type GetLorebookEntryNodeData = z.infer<typeof GetLorebookEntryNodeDataSchema>;
 
 export const GroupNodeDataSchema = z.object({
   label: z.string().default('Group'),
+  _version: z.number().optional(),
 });
 export type GroupNodeData = z.infer<typeof GroupNodeDataSchema>;
 
 export const ExecuteJsNodeDataSchema = z.object({
   code: z.string().default('return input;'),
+  _version: z.number().optional(),
 });
 export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
 
 export const GetChatMessageNodeDataSchema = z.object({
   messageId: z.string().default('last'),
+  _version: z.number().optional(),
 });
 export type GetChatMessageNodeData = z.infer<typeof GetChatMessageNodeDataSchema>;
 
 export const EditChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(), // Optional is correct here as it's a required input connection
   message: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSchema>;
 
@@ -250,16 +279,19 @@ export const SendChatMessageNodeDataSchema = z.object({
   message: z.string().default(''),
   role: z.enum(['user', 'assistant', 'system']).default('assistant'),
   name: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type SendChatMessageNodeData = z.infer<typeof SendChatMessageNodeDataSchema>;
 
 export const RemoveChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(),
+  _version: z.number().optional(),
 });
 export type RemoveChatMessageNodeData = z.infer<typeof RemoveChatMessageNodeDataSchema>;
 
 export const DateTimeNodeDataSchema = z.object({
   format: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type DateTimeNodeData = z.infer<typeof DateTimeNodeDataSchema>;
 
@@ -267,6 +299,7 @@ export const RandomNodeDataSchema = z.object({
   mode: z.enum(['number', 'array']).optional(),
   min: z.number().optional(),
   max: z.number().optional(),
+  _version: z.number().optional(),
 });
 export type RandomNodeData = z.infer<typeof RandomNodeDataSchema>;
 
@@ -274,6 +307,7 @@ export const StringToolsNodeDataSchema = z.object({
   operation: z.enum(['merge', 'split', 'join']).optional(),
   delimiter: z.string().optional(),
   inputCount: z.number().min(1).optional(),
+  _version: z.number().optional(),
 });
 export type StringToolsNodeData = z.infer<typeof StringToolsNodeDataSchema>;
 
@@ -281,21 +315,25 @@ export const MathNodeDataSchema = z.object({
   operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).optional(),
   a: z.number().optional(),
   b: z.number().optional(),
+  _version: z.number().optional(),
 });
 export type MathNodeData = z.infer<typeof MathNodeDataSchema>;
 
 export const GetPromptNodeDataSchema = z.object({
   promptName: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
 
 export const SetVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 
 export const GetVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
+  _version: z.number().optional(),
 });
 export type GetVariableNodeData = z.infer<typeof GetVariableNodeDataSchema>;
 
@@ -304,66 +342,79 @@ export const RegexNodeDataSchema = z.object({
   scriptId: z.string().default(''),
   findRegex: z.string().default(''),
   replaceString: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type RegexNodeData = z.infer<typeof RegexNodeDataSchema>;
 
 export const RunSlashCommandNodeDataSchema = z.object({
   command: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type RunSlashCommandNodeData = z.infer<typeof RunSlashCommandNodeDataSchema>;
 
 export const TypeConverterNodeDataSchema = z.object({
   targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+  _version: z.number().optional(),
 });
 export type TypeConverterNodeData = z.infer<typeof TypeConverterNodeDataSchema>;
 
 // Picker Node Schemas
 export const PickCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type PickCharacterNodeData = z.infer<typeof PickCharacterNodeDataSchema>;
 
 export const PickLorebookNodeDataSchema = z.object({
   worldName: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type PickLorebookNodeData = z.infer<typeof PickLorebookNodeDataSchema>;
 
 export const PickPromptNodeDataSchema = z.object({
   promptName: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type PickPromptNodeData = z.infer<typeof PickPromptNodeDataSchema>;
 
 export const PickRegexScriptNodeDataSchema = z.object({
   scriptId: z.string().default(''),
+  _version: z.number().optional(),
 });
 export type PickRegexScriptNodeData = z.infer<typeof PickRegexScriptNodeDataSchema>;
 
 export const PickMathOperationNodeDataSchema = z.object({
   operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).default('add'),
+  _version: z.number().optional(),
 });
 export type PickMathOperationNodeData = z.infer<typeof PickMathOperationNodeDataSchema>;
 
 export const PickStringToolsOperationNodeDataSchema = z.object({
   operation: z.enum(['merge', 'split', 'join']).default('merge'),
+  _version: z.number().optional(),
 });
 export type PickStringToolsOperationNodeData = z.infer<typeof PickStringToolsOperationNodeDataSchema>;
 
 export const PickPromptEngineeringModeNodeDataSchema = z.object({
   mode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  _version: z.number().optional(),
 });
 export type PickPromptEngineeringModeNodeData = z.infer<typeof PickPromptEngineeringModeNodeDataSchema>;
 
 export const PickRandomModeNodeDataSchema = z.object({
   mode: z.enum(['number', 'array']).default('number'),
+  _version: z.number().optional(),
 });
 export type PickRandomModeNodeData = z.infer<typeof PickRandomModeNodeDataSchema>;
 
 export const PickRegexModeNodeDataSchema = z.object({
   mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
+  _version: z.number().optional(),
 });
 export type PickRegexModeNodeData = z.infer<typeof PickRegexModeNodeDataSchema>;
 
 export const PickTypeConverterTargetNodeDataSchema = z.object({
   targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
+  _version: z.number().optional(),
 });
 export type PickTypeConverterTargetNodeData = z.infer<typeof PickTypeConverterTargetNodeDataSchema>;

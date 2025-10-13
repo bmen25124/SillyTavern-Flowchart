@@ -10,6 +10,7 @@ import {
   Connection,
 } from '@xyflow/react';
 import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
+import { runMigrations } from '../../migrations.js';
 
 type FlowState = {
   nodes: Node[];
@@ -101,10 +102,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     });
   },
   loadFlow: (flowData) => {
-    const nodes = (flowData.nodes || []).map(fromSpecNode);
+    const migratedFlow = runMigrations(flowData);
+    const nodes = (migratedFlow.nodes || []).map(fromSpecNode);
     set({
       nodes: nodes,
-      edges: (flowData.edges || []).map(fromSpecEdge),
+      edges: (migratedFlow.edges || []).map(fromSpecEdge),
       nodesMap: new Map(nodes.map((n) => [n.id, n])),
     });
   },

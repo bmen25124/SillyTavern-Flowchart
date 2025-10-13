@@ -35,6 +35,7 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
   component: FC<NodeProps<Node<T>>>;
   dataSchema: z.ZodType<T>;
   initialData: T;
+  currentVersion: number;
   handles: {
     inputs: HandleSpec[];
     outputs: HandleSpec[];
@@ -49,8 +50,8 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * Optional function to get a list of dynamic handles based on the node's data.
    * This is used by the UI to suggest compatible nodes when creating new connections.
    */
-  // @ts-ignore
   getDynamicHandles?: (
+    // @ts-ignore
     node: Node<T>,
     allNodes: Node[],
     allEdges: Edge[],
