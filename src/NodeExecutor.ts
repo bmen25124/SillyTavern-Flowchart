@@ -2,9 +2,8 @@ import { SpecFlow, SpecNode } from './flow-spec.js';
 import { SillyTavernContext } from 'sillytavern-utils-lib/types';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { z } from 'zod';
+import { ExecutionReport } from './LowLevelFlowRunner.js';
 
-// This is a subset of the full dependencies, only what's needed for the executor context.
-// It simplifies the type signature for individual node logic.
 export interface FlowRunnerDependencies {
   getBaseMessagesForProfile: (profileId: string, lastMessageId?: number) => Promise<any[]>;
   makeSimpleRequest: (profileId: string, messages: any[], maxResponseToken: number) => Promise<string>;
@@ -34,12 +33,14 @@ export interface FlowRunnerDependencies {
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
   st_runRegexScript: (script: any, content: string) => string;
   executeSlashCommandsWithOptions: (text: string, options?: any) => Promise<any>;
+  executeSubFlow: (flowId: string, initialInput: Record<string, any>, depth: number) => Promise<ExecutionReport>;
 }
 
 export type NodeExecutorContext = {
   flow: SpecFlow;
   dependencies: FlowRunnerDependencies;
   executionVariables: Map<string, any>;
+  depth: number;
 };
 
 export type NodeExecutor = (node: SpecNode, input: Record<string, any>, context: NodeExecutorContext) => Promise<any>;

@@ -20,6 +20,7 @@ export interface ExtensionSettings {
   enabled: boolean;
   prompts: Record<string, string>;
   flows: Record<string, SpecFlow>;
+  enabledFlows: Record<string, boolean>;
   activeFlow: string;
 }
 
@@ -29,10 +30,6 @@ export const EXTENSION_KEY = 'flowchart';
 const VERSION = '0.1.0';
 const FORMAT_VERSION = 'F_1.0';
 
-/**
- * Generates a valid default flow with unique IDs.
- * This prevents state conflicts and ensures the initial state is always valid.
- */
 export function createDefaultFlow(): SpecFlow {
   const triggerNodeId = crypto.randomUUID();
   const ifNodeId = crypto.randomUUID();
@@ -66,6 +63,9 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   activeFlow: 'Default',
   flows: {
     Default: createDefaultFlow(),
+  },
+  enabledFlows: {
+    Default: true,
   },
 };
 

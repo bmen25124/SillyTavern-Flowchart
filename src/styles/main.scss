@@ -307,6 +307,12 @@
   box-shadow: 0 0 5px var(--warning);
 }
 
+// Styles for disabled nodes
+.react-flow__node > div.node-disabled {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
 // Execution Order Badge
 .execution-order-badge {
   position: absolute;
@@ -583,4 +589,21 @@
     white-space: pre-wrap;
     word-break: break-all;
   }
+}
+
+.flow-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
+}
+
+.flow-manager-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

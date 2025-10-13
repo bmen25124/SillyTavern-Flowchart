@@ -17,7 +17,7 @@ import {
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { STButton, STInput, STPresetSelect, type PresetItem } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
@@ -54,6 +54,7 @@ const FlowCanvas: FC<{
     onConnect: baseOnConnect,
     addNode,
     duplicateNode,
+    toggleNodeDisabled,
   } = useFlowStore();
   const { screenToFlowPosition, getNodes, deleteElements } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
@@ -66,6 +67,25 @@ const FlowCanvas: FC<{
     nodeReports: state.nodeReports,
     activeNodeId: state.activeNodeId,
   }));
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isPopupActive = !!document.querySelector('.flowchart-data-popup');
+      const isInputFocused =
+        document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+      if (!isPopupActive || isInputFocused) return;
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        const selectedNodes = getNodes().filter((n) => n.selected);
+        if (selectedNodes.length > 0) {
+          toggleNodeDisabled(selectedNodes.map((n) => n.id));
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [getNodes, toggleNodeDisabled]);
 
   const isValidConnection = useCallback(
     (connection: Edge | Connection) => checkConnectionValidity(connection, getNodes(), edges),
@@ -119,10 +139,17 @@ const FlowCanvas: FC<{
               setContextMenu(null);
             },
           },
+          {
+            label: node.data.disabled ? 'Enable' : 'Disable',
+            action: () => {
+              toggleNodeDisabled([node.id]);
+              setContextMenu(null);
+            },
+          },
         ],
       });
     },
-    [duplicateNode, deleteElements, setContextMenu],
+    [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled],
   );
 
   const onConnectEnd = useCallback(
@@ -147,7 +174,6 @@ const FlowCanvas: FC<{
       const compatibleNodes: CompatibilityInfo[] = [];
 
       if (handleType === 'source') {
-        // Dragging from an output/source handle, find compatible target nodes
         for (const targetDef of registrator.allNodeDefinitions) {
           const tempTargetNode = {
             id: 'temp-target',
@@ -183,7 +209,6 @@ const FlowCanvas: FC<{
           }
         }
       } else {
-        // Dragging from an input/target handle, find compatible source nodes
         for (const sourceDef of registrator.allNodeDefinitions) {
           const tempSourceNode = {
             id: 'temp-source',
@@ -399,6 +424,18 @@ const FlowManager: FC = () => {
   }, []);
 
   useEffect(() => {
+    // Ensure enabledFlows is populated for all existing flows
+    let settingsChanged = false;
+    for (const flowId in settings.flows) {
+      if (settings.enabledFlows[flowId] === undefined) {
+        settings.enabledFlows[flowId] = true;
+        settingsChanged = true;
+      }
+    }
+    if (settingsChanged) {
+      settingsManager.saveSettings();
+      forceUpdate();
+    }
     const activeFlowData = settings.flows[settings.activeFlow] || { nodes: [], edges: [] };
     loadFlow(structuredClone(activeFlowData));
   }, []);
@@ -466,11 +503,6 @@ const FlowManager: FC = () => {
 
   const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
 
-  const presetItems = useMemo(
-    () => Object.keys(settings.flows).map((key) => ({ value: key, label: key })),
-    [settings.flows],
-  );
-
   const handleSelectChange = (newValue?: string) => {
     if (newValue && settings.flows[newValue]) {
       settings.activeFlow = newValue;
@@ -479,49 +511,37 @@ const FlowManager: FC = () => {
     }
   };
 
-  const handleItemsChange = (newItems: PresetItem[]) => {
-    const newFlows: Record<string, any> = {};
-    let activeFlowExists = false;
+  const { Popup } = SillyTavern.getContext();
 
-    for (const item of newItems) {
-      newFlows[item.value] = settings.flows[item.value] || createDefaultFlow();
-      if (item.value === settings.activeFlow) {
-        activeFlowExists = true;
-      }
-    }
-    settings.flows = newFlows;
+  const handleAddFlow = async () => {
+    const newName = await Popup.show.input('New Flow Name', 'Enter a unique name for the new flow.');
+    if (!newName) return;
 
-    if (!activeFlowExists) {
-      settings.activeFlow = newItems[0]?.value || '';
-      if (settings.activeFlow) {
-        loadFlow(structuredClone(settings.flows[settings.activeFlow]));
-      } else {
-        loadFlow({ nodes: [], edges: [] });
-      }
+    const flowId = newName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    if (!flowId) {
+      st_echo('error', 'Invalid flow name.');
+      return;
     }
+    if (settings.flows[flowId]) {
+      st_echo('error', `A flow named "${flowId}" already exists.`);
+      return;
+    }
+    settings.flows[flowId] = createDefaultFlow();
+    settings.enabledFlows[flowId] = true;
+    settings.activeFlow = flowId;
+    loadFlow(structuredClone(settings.flows[flowId]));
     forceUpdate();
   };
 
-  const handleCreate = (newValue: string) => {
-    if (settings.flows[newValue]) {
-      st_echo('error', `A flow named "${newValue}" already exists.`);
-      return { confirmed: false };
-    }
-    return { confirmed: true, value: newValue };
-  };
-
-  const handleRename = (oldValue: string, newValue: string) => {
-    if (settings.flows[newValue]) {
-      st_echo('error', `A flow named "${newValue}" already exists.`);
-      return { confirmed: false };
-    }
-    settings.flows[newValue] = settings.flows[oldValue];
-    delete settings.flows[oldValue];
-    if (settings.activeFlow === oldValue) {
-      settings.activeFlow = newValue;
-    }
+  const handleToggleFlowEnabled = (flowId: string) => {
+    settings.enabledFlows[flowId] = !settings.enabledFlows[flowId];
+    flowRunner.reinitialize();
     forceUpdate();
-    return { confirmed: true };
   };
 
   const handleClearInvalid = () => {
@@ -611,20 +631,32 @@ const FlowManager: FC = () => {
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-        <STPresetSelect
-          label="Flow"
-          value={settings.activeFlow}
-          items={presetItems}
-          onChange={handleSelectChange}
-          onItemsChange={handleItemsChange}
-          onCreate={handleCreate}
-          onRename={handleRename}
-          enableCreate
-          enableRename
-          enableDelete
-        />
+        <label>Active Flow:</label>
+        <STSelect value={settings.activeFlow} onChange={(e) => handleSelectChange(e.target.value)} style={{ flex: 1 }}>
+          {Object.keys(settings.flows).map((flowId) => (
+            <option key={flowId} value={flowId}>
+              {flowId} {settings.enabledFlows[flowId] === false ? '(Disabled)' : ''}
+            </option>
+          ))}
+        </STSelect>
+        <STButton onClick={handleAddFlow}>+ New</STButton>
+        <details className="menu_button">
+          <summary>Manage</summary>
+          <div className="flow-manager-list">
+            {Object.keys(settings.flows).map((flowId) => (
+              <div key={flowId} className="flow-manager-item">
+                <STInput
+                  type="checkbox"
+                  checked={settings.enabledFlows[flowId] !== false}
+                  onChange={() => handleToggleFlowEnabled(flowId)}
+                  title={settings.enabledFlows[flowId] === false ? 'Enable Flow' : 'Disable Flow'}
+                />
+                <span style={{ flex: 1 }}>{flowId}</span>
+              </div>
+            ))}
+          </div>
+        </details>
         <div style={{ flex: 1 }}></div>
-
         {runId && (
           <>
             <STButton onClick={toggleVisualization}>
@@ -635,7 +667,6 @@ const FlowManager: FC = () => {
             </STButton>
           </>
         )}
-
         {!isValid && (
           <STButton color="danger" onClick={handleClearInvalid} title={errors.join('\n')}>
             Fix Errors ({errors.length})
@@ -661,7 +692,6 @@ const FlowManager: FC = () => {
           <i className="fa-solid fa-camera"></i>
         </STButton>
       </div>
-
       <div className="flowchart-editor-area" ref={flowWrapperRef}>
         <NodePalette />
         <FlowCanvas invalidNodeIds={invalidNodeIds} />

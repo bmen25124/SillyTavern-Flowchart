@@ -6,6 +6,7 @@ import { STFancyDropdown, STSelect } from 'sillytavern-utils-lib/components';
 import { settingsManager } from '../../../config.js';
 import {
   PickCharacterNodeData,
+  PickFlowNodeData,
   PickLorebookNodeData,
   PickMathOperationNodeData,
   PickPromptEngineeringModeNodeData,
@@ -365,5 +366,46 @@ export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTar
       outputHandle={outputHandle}
       onUpdate={(value) => updateNodeData(id, { targetType: value as any })}
     />
+  );
+};
+
+export const PickFlowNode: FC<NodeProps<Node<PickFlowNodeData>>> = ({ id, selected }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickFlowNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const flowOptions = useMemo(() => {
+    const flows = settingsManager.getSettings().flows;
+    return Object.keys(flows).map((name) => ({ value: name, label: name }));
+  }, []);
+  const definition = registrator.nodeDefinitionMap.get('pickFlowNode');
+  const outputHandle = definition?.handles.outputs[0];
+  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+
+  if (!data || !outputHandle) return null;
+
+  return (
+    <BaseNode id={id} title="Pick Flow" selected={selected}>
+      <STFancyDropdown
+        value={[data.flowId ?? '']}
+        onChange={(e) => updateNodeData(id, { flowId: e[0] })}
+        multiple={false}
+        items={flowOptions}
+        inputClasses="nodrag"
+        containerClasses="nodrag"
+        closeOnSelect={true}
+        enableSearch={true}
+      />
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
+        <span>Flow ID</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="flowId"
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+        />
+      </div>
+    </BaseNode>
   );
 };

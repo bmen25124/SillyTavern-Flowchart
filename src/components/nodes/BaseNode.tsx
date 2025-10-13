@@ -2,6 +2,7 @@ import { FC, ReactNode } from 'react';
 import { NodeResizer } from '@xyflow/react';
 import { useFlowRunStore } from '../popup/flowRunStore.js';
 import { NodeRunReport } from './NodeRunReport.js';
+import { useFlowStore } from '../popup/flowStore.js';
 
 type BaseNodeProps = {
   id: string;
@@ -16,10 +17,16 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
     nodeReports: state.nodeReports,
     executionOrder: state.executionOrder,
   }));
+  const isNodeDisabled = useFlowStore((state) => state.nodesMap.get(id)?.data?.disabled);
 
   const report = nodeReports.get(id);
   const showReport = isVisualizationVisible && report;
-  const statusClass = showReport ? `run-${report.status}` : '';
+
+  let statusClass = showReport ? `run-${report.status}` : '';
+  if (isNodeDisabled) {
+    statusClass += ' node-disabled';
+  }
+
   const executionOrderIndex = isVisualizationVisible ? executionOrder.indexOf(id) + 1 : 0;
 
   return (

@@ -2,6 +2,7 @@ import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { NodeReport } from './components/popup/flowRunStore.js';
 import { FlowRunnerDependencies, NodeExecutor, NodeExecutorContext } from './NodeExecutor.js';
+import { FlowTerminationError } from './components/nodes/EndNode/definition.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -14,6 +15,7 @@ export interface ExecutionReport {
     nodeId: string;
     message: string;
   };
+  lastOutput?: any;
 }
 
 export class LowLevelFlowRunner {
@@ -24,13 +26,15 @@ export class LowLevelFlowRunner {
     flow: SpecFlow,
     initialInput: Record<string, any>,
     dependencies: FlowRunnerDependencies,
+    depth: number,
     signal?: AbortSignal,
   ): Promise<ExecutionReport> {
-    console.log(`[FlowChart] Executing flow (runId: ${runId}) with args`, initialInput);
+    console.log(`[FlowChart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
     const executionVariables = new Map<string, any>();
     const report: ExecutionReport = { executedNodes: [] };
+    let lastOutput: any = undefined;
 
     const inDegree: Record<string, number> = {};
     const adj = new Map<string, SpecEdge[]>(flow.nodes.map((node) => [node.id, []]));
@@ -56,6 +60,18 @@ export class LowLevelFlowRunner {
         const nodeId = queue.shift()!;
         const node = nodesById.get(nodeId)!;
 
+        // Skip disabled nodes, but pass control flow through
+        if (node.data?.disabled) {
+          nodeOutputs[nodeId] = {};
+          report.executedNodes.push({ nodeId: node.id, type: node.type, input: {}, output: '[DISABLED]' });
+          const outgoingEdges = adj.get(nodeId) || [];
+          for (const edge of outgoingEdges) {
+            inDegree[edge.target]--;
+            if (inDegree[edge.target] === 0) queue.push(edge.target);
+          }
+          continue;
+        }
+
         const isRootNode = !flow.edges.some((e) => e.target === nodeId);
         const baseInput = isRootNode ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
@@ -68,15 +84,25 @@ export class LowLevelFlowRunner {
             flow,
             dependencies,
             executionVariables,
+            depth,
           });
           nodeReport.output = output;
         } catch (error: any) {
+          if (error instanceof FlowTerminationError) {
+            console.log(`[FlowChart] Flow terminated gracefully by EndNode ${node.id}.`);
+            nodeReport.output = {};
+            lastOutput = {};
+            report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: '[TERMINATED]' });
+            report.lastOutput = lastOutput;
+            return report; // Graceful exit
+          }
           nodeReport.status = 'error';
           nodeReport.error = error.message;
           nodeReport.output = null;
         }
 
         nodeOutputs[nodeId] = nodeReport.output;
+        lastOutput = nodeReport.output;
         report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: nodeReport.output });
         eventEmitter.emit('node:run:end', { runId, nodeId: node.id, report: nodeReport });
 
@@ -114,6 +140,7 @@ export class LowLevelFlowRunner {
       };
     }
 
+    report.lastOutput = lastOutput;
     console.log('[FlowChart] Flow execution finished.');
     return report;
   }
@@ -163,6 +190,9 @@ export class LowLevelFlowRunner {
     try {
       return await executor(node, input, context);
     } catch (error) {
+      if (error instanceof FlowTerminationError) {
+        throw error; // Re-throw to be caught by the main loop
+      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       const enhancedError = new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
       (enhancedError as any).nodeId = node.id;

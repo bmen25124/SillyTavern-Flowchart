@@ -3,6 +3,7 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import {
   PickCharacterNode,
+  PickFlowNode,
   PickLorebookNode,
   PickMathOperationNode,
   PickPromptEngineeringModeNode,
@@ -78,6 +79,12 @@ export const PickTypeConverterTargetNodeDataSchema = z.object({
 });
 export type PickTypeConverterTargetNodeData = z.infer<typeof PickTypeConverterTargetNodeDataSchema>;
 
+export const PickFlowNodeDataSchema = z.object({
+  flowId: z.string().default(''),
+  _version: z.number().optional(),
+});
+export type PickFlowNodeData = z.infer<typeof PickFlowNodeDataSchema>;
+
 // Executors
 const pickerExecutors: Record<string, NodeExecutor> = {
   pickCharacterNode: async (node) => ({ avatar: PickCharacterNodeDataSchema.parse(node.data).characterAvatar }),
@@ -96,6 +103,7 @@ const pickerExecutors: Record<string, NodeExecutor> = {
   pickTypeConverterTargetNode: async (node) => ({
     type: PickTypeConverterTargetNodeDataSchema.parse(node.data).targetType,
   }),
+  pickFlowNode: async (node) => ({ flowId: PickFlowNodeDataSchema.parse(node.data).flowId }),
 };
 
 // Definitions
@@ -209,6 +217,17 @@ const definitions: NodeDefinition[] = [
     initialData: { targetType: 'string' },
     handles: { inputs: [], outputs: [{ id: 'type', type: FlowDataType.STRING }] },
     execute: pickerExecutors.pickTypeConverterTargetNode,
+  },
+  {
+    type: 'pickFlowNode',
+    label: 'Pick Flow',
+    category: 'Picker',
+    component: PickFlowNode,
+    dataSchema: PickFlowNodeDataSchema,
+    currentVersion: 1,
+    initialData: { flowId: '' },
+    handles: { inputs: [], outputs: [{ id: 'flowId', type: FlowDataType.STRING }] },
+    execute: pickerExecutors.pickFlowNode,
   },
 ];
 

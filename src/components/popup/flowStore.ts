@@ -20,6 +20,7 @@ type FlowState = {
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   updateNodeData: (nodeId: string, data: object) => void;
+  toggleNodeDisabled: (nodeIds: string[]) => void;
   loadFlow: (flowData: SpecFlow) => void;
   getSpecFlow: () => SpecFlow;
   addNode: (node: Omit<Node, 'id'>) => Node;
@@ -92,6 +93,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       const newNodes = state.nodes.map((node) => {
         if (node.id === nodeId) {
           return { ...node, data: { ...node.data, ...newData } };
+        }
+        return node;
+      });
+      return {
+        nodes: newNodes,
+        nodesMap: new Map(newNodes.map((n) => [n.id, n])),
+      };
+    });
+  },
+  toggleNodeDisabled: (nodeIds) => {
+    set((state) => {
+      const nodesToToggle = new Set(nodeIds);
+      const newNodes = state.nodes.map((node) => {
+        if (nodesToToggle.has(node.id)) {
+          return { ...node, data: { ...node.data, disabled: !node.data.disabled } };
         }
         return node;
       });
