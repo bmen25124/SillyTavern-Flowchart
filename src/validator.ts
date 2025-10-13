@@ -95,7 +95,9 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
   }
 
   // 4. Validate trigger nodes
-  const triggerNodes = flow.nodes.filter((n) => n.type === 'triggerNode' || n.type === 'manualTriggerNode');
+  const triggerNodes = flow.nodes.filter(
+    (n) => n.type === 'triggerNode' || n.type === 'manualTriggerNode' || n.type === 'slashCommandNode',
+  );
   for (const triggerNode of triggerNodes) {
     const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
     if (hasIncomingEdge) {

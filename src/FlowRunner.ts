@@ -9,6 +9,7 @@ import { settingsManager, st_updateMessageBlock } from './config.js';
 import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
+import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -94,9 +95,11 @@ export function clearExecutionHistory() {
 
 class FlowRunner {
   private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
+  private registeredCommands: string[] = [];
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
   private isExecuting: boolean = false;
+  private abortController: AbortController | null = null;
   private dependencies: FlowRunnerDependencies;
 
   constructor() {
@@ -139,11 +142,21 @@ class FlowRunner {
   }
 
   reinitialize() {
-    const { eventSource } = SillyTavern.getContext();
+    const {
+      eventSource,
+      SlashCommandParser,
+      SlashCommand,
+      SlashCommandArgument,
+      SlashCommandNamedArgument,
+      ARGUMENT_TYPE,
+    } = SillyTavern.getContext();
     for (const [eventType, listener] of this.registeredListeners.entries()) {
       eventSource.removeListener(eventType as any, listener);
     }
     this.registeredListeners.clear();
+
+    this.registeredCommands.forEach((cmd) => delete SlashCommandParser.commands[cmd]);
+    this.registeredCommands = [];
 
     const settings = settingsManager.getSettings();
     if (!settings.enabled) {
@@ -164,6 +177,48 @@ class FlowRunner {
           const eventType = node.data.selectedEventType;
           if (!eventTriggers[eventType]) eventTriggers[eventType] = [];
           eventTriggers[eventType].push({ flowId, nodeId: node.id });
+        } else if (node.type === 'slashCommandNode') {
+          const commandData = node.data as SlashCommandNodeData;
+          const commandName = `flow-${commandData.commandName}`;
+          if (this.registeredCommands.includes(commandName)) {
+            console.warn(`[FlowChart] Slash command "${commandName}" is already registered. Skipping from ${flowId}.`);
+            continue;
+          }
+
+          const namedArgs = commandData.arguments
+            .filter((arg) => !arg.isUnnamed)
+            .map((arg) =>
+              SlashCommandNamedArgument.fromProps({
+                name: arg.name,
+                description: arg.description,
+                typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
+                isRequired: arg.isRequired,
+                defaultValue: arg.defaultValue,
+              }),
+            );
+
+          const unnamedArgs = commandData.arguments
+            .filter((arg) => arg.isUnnamed)
+            .map((arg) =>
+              SlashCommandArgument.fromProps({
+                description: arg.description,
+                typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
+                isRequired: arg.isRequired,
+                acceptsMultiple: arg.type === 'list' || arg.name.endsWith('...'), // Convention
+              }),
+            );
+
+          const cmd = SlashCommand.fromProps({
+            name: commandName,
+            helpString: commandData.helpText,
+            unnamedArgumentList: unnamedArgs,
+            namedArgumentList: namedArgs,
+            callback: (named: Record<string, any>, unnamed: string | string[]) =>
+              this.executeFlowFromSlashCommand(flowId, node.id, named, unnamed),
+          });
+
+          SlashCommandParser.addCommandObject(cmd);
+          this.registeredCommands.push(commandName);
         }
       }
     }
@@ -187,6 +242,8 @@ class FlowRunner {
       return;
     }
     this.isExecuting = true;
+    this.abortController = new AbortController();
+    let report: ExecutionReport | undefined;
 
     try {
       const flow = settingsManager.getSettings().flows[flowId];
@@ -195,26 +252,39 @@ class FlowRunner {
       const runId = crypto.randomUUID();
       eventEmitter.emit('flow:run:start', { runId });
 
-      const report = await this.lowLevelRunner.executeFlow(runId, flow, initialInput, this.dependencies);
+      report = await this.lowLevelRunner.executeFlow(
+        runId,
+        flow,
+        initialInput,
+        this.dependencies,
+        this.abortController.signal,
+      );
 
       if (report.error) {
-        st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
+        const isAbort = report.error.message.includes('aborted');
+        if (isAbort) {
+          st_echo('info', `Flow "${flowId}" was stopped.`);
+        } else {
+          st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
+        }
         eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
       } else {
         eventEmitter.emit('flow:run:end', { runId, status: 'completed', executedNodes: report.executedNodes });
       }
 
-      const sanitizedReport = sanitizeReportForHistory(report);
-      executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
-      if (executionHistory.length > MAX_HISTORY_LENGTH) executionHistory.pop();
-      saveHistory(executionHistory);
-
-      return report;
+      if (report) {
+        const sanitizedReport = sanitizeReportForHistory(report);
+        executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
+        if (executionHistory.length > MAX_HISTORY_LENGTH) executionHistory.pop();
+        saveHistory(executionHistory);
+      }
     } catch (error: any) {
       console.error(`[FlowChart] Critical error during flow execution: ${error.message}`);
     } finally {
       this.isExecuting = false;
+      this.abortController = null;
     }
+    return report;
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
@@ -226,6 +296,23 @@ class FlowRunner {
     const paramNames = Object.keys(EventNameParameters[eventType] || {});
     const initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
 
+    return this.executeFlow(flowId, initialInput);
+  }
+
+  async executeFlowFromSlashCommand(
+    flowId: string,
+    _startNodeId: string,
+    namedArgs: Record<string, any>,
+    unnamedArgs: string | string[],
+  ) {
+    const initialInput = { ...namedArgs };
+    if (Array.isArray(unnamedArgs)) {
+      initialInput['unnamed'] = unnamedArgs;
+      initialInput['unnamed_full'] = unnamedArgs.join(' ');
+    } else if (typeof unnamedArgs === 'string') {
+      initialInput['unnamed'] = [unnamedArgs];
+      initialInput['unnamed_full'] = unnamedArgs;
+    }
     return this.executeFlow(flowId, initialInput);
   }
 
@@ -251,6 +338,10 @@ class FlowRunner {
     } else {
       await this.executeFlow(flowId, {});
     }
+  }
+
+  public abortCurrentRun() {
+    this.abortController?.abort();
   }
 }
 

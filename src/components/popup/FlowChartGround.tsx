@@ -381,7 +381,7 @@ const FlowManager: FC = () => {
   const copyBuffer = useRef<Node[]>([]);
   const mousePosRef = useRef({ x: 0, y: 0 });
   const flowWrapperRef = useRef<HTMLDivElement>(null);
-  const { isVisualizationVisible, runId, toggleVisualization, clearRun } = useFlowRunStore();
+  const { isVisualizationVisible, runId, runStatus, toggleVisualization, clearRun } = useFlowRunStore();
 
   useEffect(() => {
     const onMouseMove = (event: MouseEvent) => {
@@ -641,13 +641,19 @@ const FlowManager: FC = () => {
             Fix Errors ({errors.length})
           </STButton>
         )}
-        <STButton
-          color="primary"
-          onClick={handleRunFlow}
-          title="Run the flow starting from Manual Triggers, or from the beginning if none exist."
-        >
-          <i className="fa-solid fa-play"></i> Run
-        </STButton>
+        {runStatus === 'running' ? (
+          <STButton color="danger" onClick={() => flowRunner.abortCurrentRun()}>
+            <i className="fa-solid fa-stop"></i> Stop
+          </STButton>
+        ) : (
+          <STButton
+            color="primary"
+            onClick={handleRunFlow}
+            title="Run the flow starting from Manual Triggers, or from the beginning if none exist."
+          >
+            <i className="fa-solid fa-play"></i> Run
+          </STButton>
+        )}
         <STButton onClick={handleCopyFlow} title="Copy Flow JSON">
           <i className="fa-solid fa-copy"></i>
         </STButton>

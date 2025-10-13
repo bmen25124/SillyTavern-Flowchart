@@ -24,6 +24,7 @@ export class LowLevelFlowRunner {
     flow: SpecFlow,
     initialInput: Record<string, any>,
     dependencies: FlowRunnerDependencies,
+    signal?: AbortSignal,
   ): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow (runId: ${runId}) with args`, initialInput);
 
@@ -49,6 +50,9 @@ export class LowLevelFlowRunner {
 
     try {
       while (queue.length > 0) {
+        if (signal?.aborted) {
+          throw new Error('Flow execution was aborted by the user.');
+        }
         const nodeId = queue.shift()!;
         const node = nodesById.get(nodeId)!;
 
@@ -100,7 +104,10 @@ export class LowLevelFlowRunner {
         }
       }
     } catch (error: any) {
-      console.error('[FlowChart] Flow execution aborted due to an error.', error);
+      const isAbort = error instanceof Error && error.message.includes('aborted');
+      if (!isAbort) {
+        console.error('[FlowChart] Flow execution aborted due to an error.', error);
+      }
       report.error = {
         nodeId: (error as any).nodeId || 'unknown',
         message: error.message || String(error),
