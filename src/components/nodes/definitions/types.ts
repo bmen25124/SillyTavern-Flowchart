@@ -43,6 +43,10 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
   };
   execute: NodeExecutor;
   /**
+   * A flag indicating that this node can execute arbitrary code and requires user permission.
+   */
+  isDangerous?: boolean;
+  /**
    * Optional function to dynamically determine the data type of a handle.
    * This is used for nodes with dynamic handles (e.g., based on data or connections).
    * If not provided, the static `handles` array is used as a fallback.

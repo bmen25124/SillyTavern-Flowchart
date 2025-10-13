@@ -42,6 +42,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     outputs: [{ id: 'false', type: FlowDataType.ANY }],
   },
   execute,
+  isDangerous: true,
   getDynamicHandles: (node) => ({
     inputs: [],
     outputs: (node.data.conditions || []).map((c) => ({ id: c.id, type: FlowDataType.ANY })),

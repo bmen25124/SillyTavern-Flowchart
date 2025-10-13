@@ -17,6 +17,7 @@ export const LLM_REQUEST_XML_PROMPT_KEY = 'xml';
 export interface FlowData {
   name: string;
   flow: SpecFlow;
+  allowJsExecution?: boolean;
 }
 
 export interface ExtensionSettings {
@@ -73,6 +74,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     [defaultFlowId]: {
       name: 'Default',
       flow: createDefaultFlow(),
+      allowJsExecution: false,
     },
   },
   enabledFlows: {

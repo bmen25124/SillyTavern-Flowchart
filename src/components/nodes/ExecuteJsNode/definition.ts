@@ -35,6 +35,7 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
     outputs: [{ id: null, type: FlowDataType.ANY }],
   },
   execute,
+  isDangerous: true,
 };
 
 registrator.register(executeJsNodeDefinition);

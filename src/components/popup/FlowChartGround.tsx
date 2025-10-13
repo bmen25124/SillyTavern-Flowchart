@@ -583,7 +583,7 @@ const FlowManager: FC = () => {
         newFlows[item.value] = { ...existingFlow, name: item.label };
         newEnabledFlows[item.value] = settings.enabledFlows[item.value] ?? true;
       } else {
-        newFlows[item.value] = { name: item.label, flow: createDefaultFlow() };
+        newFlows[item.value] = { name: item.label, flow: createDefaultFlow(), allowJsExecution: false };
         newEnabledFlows[item.value] = true;
       }
     }
@@ -717,6 +717,29 @@ const FlowManager: FC = () => {
     forceUpdate();
   };
 
+  const handleToggleJsPermission = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const allow = e.target.checked;
+    const activeFlowData = settings.flows[settings.activeFlow];
+    if (!activeFlowData) return;
+
+    if (allow) {
+      const { Popup } = SillyTavern.getContext();
+      const confirmation = await Popup.show.confirm(
+        'Allow JavaScript Execution?',
+        'Enabling this allows the flow to run arbitrary JavaScript code, which can be a security risk if you import a flow from an untrusted source. Do you want to proceed?',
+      );
+      if (confirmation) {
+        activeFlowData.allowJsExecution = true;
+      } else {
+        e.target.checked = false;
+      }
+    } else {
+      activeFlowData.allowJsExecution = false;
+    }
+    settingsManager.saveSettings();
+    forceUpdate();
+  };
+
   const togglePalette = () => {
     settings.isPaletteCollapsed = !settings.isPaletteCollapsed;
     settingsManager.saveSettings();
@@ -748,6 +771,16 @@ const FlowManager: FC = () => {
             title="Enable or disable this flow from running automatically."
           />
           <label htmlFor="flow-enabled-toggle">Enabled</label>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <STInput
+            type="checkbox"
+            id="flow-js-permission-toggle"
+            checked={settings.flows[settings.activeFlow]?.allowJsExecution ?? false}
+            onChange={handleToggleJsPermission}
+            title="Allow this flow to execute custom JavaScript code. This can be a security risk."
+          />
+          <label htmlFor="flow-js-permission-toggle">Allow JS</label>
         </div>
 
         <div style={{ flex: 1 }}></div>

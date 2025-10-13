@@ -269,11 +269,27 @@ class FlowRunner {
     if (depth > 10) {
       throw new Error('Flow execution depth limit exceeded (10). Possible infinite recursion.');
     }
-    const flowName = settingsManager.getSettings().flows[flowId]?.name || flowId;
+    const flowData = settingsManager.getSettings().flows[flowId];
+    if (!flowData) throw new Error(`Flow with id ${flowId} not found.`);
+
     if (this.isExecuting && depth === 0) {
-      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowName}" was ignored.`);
+      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowData.name}" was ignored.`);
       return { executedNodes: [], error: { nodeId: 'N/A', message: 'Another flow is already running.' } };
     }
+
+    const flow = flowData.flow;
+    const hasDangerousNode = flow.nodes.some((node) => {
+      if (node.data?.disabled) return false;
+      const definition = registrator.nodeDefinitionMap.get(node.type);
+      return definition?.isDangerous;
+    });
+
+    if (hasDangerousNode && !flowData.allowJsExecution) {
+      const errorMsg = `Flow "${flowData.name}" contains nodes that can execute code but it does not have permission. You can grant permission in the Flow Ground.`;
+      st_echo('error', `FlowChart: ${errorMsg}`);
+      return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
+    }
+
     if (depth === 0) {
       this.isExecuting = true;
       this.abortController = new AbortController();
@@ -281,9 +297,6 @@ class FlowRunner {
     let report: ExecutionReport | undefined;
 
     try {
-      const flow = settingsManager.getSettings().flows[flowId]?.flow;
-      if (!flow) throw new Error(`Flow with id ${flowId} not found.`);
-
       const runId = crypto.randomUUID();
       if (depth === 0) eventEmitter.emit('flow:run:start', { runId });
 
@@ -300,9 +313,9 @@ class FlowRunner {
         if (report.error) {
           const isAbort = report.error.message.includes('aborted');
           if (isAbort) {
-            st_echo('info', `Flow "${flowName}" was stopped.`);
+            st_echo('info', `Flow "${flowData.name}" was stopped.`);
           } else {
-            st_echo('error', `Flow "${flowName}" failed: ${report.error.message}`);
+            st_echo('error', `Flow "${flowData.name}" failed: ${report.error.message}`);
           }
           eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
         } else {
@@ -310,7 +323,7 @@ class FlowRunner {
         }
 
         const sanitizedReport = sanitizeReportForHistory(report);
-        executionHistory.unshift({ ...sanitizedReport, flowId: flowName, timestamp: new Date() });
+        executionHistory.unshift({ ...sanitizedReport, flowId: flowData.name, timestamp: new Date() });
         if (executionHistory.length > MAX_HISTORY_LENGTH) executionHistory.pop();
         saveHistory(executionHistory);
       }
