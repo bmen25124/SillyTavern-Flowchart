@@ -89,11 +89,11 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     }
 
     if (result) {
-      return { ...input, activatedHandle: condition.id };
+      return { activatedHandle: condition.id };
     }
   }
 
-  return { ...input, activatedHandle: 'false' };
+  return { activatedHandle: 'false' };
 };
 
 export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
