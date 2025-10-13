@@ -1,79 +1,161 @@
-import React, { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, FC } from 'react';
 import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { EventNameParameters } from '../../../flow-types.js';
-import { z } from 'zod';
-import { STButton } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STSelect } from 'sillytavern-utils-lib/components';
 import { BaseNode } from '../BaseNode.js';
-import { IfNodeData } from './definition.js';
+import { IfNodeData, Condition, OPERATORS, Operator } from './definition.js';
+import { useInputSchema } from '../../../hooks/useInputSchema.js';
+import { z } from 'zod';
+import { useIsConnected } from '../../../hooks/useIsConnected.js';
+import { schemaToText } from '../../../utils/schema-inspector.js';
+import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 
-function zodSchemaToTypescript(schema: Record<string, z.ZodType>): string {
-  let interfaceString = '{\n';
-  for (const key in schema) {
-    const zodType = schema[key].def.type;
-    let tsType = 'any';
-    if (zodType === 'number') tsType = 'number';
-    else if (zodType === 'string') tsType = 'string';
-    else if (zodType === 'boolean') tsType = 'boolean';
-    interfaceString += `  ${key}: ${tsType};\n`;
+function flattenZodSchema(schema: z.ZodType, prefix = ''): string[] {
+  if (schema instanceof z.ZodObject) {
+    const shape = schema.shape;
+    return Object.entries(shape).flatMap(([key, value]) => flattenZodSchema(value, prefix ? `${prefix}.${key}` : key));
   }
-  interfaceString += '}';
-  return `const input: ${interfaceString}`;
+  if ('unwrap' in schema && typeof schema.unwrap === 'function') {
+    return flattenZodSchema(schema.unwrap(), prefix);
+  }
+  return prefix ? [prefix] : [];
 }
 
-export type IfNodeProps = NodeProps<Node<IfNodeData>>;
+const ConditionEditor: FC<{
+  nodeId: string;
+  condition: Condition;
+  onUpdate: (updatedPartialCondition: Partial<Condition>) => void;
+  onRemove: () => void;
+  isOnlyCondition: boolean;
+}> = ({ nodeId, condition, onUpdate, onRemove, isOnlyCondition }) => {
+  const inputSchema = useInputSchema(nodeId, null);
+  const isValueConnected = useIsConnected(nodeId, `value_${condition.id}`);
 
-export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
-  const { data, nodes, edges, updateNodeData, setEdges } = useFlowStore((state) => ({
+  const availableProperties = useMemo(() => {
+    if (!inputSchema) return [];
+    return flattenZodSchema(inputSchema);
+  }, [inputSchema]);
+
+  const toggleMode = () => {
+    if (condition.mode === 'advanced') {
+      if (confirm('Switching to Simple Mode will discard your custom code. Are you sure?')) {
+        onUpdate({
+          mode: 'simple',
+          inputProperty: '',
+          operator: 'equals',
+          value: '',
+        });
+      }
+    } else {
+      onUpdate({ mode: 'advanced' });
+    }
+  };
+
+  return (
+    <div
+      style={{
+        border: '1px solid #555',
+        padding: '8px',
+        borderRadius: '4px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '10px', color: '#888', textTransform: 'capitalize' }}>{condition.mode} Mode</span>
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <STButton
+            className={`fa-solid ${condition.mode === 'simple' ? 'fa-code' : 'fa-list-alt'}`}
+            onClick={toggleMode}
+            title={condition.mode === 'simple' ? 'Switch to Advanced Code Editor' : 'Switch to Simple UI Editor'}
+          />
+          {!isOnlyCondition && <STButton className="fa-solid fa-times" onClick={onRemove} title="Remove Condition" />}
+        </div>
+      </div>
+
+      {condition.mode === 'simple' ? (
+        <>
+          <ComboBoxInput
+            className="nodrag"
+            value={condition.inputProperty}
+            onChange={(e) => onUpdate({ inputProperty: e.target.value })}
+            options={availableProperties}
+            listId={`${condition.id}-properties`}
+            placeholder="Property path (e.g., name, result.text)"
+          />
+          <STSelect
+            className="nodrag"
+            value={condition.operator}
+            onChange={(e) => onUpdate({ operator: e.target.value as Operator })}
+          >
+            {OPERATORS.map((op) => (
+              <option key={op} value={op}>
+                {op.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </STSelect>
+          <div style={{ position: 'relative' }}>
+            <Handle type="target" position={Position.Left} id={`value_${condition.id}`} style={{ top: '50%' }} />
+            {!isValueConnected ? (
+              <STInput
+                className="nodrag"
+                value={condition.value ?? ''}
+                onChange={(e) => onUpdate({ value: e.target.value })}
+                placeholder="Value to compare"
+              />
+            ) : (
+              <label style={{ marginLeft: '10px', color: '#888', fontStyle: 'italic' }}>Value from connection</label>
+            )}
+          </div>
+        </>
+      ) : (
+        <CodeMirror
+          className="nodrag"
+          value={condition.code || ''}
+          height="100px"
+          extensions={[javascript({})]}
+          onChange={(value) => onUpdate({ code: value })}
+          theme={'dark'}
+          style={{ cursor: 'text' }}
+        />
+      )}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <span>True</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={condition.id}
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
+  const { data, updateNodeData, edges, setEdges } = useFlowStore((state) => ({
     data: state.nodesMap.get(id)?.data as IfNodeData,
-    nodes: state.nodes,
-    edges: state.edges,
     updateNodeData: state.updateNodeData,
+    edges: state.edges,
     setEdges: state.setEdges,
   }));
-
-  const typeDeclarations = useMemo(() => {
-    const findTriggerNode = (startNodeId: string): Node | undefined => {
-      const queue: string[] = [startNodeId];
-      const visited = new Set<string>();
-
-      while (queue.length > 0) {
-        const currentNodeId = queue.shift()!;
-        if (visited.has(currentNodeId)) {
-          continue;
-        }
-        visited.add(currentNodeId);
-
-        const currentNode = nodes.find((n) => n.id === currentNodeId);
-        if (currentNode?.type === 'triggerNode') {
-          return currentNode;
-        }
-
-        const incomingEdges = edges.filter((e) => e.target === currentNodeId);
-        for (const edge of incomingEdges) {
-          queue.push(edge.source);
-        }
-      }
-      return undefined;
-    };
-
-    const triggerNode = findTriggerNode(id);
-    if (!triggerNode || !triggerNode.data.selectedEventType) return '';
-
-    const eventType = triggerNode.data.selectedEventType as string;
-    const eventSchema = EventNameParameters[eventType];
-    return eventSchema ? zodSchemaToTypescript(eventSchema) : '';
-  }, [id, nodes, edges]);
+  const inputSchema = useInputSchema(id, null); // Use null for the default handle
 
   useEffect(() => {
     if (!data) return;
-    const existingHandleIds = new Set(data.conditions.map((c) => c.id));
-    const filteredEdges = edges.filter(
-      (edge) => !(edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)),
-    );
+    const existingHandleIds = new Set(data.conditions.flatMap((c) => [c.id, `value_${c.id}`]));
+    existingHandleIds.add(null as any); // Add the static main handle
 
+    const filteredEdges = edges.filter(
+      (edge) =>
+        !(
+          (edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)) ||
+          (edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle))
+        ),
+    );
     if (filteredEdges.length < edges.length) {
       setEdges(filteredEdges);
     }
@@ -81,13 +163,20 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
 
   if (!data) return null;
 
-  const handleCodeChange = (conditionId: string, value: string) => {
-    const newConditions = data.conditions.map((c) => (c.id === conditionId ? { ...c, code: value } : c));
+  const updateCondition = (conditionId: string, updatedPartialCondition: Partial<Condition>) => {
+    const newConditions = data.conditions.map((c) => (c.id === conditionId ? { ...c, ...updatedPartialCondition } : c));
     updateNodeData(id, { conditions: newConditions });
   };
 
   const addCondition = () => {
-    const newCondition = { id: crypto.randomUUID(), code: 'return true;' };
+    const newCondition = {
+      id: crypto.randomUUID(),
+      mode: 'simple' as const,
+      inputProperty: '',
+      operator: 'equals' as const,
+      value: '',
+      code: 'return true;',
+    };
     updateNodeData(id, { conditions: [...data.conditions, newCondition] });
   };
 
@@ -98,48 +187,35 @@ export const IfNode: React.FC<IfNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="If Conditions" selected={selected}>
-      <div>
-        {data.conditions.map((condition, index) => (
-          <div key={condition.id} style={{ marginBottom: '10px' }}>
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}
-            >
-              <span>Condition {index + 1}</span>
-              {data.conditions.length > 1 && <STButton onClick={() => removeCondition(condition.id)}>Remove</STButton>}
-            </div>
-            <CodeMirror
-              className="nodrag"
-              value={condition.code || ''}
-              height="100px"
-              extensions={[javascript({ typescript: true })]}
-              width="100%"
-              onChange={(value) => handleCodeChange(condition.id, value)}
-              theme={'dark'}
-              style={{ cursor: 'text' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '5px' }}>
-              <span>True</span>
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={condition.id}
-                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-              />
-            </div>
-          </div>
-        ))}
-        <STButton onClick={addCondition} style={{ marginTop: '10px' }}>
-          Add Else If
-        </STButton>
+      <div style={{ position: 'relative', marginBottom: '10px' }}>
+        <Handle type="target" position={Position.Left} id={null} style={{ top: '50%' }} />
+        <label style={{ marginLeft: '10px' }}>Input</label>
+      </div>
 
-        {typeDeclarations && (
-          <div style={{ marginTop: '5px', background: '#272822', padding: '5px', borderRadius: '3px' }}>
-            <div style={{ color: '#888', fontSize: '11px', fontWeight: 'bold' }}>Available Input:</div>
-            <pre style={{ fontSize: '10px', color: '#ccc', margin: 0, whiteSpace: 'pre-wrap' }}>{typeDeclarations}</pre>
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {data.conditions.map((condition, index) => (
+          <ConditionEditor
+            key={condition.id}
+            nodeId={id}
+            condition={condition}
+            onUpdate={(updatedPartial) => updateCondition(condition.id, updatedPartial)}
+            onRemove={() => removeCondition(condition.id)}
+            isOnlyCondition={data.conditions.length === 1}
+          />
+        ))}
+        <STButton onClick={addCondition}>Add Else If</STButton>
+
+        {inputSchema && (
+          <details style={{ marginTop: '5px', background: '#2a2a2a', padding: '5px', borderRadius: '3px' }}>
+            <summary style={{ color: '#888', fontSize: '11px', cursor: 'pointer' }}>Available Input Properties</summary>
+            <pre style={{ fontSize: '10px', color: '#ccc', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {schemaToText(inputSchema)}
+            </pre>
+          </details>
         )}
-        <div style={{ marginTop: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+
+        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #555' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Else</span>
             <Handle
               type="source"
