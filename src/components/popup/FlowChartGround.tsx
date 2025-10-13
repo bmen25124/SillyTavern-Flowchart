@@ -692,6 +692,20 @@ const FlowManager: FC = () => {
     }, 100);
   }, [getNodes, setViewport, getViewport, settings.activeFlow, settings.flows]);
 
+  const handleToggleFlow = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isEnabled = e.target.checked;
+    settings.enabledFlows[settings.activeFlow] = isEnabled;
+    settingsManager.saveSettings();
+    flowRunner.reinitialize();
+    forceUpdate();
+  };
+
+  const togglePalette = () => {
+    settings.isPaletteCollapsed = !settings.isPaletteCollapsed;
+    settingsManager.saveSettings();
+    forceUpdate();
+  };
+
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -703,6 +717,16 @@ const FlowManager: FC = () => {
             </option>
           ))}
         </STSelect>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <STInput
+            type="checkbox"
+            id="flow-enabled-toggle"
+            checked={settings.enabledFlows[settings.activeFlow] !== false}
+            onChange={handleToggleFlow}
+            title="Enable or disable this flow from running automatically."
+          />
+          <label htmlFor="flow-enabled-toggle">Enabled</label>
+        </div>
         <STButton onClick={handleAddFlow}>+ New</STButton>
         <STButton onClick={handleRenameFlow}>Rename</STButton>
         <STButton onClick={handleDeleteFlow} color="danger">
@@ -747,7 +771,13 @@ const FlowManager: FC = () => {
           <i className="fa-solid fa-camera"></i>
         </STButton>
       </div>
-      <div className="flowchart-editor-area" ref={flowWrapperRef}>
+      <div
+        className={`flowchart-editor-area ${settings.isPaletteCollapsed ? 'palette-collapsed' : ''}`}
+        ref={flowWrapperRef}
+      >
+        <div className="palette-toggle" onClick={togglePalette} title="Toggle Node Palette">
+          <i className={`fa-solid fa-chevron-${settings.isPaletteCollapsed ? 'right' : 'left'}`}></i>
+        </div>
         <NodePalette />
         <FlowCanvas invalidNodeIds={invalidNodeIds} />
       </div>

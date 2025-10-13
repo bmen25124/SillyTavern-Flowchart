@@ -27,6 +27,7 @@ export interface ExtensionSettings {
   flows: Record<string, FlowData>; // Key is UUID
   enabledFlows: Record<string, boolean>; // Key is UUID
   activeFlow: string; // Key is UUID
+  isPaletteCollapsed: boolean;
 }
 
 export const EXTENSION_NAME = 'SillyTavern-FlowChart';
@@ -77,6 +78,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   enabledFlows: {
     [defaultFlowId]: true,
   },
+  isPaletteCollapsed: false,
 };
 
 export const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(EXTENSION_KEY, DEFAULT_SETTINGS);

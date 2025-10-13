@@ -198,17 +198,54 @@
   border-radius: 4px;
   overflow: hidden;
   position: relative;
+
+  .palette-toggle {
+    position: absolute;
+    left: 200px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--SmartThemeChatTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    padding: 10px 4px;
+    cursor: pointer;
+    z-index: 11;
+    transition: left 0.2s ease-in-out;
+
+    &:hover {
+      background: var(--SmartThemeHoverColor);
+    }
+  }
+
+  &.palette-collapsed {
+    .flowchart-node-palette {
+      width: 0;
+      min-width: 0;
+      border-right: none;
+      padding: 0;
+      overflow: hidden;
+    }
+    .palette-toggle {
+      left: 0;
+    }
+  }
 }
 
 // Node Palette Sidebar
 .flowchart-node-palette {
   width: 200px;
+  min-width: 200px;
   background-color: var(--SmartThemeBlurTintColor);
   border-right: 1px solid var(--SmartThemeBorderColor);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 10; // Above canvas
+  transition:
+    width 0.2s ease-in-out,
+    min-width 0.2s ease-in-out,
+    padding 0.2s ease-in-out;
 
   .palette-header {
     padding: 10px;
