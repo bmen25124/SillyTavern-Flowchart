@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ExecutionReport } from './LowLevelFlowRunner.js';
 
 export interface FlowRunnerDependencies {
-  getBaseMessagesForProfile: (profileId: string, lastMessageId?: number) => Promise<any[]>;
+  getBaseMessagesForProfile: (profileId: string, options?: any) => Promise<any[]>;
   makeSimpleRequest: (profileId: string, messages: any[], maxResponseToken: number) => Promise<string>;
   makeStructuredRequest: (
     profileId: string,

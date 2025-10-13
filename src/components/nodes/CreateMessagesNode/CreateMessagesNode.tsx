@@ -20,12 +20,41 @@ const fields = [
     },
   }),
   createFieldConfig({
-    id: 'lastMessageId',
-    label: 'Last Message ID (Optional)',
+    id: 'startMessageId',
+    label: 'Start Message ID (Optional)',
     component: STInput,
     props: { type: 'number' },
     getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
       e.target.value === '' ? undefined : Number(e.target.value),
+  }),
+  createFieldConfig({
+    id: 'endMessageId',
+    label: 'End Message ID (Optional)',
+    component: STInput,
+    props: { type: 'number' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+      e.target.value === '' ? undefined : Number(e.target.value),
+  }),
+  createFieldConfig({
+    id: 'ignoreCharacterFields',
+    label: 'Ignore Character Fields',
+    component: STInput,
+    props: { type: 'checkbox' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+  }),
+  createFieldConfig({
+    id: 'ignoreAuthorNote',
+    label: 'Ignore Author Note',
+    component: STInput,
+    props: { type: 'checkbox' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+  }),
+  createFieldConfig({
+    id: 'ignoreWorldInfo',
+    label: 'Ignore World Info',
+    component: STInput,
+    props: { type: 'checkbox' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
   }),
 ];
 

@@ -1,4 +1,4 @@
-import { buildPrompt, Generator, Message } from 'sillytavern-utils-lib';
+import { buildPrompt, BuildPromptOptions, Generator, Message } from 'sillytavern-utils-lib';
 import { selected_group, this_chid } from 'sillytavern-utils-lib/config';
 import { ExtractedData, StreamResponse } from 'sillytavern-utils-lib/types';
 import z from 'zod';
@@ -7,7 +7,16 @@ import { parseResponse } from './parser.js';
 import { schemaToExample } from './schema-to-example.js';
 import Handlebars from 'handlebars';
 
-export async function getBaseMessagesForProfile(profileId: string, lastMessageId?: number): Promise<Message[]> {
+type GetMessagesOptions = {
+  startMessageId?: number;
+  endMessageId?: number;
+} & Pick<BuildPromptOptions, 'ignoreCharacterFields' | 'ignoreAuthorNote' | 'ignoreWorldInfo'>;
+
+export async function getBaseMessagesForProfile(
+  profileId: string,
+  options: GetMessagesOptions = {},
+): Promise<Message[]> {
+  const { startMessageId, endMessageId, ...restOptions } = options;
   const { extensionSettings, CONNECT_API_MAP } = SillyTavern.getContext();
   const profile = extensionSettings.connectionManager?.profiles?.find((p) => p.id === profileId);
   if (!profile) {
@@ -17,13 +26,15 @@ export async function getBaseMessagesForProfile(profileId: string, lastMessageId
   const promptResult = await buildPrompt(apiMap?.selected!, {
     targetCharacterId: this_chid,
     messageIndexesBetween: {
-      end: lastMessageId,
+      start: startMessageId,
+      end: endMessageId,
     },
     presetName: profile?.preset,
     contextName: profile?.context,
     instructName: profile?.instruct,
     syspromptName: profile?.sysprompt,
     includeNames: !!selected_group,
+    ...restOptions,
   });
   return promptResult.result;
 }

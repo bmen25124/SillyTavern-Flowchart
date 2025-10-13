@@ -34,6 +34,19 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
             }
           };
 
+          const componentProps: Record<string, any> = {
+            className: 'nodrag',
+            onChange: handleChange,
+            ...field.props,
+          };
+
+          // Handle 'checked' for checkboxes vs 'value' for other inputs.
+          if (field.props?.type === 'checkbox') {
+            componentProps.checked = data[field.id] ?? false;
+          } else {
+            componentProps.value = field.formatValue ? field.formatValue(data[field.id]) : (data[field.id] ?? '');
+          }
+
           return (
             <div key={field.id} style={{ position: 'relative' }}>
               <Handle
@@ -49,13 +62,7 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
               <label style={{ marginLeft: '10px' }}>{field.label}</label>
               <span className="handle-label">({handleType})</span>
 
-              {!isConnected &&
-                React.createElement(field.component, {
-                  className: 'nodrag',
-                  value: field.formatValue ? field.formatValue(data[field.id]) : (data[field.id] ?? ''),
-                  onChange: handleChange,
-                  ...field.props,
-                })}
+              {!isConnected && React.createElement(field.component, componentProps)}
             </div>
           );
         })}

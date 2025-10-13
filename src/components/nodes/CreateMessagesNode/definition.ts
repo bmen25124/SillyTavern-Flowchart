@@ -8,7 +8,11 @@ import { resolveInput } from '../../../utils/node-logic.js';
 
 export const CreateMessagesNodeDataSchema = z.object({
   profileId: z.string().default(''),
-  lastMessageId: z.number().optional(),
+  startMessageId: z.number().optional(),
+  endMessageId: z.number().optional(),
+  ignoreCharacterFields: z.boolean().default(false),
+  ignoreAuthorNote: z.boolean().default(false),
+  ignoreWorldInfo: z.boolean().default(false),
   _version: z.number().optional(),
 });
 export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema>;
@@ -16,11 +20,17 @@ export type CreateMessagesNodeData = z.infer<typeof CreateMessagesNodeDataSchema
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = CreateMessagesNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
-  const lastMessageId = resolveInput(input, data, 'lastMessageId');
-
   if (!profileId) throw new Error(`Profile ID not provided.`);
 
-  return dependencies.getBaseMessagesForProfile(profileId, lastMessageId);
+  const options = {
+    startMessageId: resolveInput(input, data, 'startMessageId'),
+    endMessageId: resolveInput(input, data, 'endMessageId'),
+    ignoreCharacterFields: resolveInput(input, data, 'ignoreCharacterFields'),
+    ignoreAuthorNote: resolveInput(input, data, 'ignoreAuthorNote'),
+    ignoreWorldInfo: resolveInput(input, data, 'ignoreWorldInfo'),
+  };
+
+  return dependencies.getBaseMessagesForProfile(profileId, options);
 };
 
 export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData> = {
@@ -30,11 +40,20 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
   component: CreateMessagesNode,
   dataSchema: CreateMessagesNodeDataSchema,
   currentVersion: 1,
-  initialData: { profileId: '' },
+  initialData: {
+    profileId: '',
+    ignoreCharacterFields: false,
+    ignoreAuthorNote: false,
+    ignoreWorldInfo: false,
+  },
   handles: {
     inputs: [
       { id: 'profileId', type: FlowDataType.PROFILE_ID },
-      { id: 'lastMessageId', type: FlowDataType.NUMBER },
+      { id: 'startMessageId', type: FlowDataType.NUMBER },
+      { id: 'endMessageId', type: FlowDataType.NUMBER },
+      { id: 'ignoreCharacterFields', type: FlowDataType.BOOLEAN },
+      { id: 'ignoreAuthorNote', type: FlowDataType.BOOLEAN },
+      { id: 'ignoreWorldInfo', type: FlowDataType.BOOLEAN },
     ],
     outputs: [{ id: null, type: FlowDataType.MESSAGES }],
   },
