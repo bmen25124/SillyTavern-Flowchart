@@ -55,7 +55,8 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
 
   const regexOptions = useMemo(() => allRegexes.map((r) => ({ value: r.id, label: r.scriptName })), [allRegexes]);
 
-  const mode = data.mode ?? 'sillytavern';
+  // Safely access `data.mode` to prevent crashing and allow hooks below to run unconditionally.
+  const mode = data?.mode ?? 'sillytavern';
 
   const dynamicFields = useMemo(
     () =>
@@ -74,6 +75,7 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
     [mode, regexOptions],
   );
 
+  // Early return *after* all hooks have been called.
   if (!data || !definition) return null;
 
   return (

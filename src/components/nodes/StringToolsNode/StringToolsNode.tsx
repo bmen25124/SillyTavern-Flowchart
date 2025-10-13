@@ -38,8 +38,9 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected, type }
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const edges = useFlowStore((state) => state.edges);
   const setEdges = useFlowStore((state) => state.setEdges);
-
   const definition = registrator.nodeDefinitionMap.get('stringToolsNode')!;
+
+  // Safely access data before useEffect hook
   const inputCount = data?.inputCount ?? 2;
   const operation = data?.operation ?? 'merge';
 
@@ -64,6 +65,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected, type }
     }
   }, [operation, inputCount, id, setEdges, edges, definition]);
 
+  // Early return after all hooks
   if (!data) return null;
 
   const setInputCount = (count: number) => {

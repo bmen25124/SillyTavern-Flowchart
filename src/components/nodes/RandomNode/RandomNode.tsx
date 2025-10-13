@@ -31,10 +31,10 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected, type }) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const edges = useFlowStore((state) => state.edges);
   const setEdges = useFlowStore((state) => state.setEdges);
-
   const isMinConnected = useIsConnected(id, 'min');
   const isMaxConnected = useIsConnected(id, 'max');
 
+  // Safely access data before useEffect hook
   const mode = data?.mode ?? 'number';
 
   useEffect(() => {
@@ -51,6 +51,7 @@ export const RandomNode: FC<RandomNodeProps> = ({ id, selected, type }) => {
     }
   }, [mode, id, setEdges, edges]);
 
+  // Early return after all hooks
   if (!data) return null;
 
   return (
