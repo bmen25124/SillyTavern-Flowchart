@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { Node, Edge } from '@xyflow/react';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { MergeObjectsNode } from './MergeObjectsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { getHandleSpec } from '../../../utils/handle-logic.js';
 
 export const MergeObjectsNodeDataSchema = z.object({
   inputCount: z.number().min(1).default(2),
@@ -35,15 +37,38 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
-  getDynamicHandles: (node) => {
+  getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
+    // Generate dynamic inputs
     const inputs = [];
     for (let i = 0; i < node.data.inputCount; i++) {
       inputs.push({ id: `${MERGE_OBJECTS_HANDLE_PREFIX}${i}`, type: FlowDataType.OBJECT });
     }
-    return { inputs, outputs: [] };
+
+    // Dynamically generate the output schema by merging input schemas
+    let mergedSchema = z.object({});
+    for (let i = 0; i < node.data.inputCount; i++) {
+      const handleId = `${MERGE_OBJECTS_HANDLE_PREFIX}${i}`;
+      const edge = allEdges.find((e) => e.target === node.id && e.targetHandle === handleId);
+      if (!edge) continue;
+
+      const sourceNode = allNodes.find((n) => n.id === edge.source);
+      if (!sourceNode) continue;
+
+      const sourceHandleSpec = getHandleSpec(sourceNode, edge.sourceHandle || null, 'output', allNodes, allEdges);
+
+      // Check if the source handle provides a Zod object schema and merge it.
+      if (sourceHandleSpec?.schema instanceof z.ZodObject) {
+        mergedSchema = mergedSchema.merge(sourceHandleSpec.schema);
+      }
+    }
+
+    const outputs = [{ id: null, type: FlowDataType.OBJECT, schema: mergedSchema }];
+
+    return { inputs, outputs };
   },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX)) return FlowDataType.OBJECT;
+    if (handleDirection === 'output' && handleId === null) return FlowDataType.OBJECT;
     return undefined;
   },
 };
