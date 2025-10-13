@@ -3,6 +3,7 @@ import { STButton, STInput } from 'sillytavern-utils-lib/components';
 import { ExtensionSettings, settingsManager } from '../config.js';
 import { useForceUpdate } from '../hooks/useForceUpdate.js';
 import { PopupManager } from './popup/PopupManager.js';
+import { flowRunner } from '../FlowRunner.js';
 
 export const FlowChartSettings: FC = () => {
   const forceUpdate = useForceUpdate();
@@ -35,6 +36,7 @@ export const FlowChartSettings: FC = () => {
                 onChange={(e) => {
                   const checked = e.target.checked;
                   updateAndRefresh((s) => (s.enabled = checked));
+                  flowRunner.reinitialize();
                   // @ts-ignore
                   if (window.updateFlowChartFateToggleUI) window.updateFlowChartFateToggleUI();
                 }}

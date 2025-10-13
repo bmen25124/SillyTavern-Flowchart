@@ -145,6 +145,10 @@ class FlowRunner {
     this.registeredListeners.clear();
 
     const settings = settingsManager.getSettings();
+    if (!settings.enabled) {
+      return;
+    }
+
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
 
     for (const flowId in settings.flows) {
