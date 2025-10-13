@@ -143,6 +143,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   addNode: (node) => {
     const newNode = { ...node, id: crypto.randomUUID() };
+
+    // Special handling for IfNode to ensure unique condition IDs on creation
+    if (newNode.type === 'ifNode' && newNode.data.conditions) {
+      // @ts-ignore
+      newNode.data.conditions = newNode.data.conditions.map((c: any) => ({
+        ...c,
+        id: crypto.randomUUID(),
+      }));
+    }
+
     set((state) => {
       const newNodes = [...state.nodes, newNode];
       return {
@@ -165,6 +175,15 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       },
       selected: false,
     };
+
+    // Special handling for IfNode to ensure unique condition IDs on duplication
+    if (newNode.type === 'ifNode' && newNode.data.conditions) {
+      // @ts-ignore
+      newNode.data.conditions = newNode.data.conditions.map((c: any) => ({
+        ...c,
+        id: crypto.randomUUID(),
+      }));
+    }
 
     set((state) => {
       const newNodes = [...state.nodes, newNode];
@@ -198,6 +217,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     clipboard.nodes.forEach((node) => {
       const newId = crypto.randomUUID();
       idMapping.set(node.id, newId);
+
+      // Special handling for IfNode to ensure unique condition IDs on paste
+      if (node.type === 'ifNode' && node.data.conditions) {
+        // @ts-ignore
+        node.data.conditions = node.data.conditions.map((c: any) => ({
+          ...c,
+          id: crypto.randomUUID(),
+        }));
+      }
+
       newNodes.push({
         ...node,
         id: newId,

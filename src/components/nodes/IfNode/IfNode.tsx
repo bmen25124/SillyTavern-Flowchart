@@ -43,9 +43,7 @@ const ConditionEditor: FC<{
       if (confirm('Switching to Simple Mode will discard your custom code. Are you sure?')) {
         onUpdate({
           mode: 'simple',
-          inputProperty: '',
           operator: 'equals',
-          value: '',
         });
       }
     } else {
@@ -136,30 +134,31 @@ const ConditionEditor: FC<{
 };
 
 export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData, edges, setEdges } = useFlowStore((state) => ({
+  const { data, updateNodeData, setEdges } = useFlowStore((state) => ({
     data: state.nodesMap.get(id)?.data as IfNodeData,
     updateNodeData: state.updateNodeData,
-    edges: state.edges,
     setEdges: state.setEdges,
   }));
   const inputSchema = useInputSchema(id, null); // Use null for the default handle
 
   useEffect(() => {
     if (!data) return;
+    const currentEdges = useFlowStore.getState().edges;
+
     const existingHandleIds = new Set(data.conditions.flatMap((c) => [c.id, `value_${c.id}`]));
     existingHandleIds.add(null as any); // Add the static main handle
 
-    const filteredEdges = edges.filter(
+    const filteredEdges = currentEdges.filter(
       (edge) =>
         !(
           (edge.source === id && edge.sourceHandle && !existingHandleIds.has(edge.sourceHandle)) ||
           (edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle))
         ),
     );
-    if (filteredEdges.length < edges.length) {
+    if (filteredEdges.length < currentEdges.length) {
       setEdges(filteredEdges);
     }
-  }, [data?.conditions, id, setEdges, edges]);
+  }, [data?.conditions, id, setEdges]);
 
   if (!data) return null;
 
