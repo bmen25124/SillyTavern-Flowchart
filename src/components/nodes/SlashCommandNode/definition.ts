@@ -14,7 +14,6 @@ export const ArgumentDefinitionSchema = z.object({
   description: z.string().optional(),
   type: ArgumentTypeSchema.default('string'),
   isRequired: z.boolean().default(false),
-  isUnnamed: z.boolean().default(false),
   defaultValue: z.any().optional(),
 });
 export type ArgumentDefinition = z.infer<typeof ArgumentDefinitionSchema>;
@@ -61,22 +60,15 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
   execute,
   getDynamicHandles: (node) => {
     const data = node.data;
-    const namedOutputs = data.arguments
-      .filter((arg) => !arg.isUnnamed)
-      .map((arg) => ({ id: arg.name, type: mapArgTypeToFlowType(arg.type) }));
+    const namedOutputs = data.arguments.map((arg) => ({ id: arg.name, type: mapArgTypeToFlowType(arg.type) }));
 
     const outputs = [
       ...namedOutputs,
       { id: 'allArgs', type: FlowDataType.OBJECT, schema: z.any().describe('An object containing all arguments.') },
       {
         id: 'unnamed',
-        type: FlowDataType.OBJECT,
-        schema: z.array(z.string()).describe('An array of all unnamed arguments.'),
-      },
-      {
-        id: 'unnamed_full',
         type: FlowDataType.STRING,
-        schema: z.string().describe('All unnamed arguments joined into a single string.'),
+        schema: z.string().describe('A single string containing all text after the named arguments.'),
       },
     ];
     return { inputs: [], outputs };

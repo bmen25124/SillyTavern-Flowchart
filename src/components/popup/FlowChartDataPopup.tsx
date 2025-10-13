@@ -1,8 +1,7 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { PromptsSettings } from './PromptsSettings.js';
-import { st_echo } from 'sillytavern-utils-lib/config';
-import { DEFAULT_SETTINGS, settingsManager } from '../../config.js';
+import { settingsManager } from '../../config.js';
 import { FlowChartGround } from './FlowChartGround.js';
 import { FlowHistory } from './FlowHistory.js';
 
@@ -15,32 +14,21 @@ interface FlowChartDataPopupProps {
 export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
   const [activeTab, setActiveTab] = useState<Tab>('ground');
   const [importKey, setImportKey] = useState(0);
-  const { Popup } = SillyTavern.getContext();
+
+  useEffect(() => {
+    // This allows the main settings panel to force-refresh this popup's content
+    // if a full settings reset happens while this popup is open.
+    // @ts-ignore
+    window.forceFlowChartPopupUpdate = () => setImportKey((k) => k + 1);
+    return () => {
+      // @ts-ignore
+      delete window.forceFlowChartPopupUpdate;
+    };
+  }, []);
 
   const handleSave = () => {
     settingsManager.saveSettings();
     onSave();
-  };
-
-  const handleResetAll = async () => {
-    const confirmation = await Popup.show.confirm(
-      'Reset FlowChart Data',
-      'Are you sure you want to reset ALL prompts and flows to their defaults? This action cannot be undone.',
-    );
-
-    if (confirmation) {
-      const settings = settingsManager.getSettings();
-
-      // Deep clone from defaultSettings to avoid reference issues
-      settings.prompts = structuredClone(DEFAULT_SETTINGS.prompts);
-      settings.flows = structuredClone(DEFAULT_SETTINGS.flows);
-      settings.activeFlow = 'Default';
-
-      // Force a re-render of all child components by changing the key
-      setImportKey((k) => k + 1);
-
-      st_echo('info', 'All FlowChart prompts and data have been reset to default.');
-    }
   };
 
   return (
@@ -58,9 +46,6 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
         {activeTab === 'history' && <FlowHistory />}
       </div>
       <div className="flowchart-popup-footer">
-        <STButton onClick={handleResetAll} color="danger">
-          Reset All to Default
-        </STButton>
         <div style={{ flex: 1 }} />
         <STButton onClick={handleSave} color="primary">
           Save and Close

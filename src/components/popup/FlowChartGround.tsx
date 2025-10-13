@@ -424,7 +424,6 @@ const FlowManager: FC = () => {
   }, []);
 
   useEffect(() => {
-    // Ensure enabledFlows is populated for all existing flows
     let settingsChanged = false;
     for (const flowId in settings.flows) {
       if (settings.enabledFlows[flowId] === undefined) {
@@ -432,30 +431,30 @@ const FlowManager: FC = () => {
         settingsChanged = true;
       }
     }
+    if (!settings.flows[settings.activeFlow]) {
+      settings.activeFlow = Object.keys(settings.flows)[0];
+      settingsChanged = true;
+    }
     if (settingsChanged) {
       settingsManager.saveSettings();
       forceUpdate();
     }
-    const activeFlowData = settings.flows[settings.activeFlow] || { nodes: [], edges: [] };
+    const activeFlowData = settings.flows[settings.activeFlow]?.flow || { nodes: [], edges: [] };
     loadFlow(structuredClone(activeFlowData));
   }, []);
 
   useEffect(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const currentFlowData = getSpecFlow();
-      settings.flows[settings.activeFlow] = structuredClone(currentFlowData);
-      settingsManager.saveSettings();
-      flowRunner.reinitialize();
-    }, 500);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+      if (settings.flows[settings.activeFlow]) {
+        settings.flows[settings.activeFlow].flow = structuredClone(currentFlowData);
+        settingsManager.saveSettings();
+        flowRunner.reinitialize();
       }
+    }, 500);
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [nodes, edges, settings.activeFlow, getSpecFlow]);
 
@@ -483,7 +482,6 @@ const FlowManager: FC = () => {
               x: mousePosRef.current.x + (flowWrapperRef.current?.getBoundingClientRect().left || 0),
               y: mousePosRef.current.y + (flowWrapperRef.current?.getBoundingClientRect().top || 0),
             });
-
             getNodes().forEach((n) => (n.selected = false));
             copyBuffer.current.forEach((nodeToPaste) => {
               addNode({
@@ -496,17 +494,16 @@ const FlowManager: FC = () => {
         }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [getNodes, addNode, screenToFlowPosition]);
 
   const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
 
-  const handleSelectChange = (newValue?: string) => {
-    if (newValue && settings.flows[newValue]) {
-      settings.activeFlow = newValue;
-      loadFlow(structuredClone(settings.flows[newValue]));
+  const handleSelectChange = (flowId?: string) => {
+    if (flowId && settings.flows[flowId]) {
+      settings.activeFlow = flowId;
+      loadFlow(structuredClone(settings.flows[flowId].flow));
       forceUpdate();
     }
   };
@@ -516,32 +513,44 @@ const FlowManager: FC = () => {
   const handleAddFlow = async () => {
     const newName = await Popup.show.input('New Flow Name', 'Enter a unique name for the new flow.');
     if (!newName) return;
-
-    const flowId = newName
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-
-    if (!flowId) {
-      st_echo('error', 'Invalid flow name.');
+    if (Object.values(settings.flows).some((f) => f.name === newName)) {
+      st_echo('error', `A flow named "${newName}" already exists.`);
       return;
     }
-    if (settings.flows[flowId]) {
-      st_echo('error', `A flow named "${flowId}" already exists.`);
-      return;
-    }
-    settings.flows[flowId] = createDefaultFlow();
+    const flowId = crypto.randomUUID();
+    settings.flows[flowId] = { name: newName, flow: createDefaultFlow() };
     settings.enabledFlows[flowId] = true;
     settings.activeFlow = flowId;
-    loadFlow(structuredClone(settings.flows[flowId]));
+    loadFlow(structuredClone(settings.flows[flowId].flow));
     forceUpdate();
   };
 
-  const handleToggleFlowEnabled = (flowId: string) => {
-    settings.enabledFlows[flowId] = !settings.enabledFlows[flowId];
-    flowRunner.reinitialize();
+  const handleRenameFlow = async () => {
+    const currentName = settings.flows[settings.activeFlow].name;
+    const newName = await Popup.show.input('Rename Flow', `Enter a new name for "${currentName}".`, currentName);
+    if (!newName || newName === currentName) return;
+    if (Object.values(settings.flows).some((f) => f.name === newName)) {
+      st_echo('error', `A flow named "${newName}" already exists.`);
+      return;
+    }
+    settings.flows[settings.activeFlow].name = newName;
     forceUpdate();
+  };
+
+  const handleDeleteFlow = async () => {
+    if (Object.keys(settings.flows).length <= 1) {
+      st_echo('error', 'Cannot delete the last flow.');
+      return;
+    }
+    const currentName = settings.flows[settings.activeFlow].name;
+    const confirmation = await Popup.show.confirm('Delete Flow', `Are you sure you want to delete "${currentName}"?`);
+    if (confirmation) {
+      delete settings.flows[settings.activeFlow];
+      delete settings.enabledFlows[settings.activeFlow];
+      settings.activeFlow = Object.keys(settings.flows)[0];
+      loadFlow(structuredClone(settings.flows[settings.activeFlow].flow));
+      forceUpdate();
+    }
   };
 
   const handleClearInvalid = () => {
@@ -566,7 +575,7 @@ const FlowManager: FC = () => {
       const flowData = getSpecFlow();
       const jsonString = JSON.stringify(flowData, null, 2);
       await navigator.clipboard.writeText(jsonString);
-      st_echo('info', `Flow "${settings.activeFlow}" copied to clipboard as JSON.`);
+      st_echo('info', `Flow "${settings.flows[settings.activeFlow].name}" copied to clipboard as JSON.`);
     } catch (err) {
       console.error('Failed to copy flow:', err);
       st_echo('error', 'Failed to copy flow to clipboard.');
@@ -626,36 +635,24 @@ const FlowManager: FC = () => {
         setViewport(originalViewport, { duration: 0 });
       }
     }, 100);
-  }, [getNodes, setViewport, getViewport, settings.activeFlow]);
+  }, [getNodes, setViewport, getViewport, settings.activeFlow, settings.flows]);
 
   return (
     <div className="flowchart-ground-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <label>Active Flow:</label>
         <STSelect value={settings.activeFlow} onChange={(e) => handleSelectChange(e.target.value)} style={{ flex: 1 }}>
-          {Object.keys(settings.flows).map((flowId) => (
-            <option key={flowId} value={flowId}>
-              {flowId} {settings.enabledFlows[flowId] === false ? '(Disabled)' : ''}
+          {Object.entries(settings.flows).map(([id, { name }]) => (
+            <option key={id} value={id}>
+              {name} {settings.enabledFlows[id] === false ? '(Disabled)' : ''}
             </option>
           ))}
         </STSelect>
         <STButton onClick={handleAddFlow}>+ New</STButton>
-        <details className="menu_button">
-          <summary>Manage</summary>
-          <div className="flow-manager-list">
-            {Object.keys(settings.flows).map((flowId) => (
-              <div key={flowId} className="flow-manager-item">
-                <STInput
-                  type="checkbox"
-                  checked={settings.enabledFlows[flowId] !== false}
-                  onChange={() => handleToggleFlowEnabled(flowId)}
-                  title={settings.enabledFlows[flowId] === false ? 'Enable Flow' : 'Disable Flow'}
-                />
-                <span style={{ flex: 1 }}>{flowId}</span>
-              </div>
-            ))}
-          </div>
-        </details>
+        <STButton onClick={handleRenameFlow}>Rename</STButton>
+        <STButton onClick={handleDeleteFlow} color="danger">
+          Delete
+        </STButton>
         <div style={{ flex: 1 }}></div>
         {runId && (
           <>

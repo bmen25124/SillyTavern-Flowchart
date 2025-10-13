@@ -14,20 +14,25 @@ export enum PromptEngineeringMode {
 export const LLM_REQUEST_JSON_PROMPT_KEY = 'json';
 export const LLM_REQUEST_XML_PROMPT_KEY = 'xml';
 
+export interface FlowData {
+  name: string;
+  flow: SpecFlow;
+}
+
 export interface ExtensionSettings {
   version: string;
   formatVersion: string;
   enabled: boolean;
   prompts: Record<string, string>;
-  flows: Record<string, SpecFlow>;
-  enabledFlows: Record<string, boolean>;
-  activeFlow: string;
+  flows: Record<string, FlowData>; // Key is UUID
+  enabledFlows: Record<string, boolean>; // Key is UUID
+  activeFlow: string; // Key is UUID
 }
 
 export const EXTENSION_NAME = 'SillyTavern-FlowChart';
 export const EXTENSION_KEY = 'flowchart';
 
-const VERSION = '0.1.0';
+const VERSION = '0.3.0';
 const FORMAT_VERSION = 'F_1.0';
 
 export function createDefaultFlow(): SpecFlow {
@@ -52,6 +57,8 @@ export function createDefaultFlow(): SpecFlow {
   return { nodes, edges: [] };
 }
 
+const defaultFlowId = 'default-flow';
+
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   version: VERSION,
   formatVersion: FORMAT_VERSION,
@@ -60,12 +67,15 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
     [LLM_REQUEST_JSON_PROMPT_KEY]: DEFAULT_PROMPT_JSON,
     [LLM_REQUEST_XML_PROMPT_KEY]: DEFAULT_PROMPT_XML,
   },
-  activeFlow: 'Default',
+  activeFlow: defaultFlowId,
   flows: {
-    Default: createDefaultFlow(),
+    [defaultFlowId]: {
+      name: 'Default',
+      flow: createDefaultFlow(),
+    },
   },
   enabledFlows: {
-    Default: true,
+    [defaultFlowId]: true,
   },
 };
 

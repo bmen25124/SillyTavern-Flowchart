@@ -18,7 +18,7 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected }) => {
   const settings = settingsManager.getSettings();
 
   const flowOptions = useMemo(
-    () => Object.keys(settings.flows).map((name) => ({ value: name, label: name })),
+    () => Object.entries(settings.flows).map(([id, { name }]) => ({ value: id, label: name })),
     [settings.flows],
   );
 

@@ -168,10 +168,10 @@ class FlowRunner {
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
     const enabledFlows = Object.entries(settings.flows).filter(([flowId]) => settings.enabledFlows[flowId] !== false);
 
-    for (const [flowId, flow] of enabledFlows) {
+    for (const [flowId, { name, flow }] of enabledFlows) {
       const { isValid, errors } = validateFlow(flow);
       if (!isValid) {
-        console.warn(`Flow "${flowId}" is invalid and will not be run. Errors:`, errors);
+        console.warn(`Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
         continue;
       }
       for (const node of flow.nodes) {
@@ -184,39 +184,26 @@ class FlowRunner {
           const commandData = node.data as SlashCommandNodeData;
           const commandName = `flow-${commandData.commandName}`;
           if (this.registeredCommands.includes(commandName)) {
-            console.warn(`[FlowChart] Slash command "${commandName}" is already registered. Skipping from ${flowId}.`);
+            console.warn(`[FlowChart] Slash command "${commandName}" is already registered. Skipping from ${name}.`);
             continue;
           }
 
-          const namedArgs = commandData.arguments
-            .filter((arg) => !arg.isUnnamed)
-            .map((arg) =>
-              SlashCommandNamedArgument.fromProps({
-                name: arg.name,
-                description: arg.description,
-                typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
-                isRequired: arg.isRequired,
-                defaultValue: arg.defaultValue,
-              }),
-            );
-
-          const unnamedArgs = commandData.arguments
-            .filter((arg) => arg.isUnnamed)
-            .map((arg) =>
-              SlashCommandArgument.fromProps({
-                description: arg.description,
-                typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
-                isRequired: arg.isRequired,
-                acceptsMultiple: arg.type === 'list' || arg.name.endsWith('...'), // Convention
-              }),
-            );
+          const namedArgs = commandData.arguments.map((arg) =>
+            SlashCommandNamedArgument.fromProps({
+              name: arg.name,
+              description: arg.description,
+              typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
+              isRequired: arg.isRequired,
+              defaultValue: arg.defaultValue,
+            }),
+          );
 
           const cmd = SlashCommand.fromProps({
             name: commandName,
             helpString: commandData.helpText,
-            unnamedArgumentList: unnamedArgs,
+            unnamedArgumentList: [], // All other text is passed as a single string
             namedArgumentList: namedArgs,
-            callback: (named: Record<string, any>, unnamed: string | string[]) =>
+            callback: (named: Record<string, any>, unnamed: string) =>
               this.executeFlowFromSlashCommand(flowId, node.id, named, unnamed),
           });
 
@@ -229,22 +216,38 @@ class FlowRunner {
     // Register global /flow-run command
     const globalCommand = SlashCommand.fromProps({
       name: 'flow-run',
-      helpString: 'Manually runs a FlowChart flow.',
+      helpString: 'Manually runs a FlowChart flow by its name.',
       unnamedArgumentList: [
         SlashCommandArgument.fromProps({ description: 'The name of the flow to run.', isRequired: true }),
         SlashCommandArgument.fromProps({ description: 'An optional JSON string for initial parameters.' }),
       ],
-      callback: (_: any, unnamed: any) => {
-        const [flowId, paramsJson] = unnamed as string[];
+      callback: async (_: any, unnamed: any) => {
+        const [flowName, paramsJson] = Array.isArray(unnamed) ? unnamed : [unnamed];
+        const settings = settingsManager.getSettings();
+        const flowEntry = Object.entries(settings.flows).find(([, { name }]) => name === flowName);
+
+        if (!flowEntry) {
+          return `Error: Flow with name "${flowName}" not found.`;
+        }
+        const [flowId] = flowEntry;
+
         let params = {};
         if (paramsJson) {
           try {
             params = JSON.parse(paramsJson);
           } catch (e) {
-            return `Error: Invalid JSON parameters provided for flow "${flowId}".`;
+            return `Error: Invalid JSON parameters provided for flow "${flowName}".`;
           }
         }
-        return this.runFlowManually(flowId, params);
+        const report = await this.runFlowManually(flowId, params);
+        if (report?.error) {
+          return `Flow Error: ${report.error.message}`;
+        }
+        const output = report?.lastOutput;
+        if (output === undefined || output === null) {
+          return `Flow "${flowName}" executed successfully.`;
+        }
+        return typeof output === 'object' ? safeJsonStringify(output) : String(output);
       },
     });
     SlashCommandParser.addCommandObject(globalCommand);
@@ -266,8 +269,9 @@ class FlowRunner {
     if (depth > 10) {
       throw new Error('Flow execution depth limit exceeded (10). Possible infinite recursion.');
     }
+    const flowName = settingsManager.getSettings().flows[flowId]?.name || flowId;
     if (this.isExecuting && depth === 0) {
-      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowId}" was ignored.`);
+      st_echo('info', `FlowChart: Another flow is running. Trigger for "${flowName}" was ignored.`);
       return { executedNodes: [], error: { nodeId: 'N/A', message: 'Another flow is already running.' } };
     }
     if (depth === 0) {
@@ -277,7 +281,7 @@ class FlowRunner {
     let report: ExecutionReport | undefined;
 
     try {
-      const flow = settingsManager.getSettings().flows[flowId];
+      const flow = settingsManager.getSettings().flows[flowId]?.flow;
       if (!flow) throw new Error(`Flow with id ${flowId} not found.`);
 
       const runId = crypto.randomUUID();
@@ -296,9 +300,9 @@ class FlowRunner {
         if (report.error) {
           const isAbort = report.error.message.includes('aborted');
           if (isAbort) {
-            st_echo('info', `Flow "${flowId}" was stopped.`);
+            st_echo('info', `Flow "${flowName}" was stopped.`);
           } else {
-            st_echo('error', `Flow "${flowId}" failed: ${report.error.message}`);
+            st_echo('error', `Flow "${flowName}" failed: ${report.error.message}`);
           }
           eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
         } else {
@@ -306,7 +310,7 @@ class FlowRunner {
         }
 
         const sanitizedReport = sanitizeReportForHistory(report);
-        executionHistory.unshift({ ...sanitizedReport, flowId, timestamp: new Date() });
+        executionHistory.unshift({ ...sanitizedReport, flowId: flowName, timestamp: new Date() });
         if (executionHistory.length > MAX_HISTORY_LENGTH) executionHistory.pop();
         saveHistory(executionHistory);
       }
@@ -323,7 +327,7 @@ class FlowRunner {
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
-    const flow = settingsManager.getSettings().flows[flowId];
+    const flow = settingsManager.getSettings().flows[flowId]?.flow;
     const startNode = flow?.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
 
@@ -338,16 +342,9 @@ class FlowRunner {
     flowId: string,
     _startNodeId: string,
     namedArgs: Record<string, any>,
-    unnamedArgs: string | string[],
+    unnamedArgs: string,
   ) {
-    const initialInput = { ...namedArgs };
-    if (Array.isArray(unnamedArgs)) {
-      initialInput['unnamed'] = unnamedArgs;
-      initialInput['unnamed_full'] = unnamedArgs.join(' ');
-    } else if (typeof unnamedArgs === 'string') {
-      initialInput['unnamed'] = [unnamedArgs];
-      initialInput['unnamed_full'] = unnamedArgs;
-    }
+    const initialInput = { ...namedArgs, unnamed: unnamedArgs || '' };
     const report = await this.executeFlow(flowId, initialInput);
     if (report?.error) {
       return `Flow Error: ${report.error.message}`;
@@ -363,35 +360,17 @@ class FlowRunner {
 
   async runFlowManually(flowId: string, params?: Record<string, any>) {
     const settings = settingsManager.getSettings();
-    const flow = settings.flows[flowId];
-    if (!flow) {
-      st_echo('error', `Flow "${flowId}" not found for manual run.`);
+    const flowData = settings.flows[flowId];
+    if (!flowData) {
+      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
       return;
     }
     if (settings.enabledFlows[flowId] === false) {
-      st_echo('error', `Flow "${flowId}" is disabled and cannot be run.`);
+      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
       return;
     }
 
-    if (params) {
-      return this.executeFlow(flowId, params);
-    }
-
-    const manualTriggers = flow.nodes.filter((node) => node.type === 'manualTriggerNode');
-    if (manualTriggers.length > 0) {
-      for (const triggerNode of manualTriggers) {
-        let initialInput = {};
-        try {
-          initialInput = JSON.parse(triggerNode.data.payload);
-        } catch (e) {
-          st_echo('error', `Invalid JSON in Manual Trigger node ${triggerNode.id}. Skipping.`);
-          continue;
-        }
-        await this.executeFlow(flowId, initialInput);
-      }
-    } else {
-      await this.executeFlow(flowId, {});
-    }
+    return this.executeFlow(flowId, params ?? {});
   }
 
   public abortCurrentRun() {

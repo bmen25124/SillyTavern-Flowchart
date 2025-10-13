@@ -24,7 +24,7 @@ import { schemaToText } from '../../../utils/schema-inspector.js';
 import { HandleSpec } from '../definitions/types.js';
 import { registrator } from '../autogen-imports.js';
 
-// A generic picker for simple, static enum-like values
+// Generic picker for simple, static enum-like values
 const EnumPicker: FC<{
   id: string;
   selected: boolean;
@@ -52,7 +52,48 @@ const EnumPicker: FC<{
         <Handle
           type="source"
           position={Position.Right}
-          id={outputHandle.id}
+          id={outputHandle.id!}
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+        />
+      </div>
+    </BaseNode>
+  );
+};
+
+// Generic picker for complex, dynamic dropdowns
+const FancyDropdownPicker: FC<{
+  id: string;
+  selected: boolean;
+  title: string;
+  data: any;
+  items: { value: string; label: string }[];
+  dataKey: string;
+  outputHandle: HandleSpec;
+}> = ({ id, selected, title, data, items, dataKey, outputHandle }) => {
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const schemaText = outputHandle.schema ? schemaToText(outputHandle.schema) : outputHandle.type;
+
+  return (
+    <BaseNode id={id} title={title} selected={selected}>
+      <STFancyDropdown
+        value={[data[dataKey] ?? '']}
+        onChange={(e) => updateNodeData(id, { [dataKey]: e[0] })}
+        multiple={false}
+        items={items}
+        inputClasses="nodrag"
+        containerClasses="nodrag"
+        closeOnSelect={true}
+        enableSearch={true}
+      />
+      <div
+        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
+        title={schemaText}
+      >
+        <span style={{ textTransform: 'capitalize' }}>{outputHandle.id}</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={outputHandle.id!}
           style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
         />
       </div>
@@ -62,173 +103,114 @@ const EnumPicker: FC<{
 
 export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickCharacterNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
   const definition = registrator.nodeDefinitionMap.get('pickCharacterNode');
-  const outputHandle = definition?.handles.outputs[0];
-  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
-
-  if (!data || !outputHandle) return null;
+  if (!data || !definition) return null;
 
   return (
-    <BaseNode id={id} title="Pick Character" selected={selected}>
-      <STFancyDropdown
-        value={[data.characterAvatar ?? '']}
-        onChange={(e) => updateNodeData(id, { characterAvatar: e[0] })}
-        multiple={false}
-        items={characters.map((c: any) => ({ value: c.avatar, label: c.name }))}
-        inputClasses="nodrag"
-        containerClasses="nodrag"
-        closeOnSelect={true}
-        enableSearch={true}
-      />
-      <div
-        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Avatar</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="avatar"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-        />
-      </div>
-    </BaseNode>
+    <FancyDropdownPicker
+      id={id}
+      selected={selected}
+      title="Pick Character"
+      data={data}
+      items={characters.map((c: any) => ({ value: c.avatar, label: c.name }))}
+      dataKey="characterAvatar"
+      outputHandle={definition.handles.outputs[0]}
+    />
   );
 };
 
 export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickLorebookNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const [lorebookNames, setLorebookNames] = useState<string[]>([]);
-  useEffect(() => {
-    setLorebookNames(world_names);
-  }, []);
-  const lorebookOptions = useMemo(() => lorebookNames.map((name) => ({ value: name, label: name })), [lorebookNames]);
   const definition = registrator.nodeDefinitionMap.get('pickLorebookNode');
-  const outputHandle = definition?.handles.outputs[0];
-  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
-
-  if (!data || !outputHandle) return null;
+  const [lorebookNames, setLorebookNames] = useState<string[]>([]);
+  useEffect(() => setLorebookNames(world_names), []);
+  if (!data || !definition) return null;
 
   return (
-    <BaseNode id={id} title="Pick Lorebook" selected={selected}>
-      <STFancyDropdown
-        value={[data.worldName ?? '']}
-        onChange={(e) => updateNodeData(id, { worldName: e[0] })}
-        multiple={false}
-        items={lorebookOptions}
-        inputClasses="nodrag"
-        containerClasses="nodrag"
-        closeOnSelect={true}
-        enableSearch={true}
-      />
-      <div
-        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Name</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="name"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-        />
-      </div>
-    </BaseNode>
+    <FancyDropdownPicker
+      id={id}
+      selected={selected}
+      title="Pick Lorebook"
+      data={data}
+      items={lorebookNames.map((name) => ({ value: name, label: name }))}
+      dataKey="worldName"
+      outputHandle={definition.handles.outputs[0]}
+    />
   );
 };
 
 export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickPromptNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = registrator.nodeDefinitionMap.get('pickPromptNode');
   const promptOptions = useMemo(() => {
     const prompts = settingsManager.getSettings().prompts;
     return Object.keys(prompts).map((name) => ({ value: name, label: name }));
   }, []);
-  const definition = registrator.nodeDefinitionMap.get('pickPromptNode');
-  const outputHandle = definition?.handles.outputs[0];
-  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
-    <BaseNode id={id} title="Pick Prompt" selected={selected}>
-      <STFancyDropdown
-        value={[data.promptName ?? '']}
-        onChange={(e) => updateNodeData(id, { promptName: e[0] })}
-        multiple={false}
-        items={promptOptions}
-        inputClasses="nodrag"
-        containerClasses="nodrag"
-        closeOnSelect={true}
-        enableSearch={true}
-      />
-      <div
-        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Name</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="name"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-        />
-      </div>
-    </BaseNode>
+    <FancyDropdownPicker
+      id={id}
+      selected={selected}
+      title="Pick Prompt"
+      data={data}
+      items={promptOptions}
+      dataKey="promptName"
+      outputHandle={definition.handles.outputs[0]}
+    />
   );
 };
 
 export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRegexScriptNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
-  useEffect(() => {
-    setAllRegexes(SillyTavern.getContext().extensionSettings.regex ?? []);
-  }, []);
-  const regexOptions = useMemo(() => allRegexes.map((r) => ({ value: r.id, label: r.scriptName })), [allRegexes]);
   const definition = registrator.nodeDefinitionMap.get('pickRegexScriptNode');
-  const outputHandle = definition?.handles.outputs[0];
-  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
-
-  if (!data || !outputHandle) return null;
+  const [allRegexes, setAllRegexes] = useState<RegexScriptData[]>([]);
+  useEffect(() => setAllRegexes(SillyTavern.getContext().extensionSettings.regex ?? []), []);
+  if (!data || !definition) return null;
 
   return (
-    <BaseNode id={id} title="Pick Regex Script" selected={selected}>
-      <STFancyDropdown
-        value={[data.scriptId ?? '']}
-        onChange={(e) => updateNodeData(id, { scriptId: e[0] })}
-        multiple={false}
-        items={regexOptions}
-        inputClasses="nodrag"
-        containerClasses="nodrag"
-        closeOnSelect={true}
-        enableSearch={true}
-      />
-      <div
-        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>ID</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="id"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-        />
-      </div>
-    </BaseNode>
+    <FancyDropdownPicker
+      id={id}
+      selected={selected}
+      title="Pick Regex Script"
+      data={data}
+      items={allRegexes.map((r) => ({ value: r.id, label: r.scriptName }))}
+      dataKey="scriptId"
+      outputHandle={definition.handles.outputs[0]}
+    />
   );
 };
 
+export const PickFlowNode: FC<NodeProps<Node<PickFlowNodeData>>> = ({ id, selected }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickFlowNodeData;
+  const definition = registrator.nodeDefinitionMap.get('pickFlowNode');
+  const flowOptions = useMemo(() => {
+    const flows = settingsManager.getSettings().flows;
+    return Object.entries(flows).map(([id, { name }]) => ({ value: id, label: name }));
+  }, []);
+  if (!data || !definition) return null;
+
+  return (
+    <FancyDropdownPicker
+      id={id}
+      selected={selected}
+      title="Pick Flow"
+      data={data}
+      items={flowOptions}
+      dataKey="flowId"
+      outputHandle={definition.handles.outputs[0]}
+    />
+  );
+};
+
+// Enum-based Pickers
 export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickMathOperationNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickMathOperationNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -242,7 +224,7 @@ export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>
         { value: 'divide', label: 'Divide' },
         { value: 'modulo', label: 'Modulo' },
       ]}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -255,9 +237,8 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickStringToolsOperationNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickStringToolsOperationNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -269,7 +250,7 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
         { value: 'split', label: 'Split' },
         { value: 'join', label: 'Join' },
       ]}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -282,9 +263,8 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickPromptEngineeringModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickPromptEngineeringModeNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -292,7 +272,7 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
       title="Pick Prompt Mode"
       value={data.mode}
       options={Object.values(PromptEngineeringMode).map((mode) => ({ value: mode, label: mode }))}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -302,9 +282,8 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRandomModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickRandomModeNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -315,7 +294,7 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
         { value: 'number', label: 'Number' },
         { value: 'array', label: 'From Array' },
       ]}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -325,9 +304,8 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickRegexModeNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickRegexModeNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -338,7 +316,7 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
         { value: 'sillytavern', label: 'SillyTavern' },
         { value: 'custom', label: 'Custom' },
       ]}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -348,9 +326,8 @@ export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTar
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickTypeConverterTargetNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('pickTypeConverterTargetNode');
-  const outputHandle = definition?.handles.outputs[0];
+  if (!data || !definition) return null;
 
-  if (!data || !outputHandle) return null;
   return (
     <EnumPicker
       id={id}
@@ -363,49 +340,8 @@ export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTar
         { value: 'object', label: 'Object (from JSON)' },
         { value: 'array', label: 'Array (from JSON)' },
       ]}
-      outputHandle={outputHandle}
+      outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { targetType: value as any })}
     />
-  );
-};
-
-export const PickFlowNode: FC<NodeProps<Node<PickFlowNodeData>>> = ({ id, selected }) => {
-  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickFlowNodeData;
-  const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const flowOptions = useMemo(() => {
-    const flows = settingsManager.getSettings().flows;
-    return Object.keys(flows).map((name) => ({ value: name, label: name }));
-  }, []);
-  const definition = registrator.nodeDefinitionMap.get('pickFlowNode');
-  const outputHandle = definition?.handles.outputs[0];
-  const schemaText = outputHandle?.schema ? schemaToText(outputHandle.schema) : outputHandle?.type;
-
-  if (!data || !outputHandle) return null;
-
-  return (
-    <BaseNode id={id} title="Pick Flow" selected={selected}>
-      <STFancyDropdown
-        value={[data.flowId ?? '']}
-        onChange={(e) => updateNodeData(id, { flowId: e[0] })}
-        multiple={false}
-        items={flowOptions}
-        inputClasses="nodrag"
-        containerClasses="nodrag"
-        closeOnSelect={true}
-        enableSearch={true}
-      />
-      <div
-        style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Flow ID</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="flowId"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-        />
-      </div>
-    </BaseNode>
   );
 };

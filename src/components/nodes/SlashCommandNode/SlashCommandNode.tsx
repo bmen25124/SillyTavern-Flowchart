@@ -54,12 +54,6 @@ const ArgumentEditor: FC<{
           checked={arg.isRequired}
           onChange={(e) => onUpdate({ isRequired: e.target.checked })}
         />
-        <STInput
-          label="Is Unnamed"
-          type="checkbox"
-          checked={arg.isUnnamed}
-          onChange={(e) => onUpdate({ isUnnamed: e.target.checked })}
-        />
       </div>
     </div>
   );
@@ -89,7 +83,6 @@ export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected }) =>
       name: `arg${data.arguments.length + 1}`,
       type: 'string',
       isRequired: false,
-      isUnnamed: false,
     };
     updateNodeData(id, { arguments: [...data.arguments, newArg] });
   };
