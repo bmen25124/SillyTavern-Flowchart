@@ -30,8 +30,6 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
         padding: '10px',
         background: '#333',
         fontSize: '12px',
-        width: '100%',
-        height: '100%',
         minWidth: 180,
         position: 'relative',
       }}
