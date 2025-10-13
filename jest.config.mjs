@@ -17,12 +17,20 @@ export default {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {
-    '^.+\\.tsx?$': [
+    '^.+\\.(t|j)sx?$': [
       'ts-jest',
       {
         // Crucial for ESM support in ts-jest
         useESM: true,
-        // babelConfig: true,
+        babelConfig: true,
+      },
+    ],
+    '^.+\\.mjs$': [
+      'ts-jest',
+      {
+        // Crucial for ESM support in ts-jest
+        useESM: true,
+        babelConfig: true,
       },
     ],
   },

@@ -8,7 +8,7 @@
         "generate-imports": "node scripts/generate-node-imports.mjs",
         "dev": "npm run generate-imports && cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
         "build": "npm run generate-imports && cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+        "test": "jest",
         "prettify": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\" \"src/**/*.scss\""
     },
     "keywords": [],
