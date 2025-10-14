@@ -25,9 +25,9 @@ export interface ExtensionSettings {
   formatVersion: string;
   enabled: boolean;
   prompts: Record<string, string>;
-  flows: Record<string, FlowData>; // Key is UUID
-  enabledFlows: Record<string, boolean>; // Key is UUID
-  activeFlow: string; // Key is UUID
+  flows: Record<string, FlowData>; // Key is slugified name
+  enabledFlows: Record<string, boolean>; // Key is slugified name
+  activeFlow: string; // Key is slugified name
   isPaletteCollapsed: boolean;
 }
 
@@ -59,7 +59,7 @@ export function createDefaultFlow(): SpecFlow {
   return { nodes, edges: [] };
 }
 
-const defaultFlowId = 'default-flow';
+const defaultFlowId = 'default';
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   version: VERSION,

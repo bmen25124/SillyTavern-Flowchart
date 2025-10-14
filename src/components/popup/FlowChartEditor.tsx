@@ -32,6 +32,13 @@ import { SpecFlow } from '../../flow-spec.js';
 import { getHandleSpec } from '../../utils/handle-logic.js';
 import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
 
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+
 type CompatibilityInfo = {
   nodeType: string;
   nodeLabel: string;
@@ -625,19 +632,29 @@ const FlowManager: FC = () => {
 
   const handleCreateFlow = useCallback(
     (newName: string) => {
-      if (Object.values(settings.flows).some((f) => f.name === newName)) {
-        st_echo('error', `A flow named "${newName}" already exists.`);
+      const newFlowId = slugify(newName);
+      if (!newFlowId) {
+        st_echo('error', 'Flow name cannot be empty.');
         return { confirmed: false };
       }
-      return { confirmed: true, value: crypto.randomUUID() };
+      if (settings.flows[newFlowId]) {
+        st_echo('error', `A flow with the name "${newName}" already exists.`);
+        return { confirmed: false };
+      }
+      return { confirmed: true, value: newFlowId };
     },
     [settings.flows],
   );
 
   const handleRenameFlow = useCallback(
     (flowId: string, newName: string) => {
-      if (Object.values(settings.flows).some((f) => f.name === newName && f !== settings.flows[flowId])) {
-        st_echo('error', `A flow named "${newName}" already exists.`);
+      const newFlowId = slugify(newName);
+      if (!newFlowId) {
+        st_echo('error', 'Flow name cannot be empty.');
+        return { confirmed: false };
+      }
+      if (newFlowId !== flowId && settings.flows[newFlowId]) {
+        st_echo('error', `A flow with the name "${newName}" already exists.`);
         return { confirmed: false };
       }
       return { confirmed: true };
@@ -660,30 +677,51 @@ const FlowManager: FC = () => {
     (newItems: PresetItem[]) => {
       const newFlows: Record<string, FlowData> = {};
       const newEnabledFlows: Record<string, boolean> = {};
+      const oldIdToNewIdMap = new Map<string, string>();
 
+      // First pass: identify renames
       for (const item of newItems) {
-        const existingFlow = settings.flows[item.value];
-        if (existingFlow) {
-          newFlows[item.value] = { ...existingFlow, name: item.label };
-          newEnabledFlows[item.value] = settings.enabledFlows[item.value] ?? true;
+        const newId = slugify(item.label);
+        if (item.value !== newId) {
+          oldIdToNewIdMap.set(item.value, newId);
+        }
+      }
+
+      // Second pass: build the new state objects
+      for (const item of newItems) {
+        const oldId = item.value;
+        const newId = oldIdToNewIdMap.get(oldId) || oldId;
+        const name = item.label;
+
+        const sourceFlowData = settings.flows[oldId];
+        if (sourceFlowData) {
+          // Existing flow, might have been renamed
+          newFlows[newId] = { ...sourceFlowData, name };
+          newEnabledFlows[newId] = settings.enabledFlows[oldId] ?? true;
         } else {
-          newFlows[item.value] = { name: item.label, flow: createDefaultFlow(), allowJsExecution: false };
-          newEnabledFlows[item.value] = true;
+          // This is a new flow. STPresetSelect created it with a slugified ID.
+          newFlows[oldId] = { name, flow: createDefaultFlow(), allowJsExecution: false };
+          newEnabledFlows[oldId] = true;
         }
       }
 
       settings.flows = newFlows;
       settings.enabledFlows = newEnabledFlows;
 
-      if (!settings.flows[settings.activeFlow]) {
-        const newActiveFlowId = newItems[0]?.value || '';
-        settings.activeFlow = newActiveFlowId;
-        if (newActiveFlowId) {
-          loadFlow(structuredClone(settings.flows[newActiveFlowId].flow));
-          useFlowStore.temporal.getState().clear();
-        }
+      let newActiveFlow = oldIdToNewIdMap.get(settings.activeFlow) || settings.activeFlow;
+      if (!settings.flows[newActiveFlow]) {
+        newActiveFlow = newItems.length > 0 ? slugify(newItems[0].label) : '';
       }
 
+      if (settings.activeFlow !== newActiveFlow) {
+        settings.activeFlow = newActiveFlow;
+        const flowToLoad = newActiveFlow ? settings.flows[newActiveFlow]?.flow : { nodes: [], edges: [] };
+        loadFlow(structuredClone(flowToLoad));
+        useFlowStore.temporal.getState().clear();
+      }
+
+      settingsManager.saveSettings();
+      flowRunner.reinitialize();
       forceUpdate();
     },
     [settings, loadFlow, forceUpdate],
