@@ -25,7 +25,7 @@ export const endNodeDefinition: NodeDefinition<EndNodeData> = {
   currentVersion: 1,
   initialData: {},
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
     outputs: [],
   },
   execute,

@@ -54,8 +54,12 @@ export const useInputSchema = (nodeId: string, handleId: string | null): z.ZodTy
       // If the source is a passthrough node with a generic output,
       // recursively trace its input to find the original schema.
       const sourceDef = registrator.nodeDefinitionMap.get(sourceNode.type);
-      if (spec.type === FlowDataType.ANY && sourceDef?.isPassthrough) {
-        return findSourceSchema(sourceNode.id, sourceDef.passthroughHandleId ?? null, depth + 1);
+      const isPassthrough =
+        sourceDef?.handles.inputs.some((h) => h.id === 'main') &&
+        sourceDef?.handles.outputs.some((h) => h.id === 'main');
+
+      if (spec.type === FlowDataType.ANY && isPassthrough) {
+        return findSourceSchema(sourceNode.id, 'main', depth + 1);
       }
 
       // If it's not a passthrough node and has no schema, we stop here.

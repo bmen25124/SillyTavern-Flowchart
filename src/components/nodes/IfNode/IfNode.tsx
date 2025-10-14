@@ -124,7 +124,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
     setEdges: state.setEdges,
   }));
   const edges = useEdges();
-  const inputSchema = useInputSchema(id, null);
+  const inputSchema = useInputSchema(id, 'main');
 
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
   const availableProperties = useMemo(() => {
@@ -135,7 +135,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   useEffect(() => {
     if (!data) return;
     const validSourceHandles = new Set([...data.conditions.map((c) => c.id), 'false']);
-    const validTargetHandles = new Set([null, ...data.conditions.map((c) => `value_${c.id}`)]);
+    const validTargetHandles = new Set(['main', ...data.conditions.map((c) => `value_${c.id}`)]);
 
     const edgesToRemove = edges.filter(
       (edge) =>
@@ -176,7 +176,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="If Conditions" selected={selected}>
       <div style={{ position: 'relative', marginBottom: '10px' }}>
-        <Handle type="target" position={Position.Left} style={{ top: '50%' }} />
+        <Handle type="target" position={Position.Left} id="main" style={{ top: '50%' }} />
         <label style={{ marginLeft: '10px' }}>Input</label>
       </div>
 

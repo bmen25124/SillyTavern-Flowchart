@@ -23,7 +23,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as ExecuteJsNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   useEdges();
-  const inputSchema = useInputSchema(id, null);
+  const inputSchema = useInputSchema(id, 'main');
 
   const isInputAnObject = inputSchema instanceof z.ZodObject;
 
@@ -35,7 +35,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
 
   return (
     <BaseNode id={id} title="Execute JS Code" selected={selected}>
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={Position.Left} id="main" />
       <label>Code (`input`, `variables`, and `stContext` are available)</label>
       {inputSchema && (
         <div style={{ fontSize: '10px', color: '#aaa', margin: '5px 0' }}>
@@ -74,7 +74,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected }) => {
         theme={'dark'}
         style={{ cursor: 'text' }}
       />
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={Position.Right} id="main" />
     </BaseNode>
   );
 };

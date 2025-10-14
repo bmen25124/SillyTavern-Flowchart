@@ -169,10 +169,9 @@ describe('Node Executors', () => {
       // Set the variable
       const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'myVar' });
       const setValue = { data: 'test-data' };
-      const setResult = await setExecute(setNode, { value: setValue }, context);
+      await setExecute(setNode, { main: setValue }, context);
 
-      // Verify passthrough and context modification
-      expect(setResult).toEqual({ value: setValue });
+      // Verify side effect (context modification)
       expect(context.executionVariables.get('myVar')).toBe(setValue);
 
       // Get the variable
@@ -201,7 +200,7 @@ describe('Node Executors', () => {
           { id: trueConditionId, mode: 'simple', operator: 'equals', value: 'correct', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, { null: 'correct' }, context);
+      const result = await execute(node, { main: 'correct' }, context);
       expect(result).toEqual({ activatedHandle: trueConditionId });
     });
 
@@ -211,7 +210,7 @@ describe('Node Executors', () => {
           { id: 'some-cond', mode: 'simple', operator: 'equals', value: 'nope', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, { null: 'a different value' }, context);
+      const result = await execute(node, { main: 'a different value' }, context);
       expect(result).toEqual({ activatedHandle: 'false' });
     });
 

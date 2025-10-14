@@ -40,7 +40,7 @@ const getConditionValueHandleId = (conditionId: string) => `value_${conditionId}
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = IfNodeDataSchema.parse(node.data);
-  const primaryInput = input['null']; // The data from the main (null) input handle
+  const primaryInput = input.main; // The data from the main (default) input handle
 
   for (const condition of data.conditions) {
     let result = false;
@@ -119,7 +119,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     ],
   },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }], // Use a default, unnamed input handle
+    inputs: [{ id: 'main', type: FlowDataType.ANY }], // Use a default, unnamed input handle
     outputs: [{ id: 'false', type: FlowDataType.ANY }],
   },
   execute,
@@ -138,7 +138,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       if (handleId === 'false' || isConditionHandle) return FlowDataType.ANY;
     }
     if (handleDirection === 'input') {
-      if (handleId === null) return FlowDataType.ANY; // Check for the default handle
+      if (handleId === 'main') return FlowDataType.ANY; // Check for the default handle
       const isValueHandle = conditions.some((c) => getConditionValueHandleId(c.id) === handleId);
       if (isValueHandle) return FlowDataType.ANY;
     }

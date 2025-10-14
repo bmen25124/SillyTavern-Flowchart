@@ -13,7 +13,7 @@ export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = ProfileIdNodeDataSchema.parse(node.data);
-  const connectedValue = input['null'];
+  const connectedValue = input.main;
 
   if (connectedValue !== undefined && connectedValue !== null && String(connectedValue).trim() !== '') {
     return String(connectedValue);
@@ -31,8 +31,8 @@ export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {
   currentVersion: 1,
   initialData: { profileId: '' },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.PROFILE_ID }],
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [{ id: 'main', type: FlowDataType.PROFILE_ID }],
   },
   execute,
 };

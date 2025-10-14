@@ -14,11 +14,11 @@ export type RemoveChatMessageNodeData = z.infer<typeof RemoveChatMessageNodeData
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = RemoveChatMessageNodeDataSchema.parse(node.data);
-  const messageId = resolveInput(input, data, 'messageId');
+  const messageId = input.main ?? resolveInput(input, data, 'messageId');
   if (messageId === undefined) throw new Error('Message ID is required.');
 
   await dependencies.deleteMessage(messageId);
-  return { messageId }; // Passthrough the ID
+  // Returns void, passthrough is handled by runner.
 };
 
 export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNodeData> = {
@@ -30,12 +30,10 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
   currentVersion: 1,
   initialData: {},
   handles: {
-    inputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
-    outputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
+    inputs: [{ id: 'main', type: FlowDataType.NUMBER }],
+    outputs: [{ id: 'main', type: FlowDataType.NUMBER }],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: 'messageId',
 };
 
 registrator.register(removeChatMessageNodeDefinition);

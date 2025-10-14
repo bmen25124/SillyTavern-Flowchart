@@ -15,9 +15,9 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
   const data = ExecuteJsNodeDataSchema.parse(node.data);
   const variables = { ...Object.fromEntries(executionVariables) };
 
-  // If a default (null) input is connected, pass its value as the primary `input` argument to the script.
+  // If a 'main' input is connected, pass its value as the primary `input` argument to the script.
   // Otherwise, pass the whole object of named inputs. This provides an intuitive scripting experience.
-  const scriptInput = input['null'] ?? input;
+  const scriptInput = input.main ?? input;
 
   try {
     const func = new Function('input', 'variables', 'stContext', data.code);
@@ -36,13 +36,11 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   currentVersion: 1,
   initialData: { code: 'return input;' },
   handles: {
-    inputs: [{ id: null, type: FlowDataType.ANY }],
-    outputs: [{ id: null, type: FlowDataType.ANY }],
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
   isDangerous: true,
-  isPassthrough: true,
-  passthroughHandleId: null,
 };
 
 registrator.register(executeJsNodeDefinition);

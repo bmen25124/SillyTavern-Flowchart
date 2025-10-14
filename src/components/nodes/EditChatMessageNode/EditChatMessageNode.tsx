@@ -20,7 +20,7 @@ const fields = [
     getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
   }),
   createFieldConfig({
-    id: 'message',
+    id: 'main',
     label: 'New Message Content',
     component: STTextarea,
     props: { rows: 3 },
@@ -49,7 +49,7 @@ export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
           <span>Message (Passthrough)</span>
-          <Handle type="source" position={Position.Right} id="message" />
+          <Handle type="source" position={Position.Right} id="main" />
         </div>
       </div>
     </BaseNode>

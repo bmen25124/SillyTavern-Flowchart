@@ -24,14 +24,14 @@ export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected, type }
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('setVariableNode');
-  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'value');
+  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'main');
   const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Set Variable" selected={selected}>
-      <Handle type="target" position={Position.Left} id="value" style={{ top: '15%' }} />
+      <Handle type="target" position={Position.Left} id="main" style={{ top: '15%' }} />
 
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
 
@@ -40,7 +40,7 @@ export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected, type }
         title={schemaText}
       >
         <span>Value (Passthrough)</span>
-        <Handle type="source" position={Position.Right} id="value" />
+        <Handle type="source" position={Position.Right} id="main" />
       </div>
     </BaseNode>
   );

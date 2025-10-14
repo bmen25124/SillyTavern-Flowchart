@@ -15,11 +15,11 @@ export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 const execute: NodeExecutor = async (node, input, { executionVariables }) => {
   const data = SetVariableNodeDataSchema.parse(node.data);
   const variableName = resolveInput(input, data, 'variableName');
-  const value = input.value;
+  const value = input.main;
   if (!variableName) throw new Error('Variable name is required.');
 
   executionVariables.set(variableName, value);
-  return { value }; // Passthrough
+  // Returns void. The runner handles the passthrough automatically.
 };
 
 export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
@@ -32,14 +32,12 @@ export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
   initialData: { variableName: 'myVar' },
   handles: {
     inputs: [
-      { id: 'value', type: FlowDataType.ANY },
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'variableName', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: 'value',
 };
 
 registrator.register(setVariableNodeDefinition);

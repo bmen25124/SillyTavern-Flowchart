@@ -13,8 +13,8 @@ export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = LogNodeDataSchema.parse(node.data);
-  console.log(data.prefix, input.value);
-  return { value: input.value }; // Pass the value through
+  console.log(data.prefix, input.main);
+  // Returns void. The runner handles the passthrough automatically.
 };
 
 export const logNodeDefinition: NodeDefinition<LogNodeData> = {
@@ -26,12 +26,10 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   currentVersion: 1,
   initialData: { prefix: 'Log:' },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
-    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: 'value',
 };
 
 registrator.register(logNodeDefinition);

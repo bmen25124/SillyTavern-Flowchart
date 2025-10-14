@@ -3,12 +3,13 @@ import { eventEmitter } from './events.js';
 import { NodeReport } from './components/popup/flowRunStore.js';
 import { FlowRunnerDependencies, NodeExecutor, NodeExecutorContext } from './NodeExecutor.js';
 import { END_NODE_SENTINEL } from './components/nodes/EndNode/definition.js';
+import { registrator } from './components/nodes/autogen-imports.js';
 
 export interface ExecutionReport {
   executedNodes: {
     nodeId: string;
     type: string | undefined;
-    input: Record<string, any>;
+    input: Record<string | symbol, any>;
     output: any;
   }[];
   error?: {
@@ -116,7 +117,7 @@ export class LowLevelFlowRunner {
         const nodeReport: NodeReport = { status: 'completed', input: inputs, output: {}, error: undefined };
 
         try {
-          const output = await this.executeNode(node, inputs, {
+          let outputFromExecutor = await this.executeNode(node, inputs, {
             flow,
             dependencies,
             executionVariables,
@@ -124,7 +125,7 @@ export class LowLevelFlowRunner {
             signal,
           });
 
-          if (output === END_NODE_SENTINEL) {
+          if (outputFromExecutor === END_NODE_SENTINEL) {
             console.log(`[FlowChart] Flow terminated gracefully by EndNode ${node.id}.`);
             nodeReport.output = {};
             lastOutput = {};
@@ -133,7 +134,26 @@ export class LowLevelFlowRunner {
             return report; // Graceful exit
           }
 
-          nodeReport.output = output;
+          const definition = registrator.nodeDefinitionMap.get(node.type);
+          const isPassthrough =
+            definition?.handles.inputs.some((h) => h.id === 'main') &&
+            definition?.handles.outputs.some((h) => h.id === 'main');
+
+          let finalOutput = outputFromExecutor;
+
+          if (isPassthrough) {
+            const passthroughValue = inputs.main;
+            if (typeof outputFromExecutor === 'object' && outputFromExecutor !== null) {
+              finalOutput = { ...outputFromExecutor, main: passthroughValue };
+            } else {
+              // If executor returns undefined/null, the output is just the passthrough.
+              // Otherwise, we assume it's a single 'result' value alongside the passthrough.
+              const newOutputs = outputFromExecutor !== undefined ? { result: outputFromExecutor } : {};
+              finalOutput = { ...newOutputs, main: passthroughValue };
+            }
+          }
+
+          nodeReport.output = finalOutput;
         } catch (error: any) {
           nodeReport.status = 'error';
           nodeReport.error = error.message;
@@ -224,8 +244,7 @@ export class LowLevelFlowRunner {
           ? sourceOutput[edge.sourceHandle]
           : sourceOutput;
 
-      // Use the string 'null' as the key for the default handle.
-      const handleKey = edge.targetHandle || 'null';
+      const handleKey = edge.targetHandle ?? 'main';
       inputs[handleKey] = valueToPass;
     }
     return inputs;

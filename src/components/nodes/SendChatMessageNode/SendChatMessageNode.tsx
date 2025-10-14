@@ -10,7 +10,7 @@ import { createFieldConfig } from '../fieldConfig.js';
 export type SendChatMessageNodeProps = NodeProps<Node<SendChatMessageNodeData>>;
 
 const fields = [
-  createFieldConfig({ id: 'message', label: 'Message Content', component: STTextarea, props: { rows: 3 } }),
+  createFieldConfig({ id: 'main', label: 'Message Content', component: STTextarea, props: { rows: 3 } }),
   createFieldConfig({
     id: 'role',
     label: 'Role',
@@ -44,7 +44,7 @@ export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
           <span>Message (Passthrough)</span>
-          <Handle type="source" position={Position.Right} id="message" />
+          <Handle type="source" position={Position.Right} id="main" />
         </div>
       </div>
     </BaseNode>

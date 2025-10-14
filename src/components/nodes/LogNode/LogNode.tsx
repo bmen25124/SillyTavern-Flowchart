@@ -26,9 +26,9 @@ export const LogNode: React.FC<LogNodeProps> = ({ id, selected, type }) => {
 
   return (
     <BaseNode id={id} title="Log Message" selected={selected}>
-      <Handle type="target" position={Position.Left} id="value" />
+      <Handle type="target" position={Position.Left} id="main" />
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <Handle type="source" position={Position.Right} id="value" />
+      <Handle type="source" position={Position.Right} id="main" />
     </BaseNode>
   );
 };

@@ -17,7 +17,7 @@ export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSche
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = EditChatMessageNodeDataSchema.parse(node.data);
   const messageId = resolveInput(input, data, 'messageId');
-  const newMessage = resolveInput(input, data, 'message');
+  const newMessage = input.main ?? resolveInput(input, data, 'message'); // Get from main handle first
   if (messageId === undefined) throw new Error('Message ID is required.');
   if (newMessage === undefined) throw new Error('New message content is required.');
 
@@ -28,7 +28,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   message.mes = newMessage;
   dependencies.st_updateMessageBlock(messageId, message);
   await dependencies.saveChat();
-  return { messageObject: structuredClone(message), message: newMessage };
+  return { messageObject: structuredClone(message) };
 };
 
 export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeData> = {
@@ -42,16 +42,14 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
   handles: {
     inputs: [
       { id: 'messageId', type: FlowDataType.NUMBER },
-      { id: 'message', type: FlowDataType.STRING },
+      { id: 'main', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'messageObject', type: FlowDataType.OBJECT, schema: ChatMessageSchema },
-      { id: 'message', type: FlowDataType.STRING },
+      { id: 'main', type: FlowDataType.STRING },
     ],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: 'message',
 };
 
 registrator.register(editChatMessageNodeDefinition);

@@ -12,7 +12,7 @@ export type RemoveChatMessageNodeProps = NodeProps<Node<RemoveChatMessageNodeDat
 
 const fields = [
   createFieldConfig({
-    id: 'messageId',
+    id: 'main',
     label: 'Message ID',
     component: STInput,
     props: { type: 'number' },
@@ -35,7 +35,7 @@ export const RemoveChatMessageNode: FC<RemoveChatMessageNodeProps> = ({ id, sele
           <Handle
             type="source"
             position={Position.Right}
-            id="messageId"
+            id="main"
             style={{
               position: 'relative',
               transform: 'none',

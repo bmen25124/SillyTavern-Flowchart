@@ -16,7 +16,7 @@ export type SendChatMessageNodeData = z.infer<typeof SendChatMessageNodeDataSche
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = SendChatMessageNodeDataSchema.parse(node.data);
-  const message = resolveInput(input, data, 'message');
+  const message = input.main ?? resolveInput(input, data, 'message');
   if (!message) throw new Error('Message content is required.');
 
   const role = resolveInput(input, data, 'role');
@@ -24,7 +24,8 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   await dependencies.sendChatMessage(message, role, name);
 
   const newChatLength = dependencies.getSillyTavernContext().chat.length;
-  return { messageId: newChatLength - 1, message };
+  // Only return the new data, not the passthrough value.
+  return { messageId: newChatLength - 1 };
 };
 
 export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeData> = {
@@ -37,18 +38,16 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
   initialData: { message: '', role: 'assistant' },
   handles: {
     inputs: [
-      { id: 'message', type: FlowDataType.STRING },
+      { id: 'main', type: FlowDataType.STRING },
       { id: 'role', type: FlowDataType.STRING },
       { id: 'name', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'messageId', type: FlowDataType.NUMBER },
-      { id: 'message', type: FlowDataType.STRING },
+      { id: 'main', type: FlowDataType.STRING },
     ],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: 'message',
 };
 
 registrator.register(sendChatMessageNodeDefinition);

@@ -45,7 +45,7 @@ export const NotificationNode: FC<NotificationNodeProps> = ({ id, selected, type
       <Handle
         type="target"
         position={Position.Left}
-        id={null}
+        id="main"
         style={{ top: '15px', backgroundColor: FlowDataTypeColors.any }}
       />
 
@@ -54,7 +54,7 @@ export const NotificationNode: FC<NotificationNodeProps> = ({ id, selected, type
       <Handle
         type="source"
         position={Position.Right}
-        id={null}
+        id="main"
         style={{ top: '15px', backgroundColor: FlowDataTypeColors.any }}
       />
     </BaseNode>

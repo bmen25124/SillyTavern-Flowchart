@@ -19,7 +19,6 @@ export type NotificationNodeData = z.infer<typeof NotificationNodeDataSchema>;
 const execute: NodeExecutor = async (node, input) => {
   const data = NotificationNodeDataSchema.parse(node.data);
 
-  const passthroughValue = input['null'];
   const message = resolveInput(input, data, 'message');
   const notificationType = resolveInput(input, data, 'notificationType');
 
@@ -31,7 +30,7 @@ const execute: NodeExecutor = async (node, input) => {
     st_echo(validatedType.data || 'info', String(message));
   }
 
-  return passthroughValue;
+  // No return value, runner handles passthrough.
 };
 
 export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = {
@@ -44,15 +43,13 @@ export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = 
   initialData: { message: 'Hello!', notificationType: 'info' },
   handles: {
     inputs: [
-      { id: null, type: FlowDataType.ANY },
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'message', type: FlowDataType.STRING },
       { id: 'notificationType', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.ANY }],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
-  isPassthrough: true,
-  passthroughHandleId: null,
 };
 
 registrator.register(notificationNodeDefinition);
