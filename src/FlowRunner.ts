@@ -173,9 +173,9 @@ class FlowRunner {
     }
 
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
-    const enabledFlows = Object.entries(settings.flows).filter(([flowId]) => settings.enabledFlows[flowId] !== false);
+    const enabledFlows = Object.values(settings.flows).filter((flow) => settings.enabledFlows[flow.id] !== false);
 
-    for (const [flowId, { name, flow }] of enabledFlows) {
+    for (const { id: flowId, name, flow } of enabledFlows) {
       const { isValid, errors } = validateFlow(flow);
       if (!isValid) {
         console.warn(`Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
@@ -231,12 +231,12 @@ class FlowRunner {
       callback: async (_: any, unnamed: any) => {
         const [flowName, paramsJson] = Array.isArray(unnamed) ? unnamed : [unnamed];
         const settings = settingsManager.getSettings();
-        const flowEntry = Object.entries(settings.flows).find(([, { name }]) => name === flowName);
+        const flowEntry = Object.values(settings.flows).find((f) => f.name === flowName);
 
         if (!flowEntry) {
           return `Error: Flow with name "${flowName}" not found.`;
         }
-        const [flowId] = flowEntry;
+        const flowId = flowEntry.id;
 
         let params = {};
         if (paramsJson) {
