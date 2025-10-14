@@ -29,35 +29,35 @@ export const JsonNodeDataSchema = z.object({
 });
 export type JsonNodeData = z.infer<typeof JsonNodeDataSchema>;
 
+const buildValue = (item: JsonNodeItem): any => {
+  switch (item.type) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+      return item.value;
+    case 'object':
+      const obj: { [key: string]: any } = {};
+      for (const child of item.value as JsonNodeItem[]) {
+        obj[child.key] = buildValue(child);
+      }
+      return obj;
+    case 'array':
+      return (item.value as JsonNodeItem[]).map(buildValue);
+  }
+};
+
 const execute: NodeExecutor = async (node) => {
   const data = JsonNodeDataSchema.parse(node.data);
 
-  const buildValue = (item: JsonNodeItem): any => {
-    switch (item.type) {
-      case 'string':
-      case 'number':
-      case 'boolean':
-        return item.value;
-      case 'object':
-        const obj: { [key: string]: any } = {};
-        for (const child of item.value as JsonNodeItem[]) {
-          obj[child.key] = buildValue(child);
-        }
-        return obj;
-      case 'array':
-        return (item.value as JsonNodeItem[]).map(buildValue);
-    }
-  };
-
   if (data.rootType === 'array') {
-    return data.items.map(buildValue);
+    return { result: data.items.map(buildValue) };
   }
 
   const rootObject: { [key: string]: any } = {};
   for (const item of data.items) {
     rootObject[item.key] = buildValue(item);
   }
-  return rootObject;
+  return { result: rootObject, ...rootObject };
 };
 
 function jsonItemToZod(item: JsonNodeItem): z.ZodType {
@@ -94,6 +94,13 @@ function inferSchemaFromJsonNode(data: JsonNodeData): z.ZodType {
   return z.object(shape);
 }
 
+function zodTypeToFlowType(type: z.ZodType): FlowDataType {
+  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
+  if (type instanceof z.ZodString) return FlowDataType.STRING;
+  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
+  return FlowDataType.OBJECT; // Includes arrays, objects, etc.
+}
+
 export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   type: 'jsonNode',
   label: 'JSON',
@@ -102,12 +109,41 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   dataSchema: JsonNodeDataSchema,
   currentVersion: 1,
   initialData: { items: [], rootType: 'object' },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
+  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.OBJECT }] },
   execute,
-  getDynamicHandles: (node) => ({
-    inputs: [],
-    outputs: [{ id: null, type: FlowDataType.OBJECT, schema: inferSchemaFromJsonNode(node.data) }],
-  }),
+  getDynamicHandles: (node) => {
+    const data = node.data;
+    const fullSchema = inferSchemaFromJsonNode(data);
+    const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: fullSchema }];
+
+    if (data.rootType === 'object') {
+      for (const item of data.items) {
+        if (!item.key) continue;
+        const itemSchema = jsonItemToZod(item);
+        outputs.push({
+          id: item.key,
+          type: zodTypeToFlowType(itemSchema),
+          schema: itemSchema,
+        });
+      }
+    }
+
+    return { inputs: [], outputs };
+  },
+  getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'output') {
+      if (handleId === 'result') return FlowDataType.OBJECT;
+
+      const data = node.data as JsonNodeData;
+      if (data.rootType === 'object') {
+        const item = data.items.find((item) => item.key === handleId);
+        if (item) {
+          return zodTypeToFlowType(jsonItemToZod(item));
+        }
+      }
+    }
+    return undefined;
+  },
 };
 
 registrator.register(jsonNodeDefinition);

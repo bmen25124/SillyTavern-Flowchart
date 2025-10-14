@@ -582,6 +582,73 @@ const FlowManager: FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [copySelection, paste, getNodes, screenToFlowPosition, undo, redo, fitView]);
 
+  useEffect(() => {
+    const unsubscribe = useFlowStore.subscribe((state, prevState) => {
+      // We only care about changes to node data, which might affect handles.
+      if (state.nodes === prevState.nodes) return;
+
+      const dataChanged = state.nodes.some((node) => {
+        const prevNode = prevState.nodesMap.get(node.id);
+        return !prevNode || prevNode.data !== node.data;
+      });
+
+      if (!dataChanged) return;
+
+      const { nodes, edges } = state;
+      const nodesMap = new Map(nodes.map((n) => [n.id, n]));
+
+      const getValidHandleIds = (node: Node, direction: 'input' | 'output') => {
+        const ids = new Set<string | null>();
+        if (!node.type) return ids;
+
+        const definition = registrator.nodeDefinitionMap.get(node.type);
+        if (!definition) return ids;
+
+        const staticHandles = direction === 'input' ? definition.handles.inputs : definition.handles.outputs;
+        staticHandles.forEach((h) => ids.add(h.id));
+
+        if (definition.getDynamicHandles) {
+          const dynamicHandles = definition.getDynamicHandles(node, nodes, edges);
+          const handles = direction === 'input' ? dynamicHandles.inputs : dynamicHandles.outputs;
+          handles.forEach((h) => ids.add(h.id));
+        }
+        return ids;
+      };
+
+      const validEdges = edges.filter((edge) => {
+        const sourceNode = nodesMap.get(edge.source);
+        const targetNode = nodesMap.get(edge.target);
+
+        if (!sourceNode || !targetNode) return false;
+
+        const sourceHandleIds = getValidHandleIds(sourceNode, 'output');
+        if (!sourceHandleIds.has(edge.sourceHandle ?? null)) {
+          return false;
+        }
+
+        const targetHandleIds = getValidHandleIds(targetNode, 'input');
+        if (!targetHandleIds.has(edge.targetHandle ?? null)) {
+          return false;
+        }
+
+        // Re-check type validity as the handle's type might have changed.
+        if (!checkConnectionValidity(edge, nodes, edges)) {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (validEdges.length < edges.length) {
+        // Use a timeout to prevent an infinite loop where a state update inside
+        // a subscriber immediately triggers the subscriber again.
+        setTimeout(() => useFlowStore.getState().setEdges(validEdges), 0);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
     () => validateFlow(getSpecFlow()),
     [nodes, edges, getSpecFlow],
