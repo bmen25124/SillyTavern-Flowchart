@@ -151,8 +151,8 @@ describe('LowLevelFlowRunner', () => {
       edges: [
         { id: 'e-start-left', source: 'start', target: 'left', sourceHandle: null, targetHandle: null },
         { id: 'e-start-right', source: 'start', target: 'right', sourceHandle: null, targetHandle: null },
-        { id: 'e-left-merge', source: 'left', target: 'merge', sourceHandle: null, targetHandle: 'object_0' },
-        { id: 'e-right-merge', source: 'right', target: 'merge', sourceHandle: null, targetHandle: 'object_1' },
+        { id: 'e-left-merge', source: 'left', target: 'merge', sourceHandle: 'result', targetHandle: 'object_0' },
+        { id: 'e-right-merge', source: 'right', target: 'merge', sourceHandle: 'result', targetHandle: 'object_1' },
       ],
     };
 
@@ -199,6 +199,76 @@ describe('LowLevelFlowRunner', () => {
     expect(executedNodeIds).not.toContain('after');
 
     runner['nodeExecutors'].delete('delayNode');
+  });
+
+  // --- "Run To/From Here" Logic ---
+  describe('Run To/From Here', () => {
+    it("should only execute the ancestor path when using 'endNodeId' (Run To Here)", async () => {
+      const unwantedExecutor = jest.fn(async () => ({}));
+      runner['nodeExecutors'].set('unwantedNode', unwantedExecutor);
+
+      const flow: SpecFlow = {
+        nodes: [
+          { id: 'start', type: 'manualTriggerNode', data: {} },
+          { id: 'target-branch-node', type: 'stringNode', data: { value: 'A' } },
+          { id: 'target-node', type: 'stringNode', data: { value: 'B' } },
+          { id: 'unwanted-branch-node', type: 'unwantedNode', data: {} },
+        ],
+        edges: [
+          // Valid branch that should run
+          { id: 'e1', source: 'start', target: 'target-branch-node', sourceHandle: null, targetHandle: 'value' },
+          {
+            id: 'e2',
+            source: 'target-branch-node',
+            target: 'target-node',
+            sourceHandle: 'value',
+            targetHandle: 'value',
+          },
+          // Unrelated parallel branch that should NOT run
+          { id: 'e3', source: 'start', target: 'unwanted-branch-node', sourceHandle: null, targetHandle: null },
+        ],
+      };
+
+      const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, undefined, {
+        endNodeId: 'target-node',
+      });
+
+      expect(report.error).toBeUndefined();
+      const executedIds = report.executedNodes.map((n) => n.nodeId);
+
+      expect(executedIds).toContain('start');
+      expect(executedIds).toContain('target-branch-node');
+      expect(executedIds).toContain('target-node'); // It runs the target node itself
+      expect(executedIds).not.toContain('unwanted-branch-node');
+      expect(unwantedExecutor).not.toHaveBeenCalled();
+
+      runner['nodeExecutors'].delete('unwantedNode');
+    });
+
+    it("should only execute the downstream path when using 'startNodeId' (Run From Here)", async () => {
+      const flow: SpecFlow = {
+        nodes: [
+          { id: 'before', type: 'stringNode', data: { value: 'A' } },
+          { id: 'start-node', type: 'stringNode', data: { value: 'B' } },
+          { id: 'after', type: 'stringNode', data: { value: 'C' } },
+        ],
+        edges: [
+          { id: 'e1', source: 'before', target: 'start-node', sourceHandle: 'value', targetHandle: 'value' },
+          { id: 'e2', source: 'start-node', target: 'after', sourceHandle: 'value', targetHandle: 'value' },
+        ],
+      };
+
+      const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, undefined, {
+        startNodeId: 'start-node',
+      });
+
+      expect(report.error).toBeUndefined();
+      const executedIds = report.executedNodes.map((n) => n.nodeId);
+
+      expect(executedIds).not.toContain('before');
+      expect(executedIds).toContain('start-node');
+      expect(executedIds).toContain('after');
+    });
   });
 
   // --- Original Integration-Style Tests ---

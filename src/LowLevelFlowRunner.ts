@@ -37,14 +37,46 @@ export class LowLevelFlowRunner {
     const report: ExecutionReport = { executedNodes: [] };
     let lastOutput: any = undefined;
 
-    const inDegree: Record<string, number> = {};
-    const adj = new Map<string, SpecEdge[]>(flow.nodes.map((node) => [node.id, []]));
-    const nodesById = new Map(flow.nodes.map((node) => [node.id, node]));
+    let nodesToExecute = flow.nodes;
+    let edgesToExecute = flow.edges;
 
-    for (const node of flow.nodes) {
+    // If 'Run To Here' is used, we calculate the subgraph of all ancestors of the target node.
+    // Execution will be constrained to only this subgraph.
+    if (options.endNodeId) {
+      const ancestorSet = new Set<string>();
+      const backwardQueue: string[] = [options.endNodeId];
+      ancestorSet.add(options.endNodeId);
+
+      // Create a reverse adjacency list to traverse backwards from the target.
+      const revAdj = new Map<string, string[]>();
+      flow.nodes.forEach((node) => revAdj.set(node.id, []));
+      flow.edges.forEach((edge) => {
+        revAdj.get(edge.target)?.push(edge.source);
+      });
+
+      while (backwardQueue.length > 0) {
+        const currentNodeId = backwardQueue.shift()!;
+        const parents = revAdj.get(currentNodeId) || [];
+        for (const parentId of parents) {
+          if (!ancestorSet.has(parentId)) {
+            ancestorSet.add(parentId);
+            backwardQueue.push(parentId);
+          }
+        }
+      }
+
+      nodesToExecute = flow.nodes.filter((node) => ancestorSet.has(node.id));
+      edgesToExecute = flow.edges.filter((edge) => ancestorSet.has(edge.source) && ancestorSet.has(edge.target));
+    }
+
+    const inDegree: Record<string, number> = {};
+    const adj = new Map<string, SpecEdge[]>(nodesToExecute.map((node) => [node.id, []]));
+    const nodesById = new Map(nodesToExecute.map((node) => [node.id, node]));
+
+    for (const node of nodesToExecute) {
       inDegree[node.id] = 0;
     }
-    for (const edge of flow.edges) {
+    for (const edge of edgesToExecute) {
       if (nodesById.has(edge.source) && nodesById.has(edge.target)) {
         inDegree[edge.target]++;
         adj.get(edge.source)!.push(edge);
@@ -59,7 +91,7 @@ export class LowLevelFlowRunner {
       }
       queue.push(options.startNodeId);
     } else {
-      queue.push(...flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id));
+      queue.push(...nodesToExecute.filter((node) => inDegree[node.id] === 0).map((node) => node.id));
     }
 
     try {
@@ -75,9 +107,10 @@ export class LowLevelFlowRunner {
           continue;
         }
 
-        const isRootNode = !flow.edges.some((e) => e.target === nodeId);
-        const baseInput = isRootNode || nodeId === options.startNodeId ? initialInput : {};
-        const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput, nodesById);
+        const isRootNode = !edgesToExecute.some((e) => e.target === nodeId);
+        const isExplicitStart = nodeId === options.startNodeId;
+        const baseInput = isRootNode || isExplicitStart ? initialInput : {};
+        const inputs = this.getNodeInputs(node, edgesToExecute, nodeOutputs, baseInput, nodesById, options.startNodeId);
 
         eventEmitter.emit('node:run:start', { runId, nodeId });
         const nodeReport: NodeReport = { status: 'completed', input: inputs, output: {}, error: undefined };
@@ -162,8 +195,14 @@ export class LowLevelFlowRunner {
     nodeOutputs: Record<string, any>,
     baseInput: Record<string, any>,
     nodesById: Map<string, SpecNode>,
+    startNodeId?: string,
   ): Record<string, any> {
     const inputs: Record<string, any> = { ...baseInput };
+
+    if (node.id === startNodeId) {
+      return inputs;
+    }
+
     const incomingEdges = edges.filter((edge) => edge.target === node.id);
 
     for (const edge of incomingEdges) {

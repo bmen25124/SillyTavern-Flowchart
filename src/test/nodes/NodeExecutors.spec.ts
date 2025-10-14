@@ -252,7 +252,8 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, {}, context);
-      expect(result).toEqual({ name: 'Alice', age: 30, address: { city: 'Wonderland' } });
+      const expectedObject = { name: 'Alice', age: 30, address: { city: 'Wonderland' } };
+      expect(result).toEqual({ ...expectedObject, result: expectedObject });
     });
   });
 
