@@ -5,6 +5,7 @@ import { useForceUpdate } from '../hooks/useForceUpdate.js';
 import { PopupManager } from './popup/PopupManager.js';
 import { flowRunner } from '../FlowRunner.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
+import { eventEmitter } from '../events.js';
 
 export const FlowChartSettings: FC = () => {
   const forceUpdate = useForceUpdate();
@@ -42,11 +43,7 @@ export const FlowChartSettings: FC = () => {
       forceUpdate();
 
       // Force-refresh the popup's content if it's open during the reset.
-      // @ts-ignore
-      if (window.forceFlowChartPopupUpdate) {
-        // @ts-ignore
-        window.forceFlowChartPopupUpdate();
-      }
+      eventEmitter.emit('flow:reset-all-settings');
     }
   };
 
@@ -75,12 +72,7 @@ export const FlowChartSettings: FC = () => {
             </div>
 
             <div className="setting-row">
-              <STButton
-                // @ts-ignore
-                onClick={() => window.openFlowChartDataPopup()}
-              >
-                Customize Prompts & Data
-              </STButton>
+              <STButton onClick={() => eventEmitter.emit('openFlowChartDataPopup')}>Customize Prompts & Data</STButton>
             </div>
 
             <div className="setting-row">

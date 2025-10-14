@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Popup } from 'sillytavern-utils-lib/components';
 import { POPUP_TYPE } from 'sillytavern-utils-lib/types/popup';
 import { FlowChartDataPopup } from './FlowChartDataPopup.js';
+import { eventEmitter } from '../../events.js';
 
 export const PopupManager = () => {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -9,8 +10,12 @@ export const PopupManager = () => {
   const openPopup = () => setIsPopupVisible(true);
   const closePopup = () => setIsPopupVisible(false);
 
-  // @ts-ignore
-  window.openFlowChartDataPopup = openPopup;
+  useEffect(() => {
+    eventEmitter.on('openFlowChartDataPopup', openPopup);
+    return () => {
+      eventEmitter.off('openFlowChartDataPopup', openPopup);
+    };
+  }, []);
 
   if (isPopupVisible) {
     return (

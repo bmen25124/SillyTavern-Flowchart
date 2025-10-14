@@ -360,10 +360,22 @@
   background-color: var(--grey10);
 }
 
-// Styles for invalid nodes
+// Styles for invalid nodes/edges
 .react-flow__node.flow-node-invalid > div {
   border: 2px solid var(--warning) !important;
   box-shadow: 0 0 5px var(--warning);
+}
+
+.react-flow__edge.flow-edge-invalid .react-flow__edge-path {
+  stroke: var(--danger) !important;
+  stroke-dasharray: 8, 8;
+  animation: dash-animation 1s linear infinite;
+}
+
+@keyframes dash-animation {
+  to {
+    stroke-dashoffset: -16;
+  }
 }
 
 // Styles for disabled nodes
@@ -665,4 +677,21 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.hotkey-helper {
+  position: absolute;
+  right: 120px;
+  top: 10px;
+  z-index: 10;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  background: var(--SmartThemeChatTintColor);
+  border: 1px solid var(--SmartThemeBorderColor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  color: var(--text-color-secondary);
 }

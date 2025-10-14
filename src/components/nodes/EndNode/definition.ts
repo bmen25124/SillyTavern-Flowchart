@@ -5,12 +5,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { EndNode } from './EndNode.js';
 import { FlowDataType } from '../../../flow-types.js';
 
-export class FlowTerminationError extends Error {
-  constructor(message = 'Flow terminated by EndNode.') {
-    super(message);
-    this.name = 'FlowTerminationError';
-  }
-}
+export const END_NODE_SENTINEL = Symbol('FlowTerminationSentinel');
 
 export const EndNodeDataSchema = z.object({
   _version: z.number().optional(),
@@ -18,7 +13,7 @@ export const EndNodeDataSchema = z.object({
 export type EndNodeData = z.infer<typeof EndNodeDataSchema>;
 
 const execute: NodeExecutor = async () => {
-  throw new FlowTerminationError();
+  return END_NODE_SENTINEL;
 };
 
 export const endNodeDefinition: NodeDefinition<EndNodeData> = {

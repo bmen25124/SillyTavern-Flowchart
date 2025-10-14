@@ -29,21 +29,33 @@ const execute: NodeExecutor = async (node, input) => {
 function zodTypeFromPath(schema: z.ZodType, path: string): z.ZodType | undefined {
   if (path === '') return schema;
 
-  const parts = path.split('.');
+  // Normalize path to handle both dot and bracket notation for arrays
+  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
   let currentSchema: z.ZodType | undefined = schema;
 
   for (const part of parts) {
     if (!currentSchema) return undefined;
 
-    // Unwrap optional/nullable types to get to the core object
-    if ('unwrap' in currentSchema && typeof currentSchema.unwrap === 'function') {
-      currentSchema = currentSchema.unwrap();
+    // @ts-ignore
+    let unwrapped = currentSchema;
+    // Repeatedly unwrap to get to the core type (e.g., from ZodOptional<ZodNullable<ZodObject<...>>> to ZodObject<...>)
+    while ('unwrap' in unwrapped && typeof unwrapped.unwrap === 'function') {
+      unwrapped = unwrapped.unwrap();
     }
 
-    if (currentSchema instanceof z.ZodObject) {
-      currentSchema = currentSchema.shape[part];
+    if (unwrapped instanceof z.ZodObject) {
+      currentSchema = unwrapped.shape[part];
+    } else if (unwrapped instanceof z.ZodArray) {
+      // If we're at an array, the path part must be an index. We don't validate the index itself,
+      // but instead transition to the array's element schema for the next part of the path.
+      if (!isNaN(parseInt(part, 10))) {
+        // @ts-ignore
+        currentSchema = unwrapped.element;
+      } else {
+        return undefined; // Invalid path part for an array
+      }
     } else {
-      return undefined;
+      return undefined; // Primitive type, cannot traverse further
     }
   }
   return currentSchema;

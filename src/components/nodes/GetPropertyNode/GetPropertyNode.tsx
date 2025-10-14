@@ -23,6 +23,11 @@ function flattenZodSchema(schema: z.ZodType, prefix = ''): string[] {
     const shape = schema.shape;
     return Object.entries(shape).flatMap(([key, value]) => flattenZodSchema(value, prefix ? `${prefix}.${key}` : key));
   }
+  if (schema instanceof z.ZodArray) {
+    // Suggest accessing the first element for properties
+    // @ts-ignore
+    return flattenZodSchema(schema.element, `${prefix}[0]`);
+  }
   return prefix ? [prefix] : [];
 }
 

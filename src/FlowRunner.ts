@@ -276,7 +276,7 @@ class FlowRunner {
     const { flowId, initialInput } = this.flowQueue.shift()!;
 
     try {
-      await this.executeFlow(flowId, initialInput, 0);
+      await this._executeFlowInternal(flowId, initialInput, 0);
     } catch (error) {
       console.error(`[FlowChart] Critical error during queued flow execution:`, error);
     } finally {

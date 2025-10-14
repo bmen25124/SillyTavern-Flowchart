@@ -2,7 +2,7 @@ import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { eventEmitter } from './events.js';
 import { NodeReport } from './components/popup/flowRunStore.js';
 import { FlowRunnerDependencies, NodeExecutor, NodeExecutorContext } from './NodeExecutor.js';
-import { FlowTerminationError } from './components/nodes/EndNode/definition.js';
+import { END_NODE_SENTINEL } from './components/nodes/EndNode/definition.js';
 
 export interface ExecutionReport {
   executedNodes: {
@@ -55,7 +55,7 @@ export class LowLevelFlowRunner {
     try {
       while (queue.length > 0) {
         if (signal?.aborted) {
-          throw new Error('Flow execution was aborted by the user.');
+          throw new DOMException('Flow execution was aborted.', 'AbortError');
         }
         const nodeId = queue.shift()!;
         const node = nodesById.get(nodeId)!;
@@ -79,9 +79,8 @@ export class LowLevelFlowRunner {
             executionVariables,
             depth,
           });
-          nodeReport.output = output;
-        } catch (error: any) {
-          if (error instanceof FlowTerminationError) {
+
+          if (output === END_NODE_SENTINEL) {
             console.log(`[FlowChart] Flow terminated gracefully by EndNode ${node.id}.`);
             nodeReport.output = {};
             lastOutput = {};
@@ -89,6 +88,9 @@ export class LowLevelFlowRunner {
             report.lastOutput = lastOutput;
             return report; // Graceful exit
           }
+
+          nodeReport.output = output;
+        } catch (error: any) {
           nodeReport.status = 'error';
           nodeReport.error = error.message;
           nodeReport.output = null;
@@ -123,7 +125,7 @@ export class LowLevelFlowRunner {
         }
       }
     } catch (error: any) {
-      const isAbort = error instanceof Error && error.message.includes('aborted');
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
       if (!isAbort) {
         console.error('[FlowChart] Flow execution aborted due to an error.', error);
       }
@@ -176,9 +178,6 @@ export class LowLevelFlowRunner {
     try {
       return await executor(node, input, context);
     } catch (error) {
-      if (error instanceof FlowTerminationError) {
-        throw error; // Re-throw to be caught by the main loop
-      }
       const errorMessage = error instanceof Error ? error.message : String(error);
       const enhancedError = new Error(`Execution failed at node ${node.id} (${node.type}): ${errorMessage}`);
       (enhancedError as any).nodeId = node.id;

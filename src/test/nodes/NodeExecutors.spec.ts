@@ -109,6 +109,20 @@ describe('Node Executors', () => {
       expect(result).toEqual({ value: 'Wonderland' });
     });
 
+    it('should get a property from an array using bracket notation', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'items[1]' });
+      const obj = { items: ['a', 'b', 'c'] };
+      const result = await execute(node, { object: obj }, context);
+      expect(result).toEqual({ value: 'b' });
+    });
+
+    it('should get a nested property from an object within an array', async () => {
+      const node = createMockNode(getPropertyNodeDefinition, { path: 'users[0].name' });
+      const obj = { users: [{ name: 'Bob' }, { name: 'Charlie' }] };
+      const result = await execute(node, { object: obj }, context);
+      expect(result).toEqual({ value: 'Bob' });
+    });
+
     it('should return undefined for a non-existent path', async () => {
       const node = createMockNode(getPropertyNodeDefinition, { path: 'address.zip' });
       const obj = { name: 'Alice', address: { city: 'Wonderland' } };

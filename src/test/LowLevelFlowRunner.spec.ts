@@ -101,15 +101,19 @@ describe('LowLevelFlowRunner', () => {
       ],
       edges: [
         { id: 'e1', source: 'start', target: 'endNode', sourceHandle: null, targetHandle: null },
-        { id: 'e2', source: 'endNode', target: 'after', sourceHandle: null, targetHandle: null },
+        // The edge below should not be traversed.
+        { id: 'e2', source: 'endNode', target: 'after', sourceHandle: null, targetHandle: 'value' },
       ],
     };
 
     const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
 
+    // The flow should complete successfully with no error.
     expect(report.error).toBeUndefined();
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
+    // Execution stops at the end node.
     expect(executedNodeIds).toEqual(['start', 'endNode']);
+    expect(executedNodeIds).not.toContain('after');
   });
 
   it('should stop the execution path at a disabled node and not report it', async () => {
@@ -166,8 +170,10 @@ describe('LowLevelFlowRunner', () => {
   it('should abort execution when the signal is triggered', async () => {
     const controller = new AbortController();
     const delayExecutor = jest.fn(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10)); // Allow time for abort
+      // Immediately abort after this node starts
       controller.abort();
+      // Add a small delay to ensure the abort signal propagates
+      await new Promise((resolve) => setTimeout(resolve, 10));
       return { value: 'delayed' };
     });
     runner['nodeExecutors'].set('delayNode', delayExecutor);
@@ -187,6 +193,7 @@ describe('LowLevelFlowRunner', () => {
     const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, controller.signal);
 
     expect(report.error).toBeDefined();
+    // Check for the specific AbortError type
     expect(report.error?.message).toContain('aborted');
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
     expect(executedNodeIds).not.toContain('after');

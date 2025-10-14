@@ -71,6 +71,7 @@ export function runMigrations(flow: SpecFlow): SpecFlow {
     let nodeData = { ...node.data };
 
     while (currentVersion < definition.currentVersion) {
+      const versionBeforeMigration = currentVersion;
       const migrator = MIGRATION_REGISTRY[node.type]?.[currentVersion];
       if (!migrator) {
         // No migrator found, we can't proceed for this node.
@@ -95,6 +96,13 @@ export function runMigrations(flow: SpecFlow): SpecFlow {
       }
 
       currentVersion = nodeData._version; // The migrator MUST update the version.
+      if (currentVersion === versionBeforeMigration) {
+        console.error(
+          `[Migration] Migration for node "${node.type}" from version ${versionBeforeMigration} did not update the version number. Halting migration for this node to prevent an infinite loop.`,
+        );
+        nodeData._version = definition.currentVersion;
+        break;
+      }
     }
 
     return { ...node, data: nodeData };

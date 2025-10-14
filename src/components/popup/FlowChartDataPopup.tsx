@@ -1,9 +1,9 @@
 import { FC, useState, useEffect } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { PromptsSettings } from './PromptsSettings.js';
-import { settingsManager } from '../../config.js';
 import { FlowChartGround } from './FlowChartGround.js';
 import { FlowHistory } from './FlowHistory.js';
+import { eventEmitter } from '../../events.js';
 
 type Tab = 'prompts' | 'ground' | 'history';
 
@@ -18,17 +18,15 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
   useEffect(() => {
     // This allows the main settings panel to force-refresh this popup's content
     // if a full settings reset happens while this popup is open.
-    // @ts-ignore
-    window.forceFlowChartPopupUpdate = () => setImportKey((k) => k + 1);
+    const listener = () => setImportKey((k) => k + 1);
+    eventEmitter.on('flow:reset-all-settings', listener);
     return () => {
-      // @ts-ignore
-      delete window.forceFlowChartPopupUpdate;
+      eventEmitter.off('flow:reset-all-settings', listener);
     };
   }, []);
 
-  const handleSave = () => {
-    settingsManager.saveSettings();
-    onSave();
+  const handleClose = () => {
+    onSave(); // This prop is actually `closePopup`
   };
 
   return (
@@ -47,8 +45,8 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
       </div>
       <div className="flowchart-popup-footer">
         <div style={{ flex: 1 }} />
-        <STButton onClick={handleSave} color="primary">
-          Save and Close
+        <STButton onClick={handleClose} color="primary">
+          Close
         </STButton>
       </div>
     </div>

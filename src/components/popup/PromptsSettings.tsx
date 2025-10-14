@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { STButton, STInput, STTextarea } from 'sillytavern-utils-lib/components';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import {
@@ -8,12 +8,19 @@ import {
   LLM_REQUEST_XML_PROMPT_KEY,
 } from '../../config.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
+import { useDebounce } from '../../hooks/useDebounce.js';
 
 const CORE_PROMPTS = [LLM_REQUEST_JSON_PROMPT_KEY, LLM_REQUEST_XML_PROMPT_KEY];
 
 export const PromptsSettings: FC = () => {
   const forceUpdate = useForceUpdate();
   const settings = settingsManager.getSettings();
+  const debouncedPrompts = useDebounce(settings.prompts, 500);
+
+  // Auto-save when prompts change after a delay
+  useEffect(() => {
+    settingsManager.saveSettings();
+  }, [debouncedPrompts]);
 
   const handlePromptChange = (promptKey: string, value: string) => {
     settings.prompts[promptKey] = value;
@@ -39,7 +46,7 @@ export const PromptsSettings: FC = () => {
   const handleRenamePrompt = (oldKey: string, newKey: string) => {
     if (!newKey || CORE_PROMPTS.includes(newKey) || settings.prompts[newKey]) {
       st_echo('error', `Invalid or duplicate prompt name: ${newKey}`);
-      forceUpdate();
+      forceUpdate(); // Re-render to revert the input field value
       return;
     }
     const value = settings.prompts[oldKey];
