@@ -8,10 +8,13 @@ import {
   applyEdgeChanges,
   addEdge,
   Connection,
+  NodeChange,
+  EdgeChange,
 } from '@xyflow/react';
 import { temporal } from 'zundo';
 import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 import { runMigrations } from '../../migrations.js';
+import { registrator } from '../nodes/autogen-imports.js';
 
 type Clipboard = {
   nodes: Node[];
@@ -72,6 +75,47 @@ const fromSpecEdge = (specEdge: SpecEdge): Edge => ({
   targetHandle: specEdge.targetHandle,
 });
 
+const getValidHandleIds = (node: Node, direction: 'input' | 'output', allNodes: Node[], allEdges: Edge[]) => {
+  const ids = new Set<string | null>();
+  if (!node.type) return ids;
+
+  const definition = registrator.nodeDefinitionMap.get(node.type);
+  if (!definition) return ids;
+
+  const staticHandles = direction === 'input' ? definition.handles.inputs : definition.handles.outputs;
+  staticHandles.forEach((h) => ids.add(h.id));
+
+  if (definition.getDynamicHandles) {
+    const dynamicHandles = definition.getDynamicHandles(node, allNodes, allEdges);
+    const handles = direction === 'input' ? dynamicHandles.inputs : dynamicHandles.outputs;
+    handles.forEach((h) => ids.add(h.id));
+  }
+  return ids;
+};
+
+const cleanupEdges = (nodes: Node[], edges: Edge[]): Edge[] => {
+  const nodesMap = new Map(nodes.map((n) => [n.id, n]));
+
+  return edges.filter((edge) => {
+    const sourceNode = nodesMap.get(edge.source);
+    const targetNode = nodesMap.get(edge.target);
+
+    if (!sourceNode || !targetNode) return false;
+
+    const sourceHandleIds = getValidHandleIds(sourceNode, 'output', nodes, edges);
+    if (!sourceHandleIds.has(edge.sourceHandle ?? null)) {
+      return false;
+    }
+
+    const targetHandleIds = getValidHandleIds(targetNode, 'input', nodes, edges);
+    if (!targetHandleIds.has(edge.targetHandle ?? null)) {
+      return false;
+    }
+
+    return true;
+  });
+};
+
 export const useFlowStore = create(
   temporal<FlowState>(
     (set, get) => ({
@@ -83,19 +127,27 @@ export const useFlowStore = create(
         set({ nodes, nodesMap: new Map(nodes.map((n) => [n.id, n])) });
       },
       setEdges: (edges) => set({ edges }),
-      onNodesChange: (changes) => {
+      onNodesChange: (changes: NodeChange[]) => {
         set((state) => {
-          const newNodes = applyNodeChanges(changes, state.nodes);
+          const nextNodes = applyNodeChanges(changes, state.nodes);
+          const cleanedEdges = cleanupEdges(nextNodes, state.edges);
+
           return {
-            nodes: newNodes,
-            nodesMap: new Map(newNodes.map((n) => [n.id, n])),
+            nodes: nextNodes,
+            edges: cleanedEdges,
+            nodesMap: new Map(nextNodes.map((n) => [n.id, n])),
           };
         });
       },
-      onEdgesChange: (changes) => {
-        set((state) => ({
-          edges: applyEdgeChanges(changes, state.edges),
-        }));
+      onEdgesChange: (changes: EdgeChange[]) => {
+        set((state) => {
+          const nextEdges = applyEdgeChanges(changes, state.edges);
+          const cleanedEdges = cleanupEdges(state.nodes, nextEdges);
+
+          return {
+            edges: cleanedEdges,
+          };
+        });
       },
       onConnect: (connection) => {
         set((state) => ({
@@ -103,33 +155,20 @@ export const useFlowStore = create(
         }));
       },
       updateNodeData: (nodeId, newData) => {
-        set((state) => {
-          const newNodes = state.nodes.map((node) => {
-            if (node.id === nodeId) {
-              return { ...node, data: { ...node.data, ...newData } };
-            }
-            return node;
-          });
-          return {
-            nodes: newNodes,
-            nodesMap: new Map(newNodes.map((n) => [n.id, n])),
-          };
-        });
+        const node = get().nodesMap.get(nodeId);
+        if (!node) return;
+        // This triggers onNodesChange, which handles the cleanup.
+        // @ts-ignore
+        get().onNodesChange([{ type: 'replace', id: nodeId, data: { ...node.data, ...newData } }]);
       },
       toggleNodeDisabled: (nodeIds) => {
-        set((state) => {
-          const nodesToToggle = new Set(nodeIds);
-          const newNodes = state.nodes.map((node) => {
-            if (nodesToToggle.has(node.id)) {
-              return { ...node, data: { ...node.data, disabled: !node.data.disabled } };
-            }
-            return node;
-          });
-          return {
-            nodes: newNodes,
-            nodesMap: new Map(newNodes.map((n) => [n.id, n])),
-          };
+        // @ts-ignore
+        const changes: NodeChange[] = nodeIds.map((nodeId) => {
+          const node = get().nodesMap.get(nodeId);
+          if (!node) return { type: 'select', id: nodeId, selected: false }; // No-op
+          return { type: 'replace', id: nodeId, data: { ...node.data, disabled: !node.data.disabled } };
         });
+        get().onNodesChange(changes.filter((c) => c.type === 'replace'));
       },
       loadFlow: (flowData) => {
         const migratedFlow = runMigrations(flowData);
@@ -262,11 +301,7 @@ export const useFlowStore = create(
 );
 
 useFlowStore.subscribe((state, prevState) => {
-  // This listener is called after every state change.
-  // When undo/redo happens, `state.nodes` will be a new array instance.
-  // We check for reference inequality to detect this change and sync our derived state.
   if (state.nodes !== prevState.nodes) {
-    // This setState call is not tracked by zundo and keeps nodesMap in sync.
     useFlowStore.setState({ nodesMap: new Map(state.nodes.map((n) => [n.id, n])) });
   }
 });

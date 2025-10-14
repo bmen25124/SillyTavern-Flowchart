@@ -23,6 +23,15 @@ function getHandleType(
 }
 
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
+  // A target handle can only have one connection.
+  const targetHandleHasConnection = edges.some(
+    (edge) => edge.target === connection.target && edge.targetHandle === connection.targetHandle,
+  );
+
+  if (targetHandleHasConnection) {
+    return false;
+  }
+
   const sourceNode = nodes.find((node) => node.id === connection.source);
   const targetNode = nodes.find((node) => node.id === connection.target);
 
