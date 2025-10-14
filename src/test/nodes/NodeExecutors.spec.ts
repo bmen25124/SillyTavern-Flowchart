@@ -263,8 +263,8 @@ describe('Node Executors', () => {
         fields: [{ id: 'f1', name: 'username', type: 'string', description: 'User name' }],
       });
       const result = await execute(node, {}, context);
-      expect(result).toBeInstanceOf(z.ZodObject);
-      const validation = result.safeParse({ username: 'test' });
+      expect(result.result).toBeInstanceOf(z.ZodObject);
+      const validation = result.result.safeParse({ username: 'test' });
       expect(validation.success).toBe(true);
     });
   });
@@ -278,10 +278,12 @@ describe('Node Executors', () => {
         messages_1: [{ role: 'assistant', content: 'B' }],
       };
       const result = await execute(node, input, context);
-      expect(result).toEqual([
-        { role: 'user', content: 'A' },
-        { role: 'assistant', content: 'B' },
-      ]);
+      expect(result).toEqual({
+        result: [
+          { role: 'user', content: 'A' },
+          { role: 'assistant', content: 'B' },
+        ],
+      });
     });
   });
 
@@ -291,7 +293,7 @@ describe('Node Executors', () => {
       const node = createMockNode(mergeObjectsNodeDefinition, { inputCount: 2 });
       const input = { object_0: { a: 1, b: 2 }, object_1: { b: 3, c: 4 } };
       const result = await execute(node, input, context);
-      expect(result).toEqual({ a: 1, b: 3, c: 4 });
+      expect(result).toEqual({ result: { a: 1, b: 3, c: 4 } });
     });
   });
 
@@ -407,7 +409,7 @@ describe('Node Executors', () => {
       const result = await execute(node, {}, context);
 
       expect(dependencies.st_createNewWorldInfo).toHaveBeenCalledWith('My New Lorebook');
-      expect(result).toBe('My New Lorebook');
+      expect(result).toEqual({ result: 'My New Lorebook' });
     });
 
     it('should throw if the dependency reports failure', async () => {

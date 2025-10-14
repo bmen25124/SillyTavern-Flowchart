@@ -22,7 +22,8 @@ const execute: NodeExecutor = async (node, input) => {
     .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
     .map((key) => input[key]);
 
-  return Object.assign({}, ...objectsToMerge);
+  const merged = Object.assign({}, ...objectsToMerge);
+  return { result: merged };
 };
 
 export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = {
@@ -33,7 +34,7 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
   dataSchema: MergeObjectsNodeDataSchema,
   currentVersion: 1,
   initialData: { inputCount: 2 },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.OBJECT }] },
+  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.OBJECT }] },
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_OBJECTS_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
@@ -62,13 +63,13 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
       }
     }
 
-    const outputs = [{ id: null, type: FlowDataType.OBJECT, schema: mergedSchema }];
+    const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: mergedSchema }];
 
     return { inputs, outputs };
   },
   getHandleType: ({ handleId, handleDirection }) => {
     if (handleDirection === 'input' && handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX)) return FlowDataType.OBJECT;
-    if (handleDirection === 'output' && handleId === null) return FlowDataType.OBJECT;
+    if (handleDirection === 'output' && handleId === 'result') return FlowDataType.OBJECT;
     return undefined;
   },
 };

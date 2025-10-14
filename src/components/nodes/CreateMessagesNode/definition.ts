@@ -30,7 +30,8 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     ignoreWorldInfo: resolveInput(input, data, 'ignoreWorldInfo'),
   };
 
-  return dependencies.getBaseMessagesForProfile(profileId, options);
+  const messages = await dependencies.getBaseMessagesForProfile(profileId, options);
+  return { result: messages };
 };
 
 export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData> = {
@@ -55,7 +56,7 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
       { id: 'ignoreAuthorNote', type: FlowDataType.BOOLEAN },
       { id: 'ignoreWorldInfo', type: FlowDataType.BOOLEAN },
     ],
-    outputs: [{ id: null, type: FlowDataType.MESSAGES }],
+    outputs: [{ id: 'result', type: FlowDataType.MESSAGES }],
   },
   execute,
 };

@@ -20,10 +20,11 @@ export type CustomMessageNodeData = z.infer<typeof CustomMessageNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = CustomMessageNodeDataSchema.parse(node.data);
-  return data.messages.map(({ id, role, content }) => ({
+  const messages = data.messages.map(({ id, role, content }) => ({
     role: resolveInput(input, { [`${id}_role`]: role }, `${id}_role`),
     content: resolveInput(input, { [id]: content }, id),
   }));
+  return { result: messages };
 };
 
 export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> = {
@@ -36,7 +37,7 @@ export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> 
   initialData: {
     messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }],
   },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
+  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.MESSAGES }] },
   execute,
   getDynamicHandles: (node) => ({
     inputs: (node.data.messages || []).flatMap((m) => [

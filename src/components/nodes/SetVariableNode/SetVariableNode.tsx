@@ -1,13 +1,12 @@
 import { FC } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { SetVariableNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type SetVariableNodeProps = NodeProps<Node<SetVariableNodeData>>;
 
@@ -23,24 +22,24 @@ const fields = [
 export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const definition = registrator.nodeDefinitionMap.get('setVariableNode');
-  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'main');
-  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Set Variable" selected={selected}>
-      <Handle type="target" position={Position.Left} id="main" style={{ top: '15%' }} />
-
-      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-
-      <div
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Value (Passthrough)</span>
-        <Handle type="source" position={Position.Right} id="main" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <NodeHandleRenderer
+          nodeId={id}
+          definition={definition}
+          type="input"
+          fields={fields}
+          data={data}
+          updateNodeData={updateNodeData}
+        />
+        <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+          <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+        </div>
       </div>
     </BaseNode>
   );

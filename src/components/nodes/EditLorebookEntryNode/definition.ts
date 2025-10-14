@@ -51,7 +51,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     selectedWorldName: worldName,
     operation: 'update',
   });
-  return result.entry;
+  return { result: result.entry };
 };
 
 export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNodeData> = {
@@ -70,7 +70,7 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.OBJECT, schema: WIEntrySchema }],
+    outputs: [{ id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema }],
   },
   execute,
 };

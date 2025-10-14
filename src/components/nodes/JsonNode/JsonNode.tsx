@@ -1,12 +1,11 @@
-import React, { FC, useMemo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import React, { FC } from 'react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { JsonNodeData, JsonNodeItem } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
-import { FlowDataTypeColors } from '../../../flow-types.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -118,19 +117,12 @@ const JsonItemEditor: FC<{
   );
 };
 
-export const JsonNode: FC<JsonNodeProps> = ({ id, selected }) => {
+export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as JsonNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const currentNode = useFlowStore((state) => state.nodesMap.get(id));
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  const outputHandles = useMemo(() => {
-    if (!currentNode) return [];
-    const definition = registrator.nodeDefinitionMap.get('jsonNode');
-    if (!definition?.getDynamicHandles) return [];
-    return definition.getDynamicHandles(currentNode, [], []).outputs;
-  }, [currentNode]);
-
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   const updateNested = (items: JsonNodeItem[], path: number[], updater: (item: JsonNodeItem) => JsonNodeItem) => {
     const newItems = structuredClone(items);
@@ -204,35 +196,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected }) => {
         Add {data.rootType === 'object' ? 'Property' : 'Item'}
       </STButton>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        {outputHandles.map((handle) => {
-          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
-          const label = handle.id === 'result' ? 'Result (Full Object)' : handle.id;
-
-          return (
-            <div
-              key={handle.id}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
-              title={schemaText}
-            >
-              <div>
-                <span>{label}</span>
-                <span className="handle-label">({handle.type})</span>
-              </div>
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={handle.id!}
-                style={{
-                  position: 'relative',
-                  transform: 'none',
-                  right: 0,
-                  top: 0,
-                  backgroundColor: FlowDataTypeColors[handle.type],
-                }}
-              />
-            </div>
-          );
-        })}
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>
     </BaseNode>
   );

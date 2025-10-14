@@ -9,7 +9,7 @@ export interface ExecutionReport {
   executedNodes: {
     nodeId: string;
     type: string | undefined;
-    input: Record<string | symbol, any>;
+    input: Record<string, any>;
     output: any;
   }[];
   error?: {
@@ -237,14 +237,14 @@ export class LowLevelFlowRunner {
       }
 
       const sourceOutput = nodeOutputs[edge.source];
-      if (sourceOutput === undefined) continue;
-
-      const valueToPass =
-        edge.sourceHandle && typeof sourceOutput === 'object' && sourceOutput !== null
-          ? sourceOutput[edge.sourceHandle]
-          : sourceOutput;
+      if (sourceOutput === undefined || typeof sourceOutput !== 'object' || sourceOutput === null) {
+        continue;
+      }
 
       const handleKey = edge.targetHandle ?? 'main';
+      const sourceHandle = edge.sourceHandle ?? 'result'; // Fallback to 'result' for single-output nodes
+      const valueToPass = sourceOutput[sourceHandle];
+
       inputs[handleKey] = valueToPass;
     }
     return inputs;

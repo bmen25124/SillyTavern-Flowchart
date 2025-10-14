@@ -1,11 +1,11 @@
-import { FC, useMemo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { FC } from 'react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { ArgumentDefinition, SlashCommandNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 
 export type SlashCommandNodeProps = NodeProps<Node<SlashCommandNodeData>>;
 
@@ -59,18 +59,12 @@ const ArgumentEditor: FC<{
   );
 };
 
-export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected }) => {
+export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SlashCommandNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const definition = registrator.nodeDefinitionMap.get('slashCommandNode');
-  const currentNode = useFlowStore((state) => state.nodesMap.get(id));
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  const outputHandles = useMemo(() => {
-    if (!currentNode || !definition?.getDynamicHandles) return [];
-    return definition.getDynamicHandles(currentNode, [], []).outputs;
-  }, [currentNode, definition]);
-
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   const handleArgUpdate = (argId: string, newPartialData: Partial<ArgumentDefinition>) => {
     const newArgs = data.arguments.map((arg) => (arg.id === argId ? { ...arg, ...newPartialData } : arg));
@@ -131,24 +125,7 @@ export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected }) =>
         </div>
       </div>
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
-        {outputHandles.map((handle) => {
-          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
-          return (
-            <div
-              key={handle.id}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
-              title={schemaText}
-            >
-              <span style={{ textTransform: 'capitalize' }}>{handle.id!.replace(/_/g, ' ')}</span>
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={handle.id!}
-                style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
-              />
-            </div>
-          );
-        })}
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>
     </BaseNode>
   );

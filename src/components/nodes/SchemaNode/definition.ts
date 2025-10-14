@@ -96,7 +96,8 @@ function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
 const execute: NodeExecutor = async (node) => {
   const data = SchemaNodeDataSchema.parse(node.data);
   const topLevelObjectDefinition: SchemaTypeDefinition = { type: 'object', fields: data.fields };
-  return buildZodSchema(topLevelObjectDefinition);
+  const schema = buildZodSchema(topLevelObjectDefinition);
+  return { result: schema };
 };
 
 export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
@@ -107,7 +108,7 @@ export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
   dataSchema: SchemaNodeDataSchema,
   currentVersion: 1,
   initialData: { fields: [] },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.SCHEMA }] },
+  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.SCHEMA }] },
   execute,
 };
 

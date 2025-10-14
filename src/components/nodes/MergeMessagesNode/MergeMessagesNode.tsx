@@ -1,15 +1,16 @@
 import { FC, useEffect } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from '../BaseNode.js';
 import { MergeMessagesNodeData } from './definition.js';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { shallow } from 'zustand/shallow';
 import { registrator } from '../autogen-imports.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 
 export type MergeMessagesNodeProps = NodeProps<Node<MergeMessagesNodeData>>;
 
-export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected }) => {
+export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected, type }) => {
   const { data, updateNodeData, edges, setEdges } = useFlowStore(
     (state) => ({
       data: state.nodes.find((n) => n.id === id)?.data as MergeMessagesNodeData,
@@ -20,7 +21,7 @@ export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected }) 
     shallow,
   );
 
-  const definition = registrator.nodeDefinitionMap.get('mergeMessagesNode')!;
+  const definition = registrator.nodeDefinitionMap.get(type)!;
   const inputCount = data?.inputCount ?? 2;
 
   useEffect(() => {
@@ -40,28 +41,18 @@ export const MergeMessagesNode: FC<MergeMessagesNodeProps> = ({ id, selected }) 
     updateNodeData(id, { inputCount: Math.max(1, count) });
   };
 
-  const handles = Array.from({ length: inputCount }, (_, i) => (
-    <div key={`input_${i}`} style={{ position: 'relative', height: '20px', display: 'flex', alignItems: 'center' }}>
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={definition.getDynamicHandleId!(i)}
-        style={{ top: '50%', transform: 'translateY(-50%)' }}
-      />
-      <label style={{ marginLeft: '10px' }}>Messages {i + 1}</label>
-    </div>
-  ));
-
   return (
     <BaseNode id={id} title="Merge Messages" selected={selected}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>{handles}</div>
+      <NodeHandleRenderer nodeId={id} definition={definition} type="input" />
       <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
         <STButton onClick={() => setInputCount(inputCount + 1)}>+</STButton>
         <STButton onClick={() => setInputCount(inputCount - 1)} disabled={inputCount <= 1}>
           -
         </STButton>
       </div>
-      <Handle type="source" position={Position.Right} />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+      </div>
     </BaseNode>
   );
 };

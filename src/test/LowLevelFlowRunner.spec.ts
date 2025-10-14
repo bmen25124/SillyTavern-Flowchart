@@ -164,7 +164,7 @@ describe('LowLevelFlowRunner', () => {
       object_0: { left_val: 'L' },
       object_1: { right_val: 'R' },
     });
-    expect(mergeNodeReport?.output).toEqual({ left_val: 'L', right_val: 'R' });
+    expect(mergeNodeReport?.output).toEqual({ result: { left_val: 'L', right_val: 'R' } });
   });
 
   it('should abort execution when the signal is triggered', async () => {
@@ -360,9 +360,11 @@ describe('LowLevelFlowRunner', () => {
     };
     const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
-    expect(mergeNodeReport?.output).toEqual([
-      { role: 'user', content: 'A' },
-      { role: 'assistant', content: 'B' },
-    ]);
+    expect(mergeNodeReport?.output).toEqual({
+      result: [
+        { role: 'user', content: 'A' },
+        { role: 'assistant', content: 'B' },
+      ],
+    });
   });
 });

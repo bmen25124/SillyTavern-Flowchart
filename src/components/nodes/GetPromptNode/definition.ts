@@ -23,7 +23,7 @@ const execute: NodeExecutor = async (node, input) => {
 
   if (prompt === undefined) throw new Error(`Prompt "${promptName}" not found.`);
 
-  return prompt;
+  return { result: prompt };
 };
 
 export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
@@ -36,7 +36,7 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
   initialData: { promptName: '' },
   handles: {
     inputs: [{ id: 'promptName', type: FlowDataType.STRING }],
-    outputs: [{ id: null, type: FlowDataType.STRING }],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
   },
   execute,
 };

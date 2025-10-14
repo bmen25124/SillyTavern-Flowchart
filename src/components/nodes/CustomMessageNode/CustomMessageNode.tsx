@@ -4,6 +4,8 @@ import { useFlowStore } from '../../popup/flowStore.js';
 import { CustomMessageNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { registrator } from '../autogen-imports.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 
 export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 
@@ -13,6 +15,7 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, ty
   const edges = useFlowStore((state) => state.edges);
   const setEdges = useFlowStore((state) => state.setEdges);
   const allEdges = useEdges(); // For UI check
+  const definition = registrator.nodeDefinitionMap.get(type);
 
   useEffect(() => {
     if (!data) return;
@@ -26,7 +29,7 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, ty
     }
   }, [data?.messages, id, setEdges, edges]);
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   const handleMessageChange = (
     msgId: string,
@@ -108,7 +111,9 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, ty
           Add Message
         </STButton>
       </div>
-      <Handle type="source" position={Position.Right} />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+      </div>
     </BaseNode>
   );
 };

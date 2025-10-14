@@ -1,9 +1,11 @@
 import React, { FC } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { SchemaNodeData, FieldDefinition, SchemaTypeDefinition } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { registrator } from '../autogen-imports.js';
 
 export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
@@ -23,7 +25,6 @@ const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemov
     const newType = e.target.value as SchemaTypeDefinition['type'];
     const newProps: Partial<SchemaTypeDefinition> = { type: newType };
 
-    // Set defaults for new complex types
     if (newType === 'object' && !fields) newProps.fields = [];
     if (newType === 'array' && !items) newProps.items = { type: 'string' };
     if (newType === 'enum' && !values) newProps.values = ['option1', 'option2'];
@@ -128,11 +129,12 @@ const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemov
   );
 };
 
-export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected }) => {
+export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SchemaNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   const updateNested = (obj: any, path: (string | number)[], updater: (item: any) => any) => {
     const newObj = structuredClone(obj);
@@ -192,7 +194,9 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected }) => {
       <STButton className="nodrag" onClick={addRootField} style={{ marginTop: '10px' }}>
         Add Field
       </STButton>
-      <Handle type="source" position={Position.Right} />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+      </div>
     </BaseNode>
   );
 };

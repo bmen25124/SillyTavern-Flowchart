@@ -15,10 +15,11 @@ const MERGE_MESSAGES_HANDLE_PREFIX = 'messages_';
 
 const execute: NodeExecutor = async (node, input) => {
   const definition = registrator.nodeDefinitionMap.get('mergeMessagesNode')!;
-  return Object.keys(input)
+  const merged = Object.keys(input)
     .filter((key) => definition.isDynamicHandle!(key) && Array.isArray(input[key]))
     .sort((a, b) => parseInt(a.split('_')[1], 10) - parseInt(b.split('_')[1], 10))
     .flatMap((key) => input[key]);
+  return { result: merged };
 };
 
 export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> = {
@@ -29,7 +30,7 @@ export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> 
   dataSchema: MergeMessagesNodeDataSchema,
   currentVersion: 1,
   initialData: { inputCount: 2 },
-  handles: { inputs: [], outputs: [{ id: null, type: FlowDataType.MESSAGES }] },
+  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.MESSAGES }] },
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) ?? false,

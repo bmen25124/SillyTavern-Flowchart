@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
@@ -8,16 +8,16 @@ import { RunFlowNodeData } from './definition.js';
 import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { settingsManager } from '../../../config.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
-import { useIsConnected } from '../../../hooks/useIsConnected.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { registrator } from '../autogen-imports.js';
 
 export type RunFlowNodeProps = NodeProps<Node<RunFlowNodeData>>;
 
 export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as RunFlowNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = registrator.nodeDefinitionMap.get(type);
   const settings = settingsManager.getSettings();
-  const isParametersConnected = useIsConnected(id, 'parameters');
 
   const flowOptions = useMemo(
     () => Object.entries(settings.flows).map(([id, { name }]) => ({ value: id, label: name })),
@@ -41,46 +41,42 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
         getValueFromEvent: (e: string[]) => e[0],
         formatValue: (value) => [value ?? ''],
       }),
+      createFieldConfig({
+        id: 'parameters',
+        label: 'Parameters (JSON)',
+        component: CodeMirror,
+        props: {
+          height: '100px',
+          extensions: [javascript({})],
+          width: '100%',
+          theme: 'dark',
+          style: { cursor: 'text', marginTop: '5px' },
+        },
+        customChangeHandler: (value: string, { nodeId, updateNodeData }) => {
+          updateNodeData(nodeId, { parameters: value });
+        },
+      }),
     ],
     [flowOptions],
   );
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Run Flow" selected={selected}>
-      <Handle type="target" position={Position.Left} id={null} style={{ top: '15%' }} />
-
-      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-
-      <div style={{ marginTop: '10px', position: 'relative' }}>
-        <Handle type="target" position={Position.Left} id="parameters" style={{ top: '1rem' }} />
-
-        <label style={{ marginLeft: '10px' }}>Parameters (JSON)</label>
-        {!isParametersConnected ? (
-          <CodeMirror
-            className="nodrag"
-            value={data.parameters || '{}'}
-            height="100px"
-            extensions={[javascript({})]}
-            width="100%"
-            onChange={(value) => updateNodeData(id, { parameters: value })}
-            theme={'dark'}
-            style={{ cursor: 'text', marginTop: '5px' }}
-          />
-        ) : (
-          <div style={{ padding: '5px 0 0 10px', color: '#888', fontStyle: 'italic' }}>Value from connection</div>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}>
-        <span>Last Output</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="result"
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <NodeHandleRenderer
+          nodeId={id}
+          definition={definition}
+          type="input"
+          fields={fields}
+          data={data}
+          updateNodeData={updateNodeData}
         />
+
+        <div style={{ borderTop: '1px solid #555', paddingTop: '10px' }}>
+          <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+        </div>
       </div>
     </BaseNode>
   );

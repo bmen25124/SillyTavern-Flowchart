@@ -43,11 +43,11 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     avatar: 'none',
     spec: 'chara_card_v3',
     spec_version: '3.0',
-    data: {} as any, // ST internally fills this
+    data: {} as any,
   };
 
   await dependencies.createCharacter(charData);
-  return name;
+  return { result: name };
 };
 
 export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeData> = {
@@ -68,7 +68,7 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
       { id: 'mes_example', type: FlowDataType.STRING },
       { id: 'tags', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.STRING }],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
   },
   execute,
 };

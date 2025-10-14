@@ -19,7 +19,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 
   const success = await dependencies.st_createNewWorldInfo(worldName);
   if (!success) throw new Error(`Failed to create lorebook "${worldName}". It might already exist.`);
-  return worldName;
+  return { result: worldName };
 };
 
 export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData> = {
@@ -32,7 +32,7 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
   initialData: { worldName: 'My Lorebook' },
   handles: {
     inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
-    outputs: [{ id: null, type: FlowDataType.STRING }],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
   },
   execute,
 };

@@ -1,13 +1,12 @@
 import { FC } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { GetVariableNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
-import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type GetVariableNodeProps = NodeProps<Node<GetVariableNodeData>>;
 
@@ -23,21 +22,24 @@ const fields = [
 export const GetVariableNode: FC<GetVariableNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as GetVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const definition = registrator.nodeDefinitionMap.get('getVariableNode');
-  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'value');
-  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Get Variable" selected={selected}>
-      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <div
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}
-        title={schemaText}
-      >
-        <span>Value</span>
-        <Handle type="source" position={Position.Right} id="value" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <NodeHandleRenderer
+          nodeId={id}
+          definition={definition}
+          type="input"
+          fields={fields}
+          data={data}
+          updateNodeData={updateNodeData}
+        />
+        <div style={{ borderTop: '1px solid #555', paddingTop: '10px' }}>
+          <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+        </div>
       </div>
     </BaseNode>
   );

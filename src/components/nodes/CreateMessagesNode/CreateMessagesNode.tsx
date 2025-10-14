@@ -1,99 +1,90 @@
 import React, { FC, useMemo } from 'react';
-import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { CreateMessagesNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
-import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
+import { registrator } from '../autogen-imports.js';
 
 export type CreateMessagesNodeProps = NodeProps<Node<CreateMessagesNodeData>>;
-
-const fields = [
-  createFieldConfig({
-    id: 'profileId',
-    label: 'Connection Profile',
-    component: STConnectionProfileSelect,
-    props: {
-      onChange: (profile?: ConnectionProfile) => {}, // This will be replaced in the component
-    },
-  }),
-  createFieldConfig({
-    id: 'startMessageId',
-    label: 'Start Message ID (Optional)',
-    component: STInput,
-    props: { type: 'number' },
-    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
-      e.target.value === '' ? undefined : Number(e.target.value),
-  }),
-  createFieldConfig({
-    id: 'endMessageId',
-    label: 'End Message ID (Optional)',
-    component: STInput,
-    props: { type: 'number' },
-    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
-      e.target.value === '' ? undefined : Number(e.target.value),
-  }),
-  createFieldConfig({
-    id: 'ignoreCharacterFields',
-    label: 'Ignore Character Fields',
-    component: STInput,
-    props: { type: 'checkbox' },
-    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
-  }),
-  createFieldConfig({
-    id: 'ignoreAuthorNote',
-    label: 'Ignore Author Note',
-    component: STInput,
-    props: { type: 'checkbox' },
-    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
-  }),
-  createFieldConfig({
-    id: 'ignoreWorldInfo',
-    label: 'Ignore World Info',
-    component: STInput,
-    props: { type: 'checkbox' },
-    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
-  }),
-];
 
 export const CreateMessagesNode: FC<CreateMessagesNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CreateMessagesNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = registrator.nodeDefinitionMap.get(type);
 
-  const dynamicFields = useMemo(
-    () =>
-      fields.map((field) => {
-        if (field.id === 'profileId') {
-          return {
-            ...field,
-            props: {
-              ...field.props,
-              initialSelectedProfileId: data?.profileId,
-              onChange: (profile?: ConnectionProfile) => {
-                updateNodeData(id, { profileId: profile?.id || '' });
-              },
-            },
-          };
-        }
-        return field;
+  const fields = useMemo(
+    () => [
+      createFieldConfig({
+        id: 'profileId',
+        label: 'Connection Profile',
+        component: STConnectionProfileSelect,
+        props: {
+          initialSelectedProfileId: data?.profileId,
+        },
+        customChangeHandler: (profile?: ConnectionProfile) => {
+          updateNodeData(id, { profileId: profile?.id || '' });
+        },
       }),
-    [data?.profileId, updateNodeData, id],
+      createFieldConfig({
+        id: 'startMessageId',
+        label: 'Start Message ID (Optional)',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value === '' ? undefined : Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'endMessageId',
+        label: 'End Message ID (Optional)',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value === '' ? undefined : Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'ignoreCharacterFields',
+        label: 'Ignore Character Fields',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+      createFieldConfig({
+        id: 'ignoreAuthorNote',
+        label: 'Ignore Author Note',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+      createFieldConfig({
+        id: 'ignoreWorldInfo',
+        label: 'Ignore World Info',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+    ],
+    [data?.profileId, id, updateNodeData],
   );
 
-  if (!data) return null;
+  if (!data || !definition) return null;
 
   return (
     <BaseNode id={id} title="Create Messages" selected={selected}>
-      <NodeFieldRenderer
+      <NodeHandleRenderer
         nodeId={id}
-        nodeType={type}
-        fields={dynamicFields}
+        definition={definition}
+        type="input"
+        fields={fields}
         data={data}
         updateNodeData={updateNodeData}
       />
-      <Handle type="source" position={Position.Right} />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+      </div>
     </BaseNode>
   );
 };

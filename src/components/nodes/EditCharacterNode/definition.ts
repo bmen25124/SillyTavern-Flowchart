@@ -62,7 +62,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   if (!anyChanges) throw new Error('No changes provided to update the character.');
 
   await dependencies.saveCharacter(characterPartial);
-  return existingChar.name;
+  return { result: existingChar.name };
 };
 
 export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> = {
@@ -84,7 +84,7 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
       { id: 'mes_example', type: FlowDataType.STRING },
       { id: 'tags', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: null, type: FlowDataType.STRING }],
+    outputs: [{ id: 'result', type: FlowDataType.STRING }],
   },
   execute,
 };
