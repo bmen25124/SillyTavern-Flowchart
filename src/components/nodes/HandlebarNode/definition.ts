@@ -17,8 +17,10 @@ const execute: NodeExecutor = async (node, input) => {
   const data = HandlebarNodeDataSchema.parse(node.data);
   const template = resolveInput(input, data, 'template');
 
-  // 'context' handle gathers all inputs into one object for the template
-  const context = input.context ?? input;
+  let context = (input.context ?? input) || {};
+  if (typeof context !== 'object') {
+    context = { context: context };
+  }
 
   try {
     const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
