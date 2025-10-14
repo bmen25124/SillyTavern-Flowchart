@@ -106,12 +106,13 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
   const definition = registrator.nodeDefinitionMap.get('pickCharacterNode');
-  if (!data || !definition) return null;
 
   const characterOptions = useMemo(
     () => characters.map((c: any) => ({ value: c.avatar, label: c.name })),
     [characters],
   );
+
+  if (!data || !definition) return null;
 
   const handleLabels: Record<string, string> = {
     avatar: 'Selected',
@@ -132,6 +133,7 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
         {definition.handles.outputs.map((handle) => {
+          if (handle.id === 'main') return null;
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
           return (
             <div

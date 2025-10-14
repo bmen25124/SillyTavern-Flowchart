@@ -100,6 +100,7 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
     const allArgsSchema = z.object(allArgsShape);
 
     const outputs = [
+      { id: 'main', type: FlowDataType.ANY },
       ...namedOutputs,
       { id: 'allArgs', type: FlowDataType.OBJECT, schema: allArgsSchema },
       {
@@ -112,12 +113,12 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection !== 'output' || !handleId) return undefined;
+    if (handleId === 'main') return FlowDataType.ANY;
     if (handleId === 'allArgs') return FlowDataType.OBJECT;
     if (handleId === 'unnamed') return FlowDataType.STRING;
 
-    const data = node.data;
-    // @ts-ignore
-    const arg = data.arguments.find((a: ArgumentDefinition) => a.name === handleId);
+    const data = node.data as SlashCommandNodeData;
+    const arg = data.arguments.find((a) => a.name === handleId);
     return arg ? mapArgTypeToFlowType(arg.type) : undefined;
   },
 };

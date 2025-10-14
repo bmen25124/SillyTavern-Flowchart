@@ -41,7 +41,7 @@ const getConditionValueHandleId = (conditionId: string) => `value_${conditionId}
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = IfNodeDataSchema.parse(node.data);
-  const primaryInput = input.value; // The data from the new 'value' input handle
+  const primaryInput = input.value; // The data from the 'value' input handle
 
   for (const condition of data.conditions) {
     let result = false;
@@ -90,11 +90,11 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     }
 
     if (result) {
-      return { activatedHandle: condition.id, main: primaryInput };
+      return { activatedHandle: condition.id };
     }
   }
 
-  return { activatedHandle: 'false', main: primaryInput };
+  return { activatedHandle: 'false' };
 };
 
 export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
@@ -128,7 +128,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   getDynamicHandles: (node, allNodes, allEdges) => {
     const conditions = (node.data as IfNodeData).conditions || [];
 
-    const inputEdge = allEdges.find((e) => e.target === node.id && e.targetHandle === 'value');
+    const inputEdge = allEdges.find((e) => e.target === node.id && e.targetHandle === 'main');
     const sourceNode = inputEdge ? allNodes.find((n) => n.id === inputEdge.source) : undefined;
 
     let passthroughType = FlowDataType.ANY;
@@ -176,7 +176,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       const isConditionHandle = conditions.some((c) => c.id === handleId);
 
       if (handleId === 'main' || handleId === 'false' || isConditionHandle) {
-        const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'value');
+        const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'main');
         if (inputEdge) {
           const sourceNode = nodes.find((n) => n.id === inputEdge.source);
           if (sourceNode) {

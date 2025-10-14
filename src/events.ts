@@ -1,27 +1,46 @@
-type Listener = (...args: any[]) => void;
+import { NodeReport } from './components/popup/flowRunStore.js';
+
+type EventMap = {
+  openFlowChartDataPopup: [];
+  'flow:reset-all-settings': [];
+  'flow:run:start': [{ runId: string }];
+  'node:run:start': [{ runId: string; nodeId: string }];
+  'node:run:end': [{ runId: string; nodeId: string; report: NodeReport }];
+  'flow:run:end': [
+    {
+      runId: string;
+      status: 'completed' | 'error';
+      executedNodes: { nodeId: string }[];
+    },
+  ];
+};
+
+type EventName = keyof EventMap;
 
 class EventEmitter {
-  private events: Record<string, Listener[]> = {};
+  private events: { [K in EventName]?: ((...args: EventMap[K]) => void)[] } = {};
 
-  on(eventName: string, listener: Listener) {
-    if (!this.events[eventName]) {
-      this.events[eventName] = [];
-    }
-    this.events[eventName].push(listener);
+  on<K extends EventName>(eventName: K, listener: (...args: EventMap[K]) => void) {
+    const listeners = (this.events[eventName] = this.events[eventName] || []);
+    // @ts-ignore
+    listeners.push(listener);
   }
 
-  off(eventName: string, listener: Listener) {
-    if (!this.events[eventName]) {
+  off<K extends EventName>(eventName: K, listener: (...args: EventMap[K]) => void) {
+    const listeners = this.events[eventName];
+    if (!listeners) {
       return;
     }
-    this.events[eventName] = this.events[eventName].filter((l) => l !== listener);
+    // @ts-ignore
+    this.events[eventName] = listeners.filter((l) => l !== listener);
   }
 
-  emit(eventName: string, ...args: any[]) {
-    if (!this.events[eventName]) {
+  emit<K extends EventName>(eventName: K, ...args: EventMap[K]) {
+    const listeners = this.events[eventName];
+    if (!listeners) {
       return;
     }
-    this.events[eventName].forEach((listener) => listener(...args));
+    listeners.forEach((listener) => listener(...args));
   }
 }
 

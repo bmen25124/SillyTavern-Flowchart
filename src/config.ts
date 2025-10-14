@@ -1,7 +1,7 @@
 // @ts-ignore
 import { updateMessageBlock } from '../../../../../script.js';
 
-import { SpecFlow, SpecNode } from './flow-spec.js';
+import { SpecEdge, SpecFlow, SpecNode } from './flow-spec.js';
 import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
 import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
 
@@ -57,8 +57,11 @@ export function createDefaultFlow(): SpecFlow {
       data: { conditions: [{ id: crypto.randomUUID(), code: 'return input.messageId > 10;' }] },
     },
   ];
+  const edges: SpecEdge[] = [
+    { id: crypto.randomUUID(), source: triggerNodeId, target: ifNodeId, sourceHandle: 'main', targetHandle: 'main' },
+  ];
 
-  return { nodes, edges: [] };
+  return { nodes, edges };
 }
 
 const defaultFlowId = 'default';

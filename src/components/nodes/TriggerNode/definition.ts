@@ -56,10 +56,11 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
         { id: 'arg3', type: FlowDataType.ANY },
       ];
     }
-    return { inputs: [], outputs };
+    return { inputs: [], outputs: [{ id: 'main', type: FlowDataType.ANY }, ...outputs] };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
     if (handleDirection === 'output' && handleId) {
+      if (handleId === 'main') return FlowDataType.ANY;
       const { selectedEventType } = node.data as { selectedEventType: string };
       const eventParams = EventNameParameters[selectedEventType];
 

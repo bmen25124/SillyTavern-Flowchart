@@ -29,6 +29,15 @@ https://github.com/bmen25124/SillyTavern-FlowChart
     *   **Right Handles (Outputs):** Send data out.
 *   **Connections (Wires):** You drag a line from an output handle of one node to an input handle of another. This creates a connection, allowing data to "flow" from one node to the next.
 
+#### Control Flow vs. Data Flow (`main` Handle)
+
+A key concept is the difference between *Control Flow* and *Data Flow*.
+
+*   **Data Flow:** When you connect a specific output like `value` or `result` to a specific input, you are sending a piece of data for the next node to *use*. For example, connecting a `String` node's `value` output to a `Log` node's `value` input tells the `Log` node *what* to print. These are **named handles**.
+*   **Control Flow:** Sometimes, you just need to define the order of operations without passing specific data. This is done using the special `main` handle. Most nodes have a `main` input and a `main` output. Connecting `main` handles creates a sequence. The `main` channel also "passes through" whatever value it receives, allowing you to carry a result through a series of utility nodes.
+
+Think of it this way: named handles are for *what* a node does, and the `main` handle is for *when* it does it.
+
 ### The Editor Interface
 
 1.  **Flow Selector (Top Bar):** Manage your flows. You can create new flows, rename existing ones, or delete them.

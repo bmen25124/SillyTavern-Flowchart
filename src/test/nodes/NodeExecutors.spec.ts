@@ -25,7 +25,6 @@ import { handlebarNodeDefinition } from '../../components/nodes/HandlebarNode/de
 import { stringToolsNodeDefinition } from '../../components/nodes/StringToolsNode/definition.js';
 import { slashCommandNodeDefinition } from '../../components/nodes/SlashCommandNode/definition.js';
 import { triggerNodeDefinition } from '../../components/nodes/TriggerNode/definition.js';
-import { stringToNumberNodeDefinition } from '../../components/nodes/StringToNumberNode/definition.js';
 import { typeConverterNodeDefinition } from '../../components/nodes/TypeConverterNode/definition.js';
 import { dateTimeNodeDefinition } from '../../components/nodes/DateTimeNode/definition.js';
 
@@ -201,7 +200,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { value: 'correct' }, context);
-      expect(result).toEqual({ activatedHandle: trueConditionId, main: 'correct' });
+      expect(result).toEqual({ activatedHandle: trueConditionId });
     });
 
     it('should return "false" if no conditions are met', async () => {
@@ -211,7 +210,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { value: 'a different value' }, context);
-      expect(result).toEqual({ activatedHandle: 'false', main: 'a different value' });
+      expect(result).toEqual({ activatedHandle: 'false' });
     });
 
     it('should execute advanced code and return the ID on truthy result', async () => {
@@ -229,7 +228,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { value: 20 }, context);
-      expect(result).toEqual({ activatedHandle: trueConditionId, main: 20 });
+      expect(result).toEqual({ activatedHandle: trueConditionId });
     });
   });
 
@@ -340,19 +339,6 @@ describe('Node Executors', () => {
   });
 
   // --- Simple & Untested Utilities ---
-  describe('StringToNumberNode', () => {
-    const { execute } = stringToNumberNodeDefinition;
-    it('should convert a valid string to a number', async () => {
-      const node = createMockNode(stringToNumberNodeDefinition, {});
-      const result = await execute(node, { string: '123.45' }, context);
-      expect(result).toEqual({ result: 123.45 });
-    });
-    it('should throw an error for an invalid string', async () => {
-      const node = createMockNode(stringToNumberNodeDefinition, {});
-      await expect(execute(node, { string: 'abc' }, context)).rejects.toThrow("'abc' cannot be converted to a number.");
-    });
-  });
-
   describe('TypeConverterNode', () => {
     const { execute } = typeConverterNodeDefinition;
     it('should convert an object to a JSON string', async () => {
@@ -364,6 +350,17 @@ describe('Node Executors', () => {
       const node = createMockNode(typeConverterNodeDefinition, { targetType: 'object' });
       const result = await execute(node, { value: '{"a": 1}' }, context);
       expect(result).toEqual({ result: { a: 1 } });
+    });
+    it('should convert a valid string to a number', async () => {
+      const node = createMockNode(typeConverterNodeDefinition, { targetType: 'number' });
+      const result = await execute(node, { value: '123.45' }, context);
+      expect(result).toEqual({ result: 123.45 });
+    });
+    it('should throw an error for an invalid number conversion', async () => {
+      const node = createMockNode(typeConverterNodeDefinition, { targetType: 'number' });
+      await expect(execute(node, { value: 'abc' }, context)).rejects.toThrow(
+        "Type conversion failed: 'abc' cannot be converted to a number.",
+      );
     });
   });
 
