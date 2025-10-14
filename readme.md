@@ -61,7 +61,17 @@ Here is a list of all available nodes and what they do.
 #### **Picker Nodes**
 
 These are simple nodes that provide a dropdown menu to select a specific item, which can then be passed to other nodes.
-*   **Pick Character / Lorebook / Prompt / Flow / etc.:** Provides a dropdown of your existing items and outputs the selected one's name or ID.
+*   **Pick Character:** Outputs the selected character's avatar filename.
+*   **Pick Lorebook:** Outputs the selected lorebook's name.
+*   **Pick Prompt:** Outputs the selected custom prompt's name.
+*   **Pick Flow:** Outputs the selected flow's ID.
+*   **Pick Regex Script:** Outputs the selected SillyTavern regex script's ID.
+*   **Pick Math Operation:** Outputs the name of a math operation (add, subtract, etc.) for the `Math` node.
+*   **Pick String Operation:** Outputs the name of a string operation (merge, split, join) for the `String Tools` node.
+*   **Pick Prompt Mode:** Outputs a prompt engineering mode (native, json, xml) for the `LLM Request` node.
+*   **Pick Random Mode:** Outputs a mode (number, array) for the `Random` node.
+*   **Pick Regex Mode:** Outputs a mode (sillytavern, custom) for the `Regex` node.
+*   **Pick Conversion Type:** Outputs a target type (string, number, etc.) for the `Type Converter` node.
 
 #### **Chat Nodes**
 
@@ -108,6 +118,9 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Run Flow:** Triggers another one of your flows. This is great for creating reusable logic.
 *   **Type Converter:** Converts data from one type to another (e.g., a string of text to a number).
 *   **Execute JS Code:** **(Advanced & Dangerous)** Runs arbitrary JavaScript code. A permission toggle on the flow is required to use this node. Only use it if you understand the code you are writing or pasting.
+*   **Merge Objects:** Combines multiple objects into a single one. If keys conflict, the object connected to a higher-numbered input wins.
+*   **Notification:** Displays a toast notification in the SillyTavern UI (info, success, warning, error).
+*   **String To Number:** Converts a string of text into a number. This is a more explicit version of what the `Type Converter` can do.
 
 ### Simple Example: Reacting to a Keyword
 
