@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RemoveChatMessageNode } from './RemoveChatMessageNode.js';
 import { registrator } from '../registrator.js';
@@ -35,6 +36,16 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
       { id: 'messageId', type: FlowDataType.NUMBER },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
+  },
+  validate: (node: Node<RemoveChatMessageNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (
+      node.data.messageId === undefined &&
+      !edges.some((e) => e.target === node.id && e.targetHandle === 'messageId')
+    ) {
+      issues.push({ fieldId: 'messageId', message: 'Message ID is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

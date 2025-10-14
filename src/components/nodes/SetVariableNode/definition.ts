@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { SetVariableNode } from './SetVariableNode.js';
 import { registrator } from '../registrator.js';
@@ -37,6 +38,25 @@ export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
       { id: 'variableName', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
+  },
+  validate: (node: Node<SetVariableNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isNameConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'variableName');
+    if (!node.data.variableName && !isNameConnected) {
+      issues.push({
+        fieldId: 'variableName',
+        message: 'Variable Name is required.',
+        severity: 'error',
+      });
+    }
+    const isValueConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'value');
+    if (!isValueConnected) {
+      issues.push({
+        message: 'A value must be connected to set.',
+        severity: 'error',
+      });
+    }
+    return issues;
   },
   execute,
 };

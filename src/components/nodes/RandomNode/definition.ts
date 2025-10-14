@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RandomNode } from './RandomNode.js';
 import { registrator } from '../registrator.js';
@@ -52,6 +53,16 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.ANY },
     ],
+  },
+  validate: (node: Node<RandomNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (node.data.mode === 'array') {
+      const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'array');
+      if (!isConnected) {
+        issues.push({ message: 'The "array" input must be connected in "From Array" mode.', severity: 'error' });
+      }
+    }
+    return issues;
   },
   execute,
 };

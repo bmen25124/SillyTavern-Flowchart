@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RegexNode } from './RegexNode.js';
 import { registrator } from '../registrator.js';
@@ -76,6 +77,32 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
       { id: 'result', type: FlowDataType.STRING },
       { id: 'matches', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
+  },
+  validate: (node: Node<RegexNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const data = node.data;
+    const mode = data.mode;
+
+    if (mode === 'sillytavern') {
+      const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'scriptId');
+      if (!data.scriptId && !isConnected) {
+        issues.push({
+          fieldId: 'scriptId',
+          message: 'Regex Script is required in SillyTavern mode.',
+          severity: 'error',
+        });
+      }
+    } else if (mode === 'custom') {
+      if (!data.findRegex) {
+        issues.push({ fieldId: 'findRegex', message: 'Find Regex is required in custom mode.', severity: 'error' });
+      }
+      try {
+        new RegExp(data.findRegex);
+      } catch (e: any) {
+        issues.push({ fieldId: 'findRegex', message: `Invalid Regex: ${e.message}`, severity: 'error' });
+      }
+    }
+    return issues;
   },
   execute,
 };

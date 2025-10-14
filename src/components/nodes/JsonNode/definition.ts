@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { JsonNode } from './JsonNode.js';
 import { registrator } from '../registrator.js';
@@ -101,6 +102,25 @@ function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   return FlowDataType.OBJECT; // Includes arrays, objects, etc.
 }
 
+const validateItems = (items: JsonNodeItem[]): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+  const keys = new Set<string>();
+  for (const item of items) {
+    if (!item.key || item.key.trim() === '') {
+      issues.push({ message: 'Object keys cannot be empty.', severity: 'error' });
+    }
+    if (keys.has(item.key)) {
+      issues.push({ message: `Duplicate key found: "${item.key}".`, severity: 'error' });
+    }
+    keys.add(item.key);
+
+    if (item.type === 'object' || item.type === 'array') {
+      issues.push(...validateItems(item.value as JsonNodeItem[]));
+    }
+  }
+  return issues;
+};
+
 export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   type: 'jsonNode',
   label: 'JSON',
@@ -115,6 +135,10 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.OBJECT },
     ],
+  },
+  validate: (node: Node<JsonNodeData>): ValidationIssue[] => {
+    if (node.data.rootType !== 'object') return []; // No key validation for root arrays
+    return validateItems(node.data.items);
   },
   execute,
   getDynamicHandles: (node) => {

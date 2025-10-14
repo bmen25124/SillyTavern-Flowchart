@@ -20,29 +20,28 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
   const isSchemaConnected = useIsConnected(id, 'schema');
 
   const fields = useMemo(() => {
-    const baseFields = [
+    const config = [
       createFieldConfig({
         id: 'profileId',
         label: 'Connection Profile',
         component: STConnectionProfileSelect,
-        props: {
-          initialSelectedProfileId: data?.profileId,
-        },
+        props: { initialSelectedProfileId: data?.profileId },
         customChangeHandler: (profile?: ConnectionProfile) => {
           updateNodeData(id, { profileId: profile?.id || '' });
         },
       }),
       createFieldConfig({
         id: 'maxResponseToken',
-        label: 'Max Response Token',
+        label: 'Max Response Tokens',
         component: STInput,
         props: { type: 'number' },
         getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
       }),
     ];
 
+    // These fields are only relevant (and their handles only exist) when a schema is connected.
     if (isSchemaConnected) {
-      baseFields.push(
+      config.push(
         createFieldConfig({
           id: 'schemaName',
           label: 'Schema Name',
@@ -63,8 +62,8 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
         }),
       );
     }
-    return baseFields;
-  }, [isSchemaConnected, data?.profileId, updateNodeData, id]);
+    return config;
+  }, [isSchemaConnected, data?.profileId, id, updateNodeData]);
 
   if (!data || !definition) return null;
 

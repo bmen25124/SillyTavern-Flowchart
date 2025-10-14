@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { EditChatMessageNode } from './EditChatMessageNode.js';
 import { registrator } from '../registrator.js';
@@ -50,6 +51,19 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
       { id: 'messageObject', type: FlowDataType.OBJECT, schema: ChatMessageSchema },
       { id: 'message', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<EditChatMessageNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (
+      node.data.messageId === undefined &&
+      !edges.some((e) => e.target === node.id && e.targetHandle === 'messageId')
+    ) {
+      issues.push({ fieldId: 'messageId', message: 'Message ID is required.', severity: 'error' });
+    }
+    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
+      issues.push({ fieldId: 'message', message: 'New Message Content is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

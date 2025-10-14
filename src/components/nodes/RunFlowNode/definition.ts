@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
@@ -53,6 +54,18 @@ export const runFlowNodeDefinition: NodeDefinition<RunFlowNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.ANY },
     ],
+  },
+  validate: (node: Node<RunFlowNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'flowId');
+    if (!node.data.flowId && !isConnected) {
+      issues.push({
+        fieldId: 'flowId',
+        message: 'Flow to Run is required.',
+        severity: 'error',
+      });
+    }
+    return issues;
   },
   execute,
 };

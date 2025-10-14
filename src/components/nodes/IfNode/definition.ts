@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { IfNode } from './IfNode.js';
 import { registrator } from '../registrator.js';
@@ -122,6 +123,14 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       { id: 'value', type: FlowDataType.ANY },
     ],
     outputs: [], // Make ALL outputs dynamic
+  },
+  validate: (node: Node<IfNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const outgoingEdges = edges.filter((edge) => edge.source === node.id);
+    if (outgoingEdges.length === 0) {
+      issues.push({ message: 'Node is a dead end. Connect at least one output.', severity: 'warning' });
+    }
+    return issues;
   },
   execute,
   isDangerous: true,

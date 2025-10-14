@@ -1,27 +1,30 @@
 import { SpecFlow } from './flow-spec.js';
 import { registrator } from './components/nodes/autogen-imports.js';
+import { ValidationIssue } from './components/nodes/definitions/types.js';
 
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
   invalidNodeIds: Set<string>;
   invalidEdgeIds: Set<string>;
-  errorsByNodeId: Map<string, string[]>;
+  errorsByNodeId: Map<string, ValidationIssue[]>;
 }
 
 export const validateFlow = (flow: SpecFlow): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
-  const errorsByNodeId = new Map<string, string[]>();
+  const errorsByNodeId = new Map<string, ValidationIssue[]>();
 
-  const addNodeError = (nodeId: string, message: string) => {
+  const addNodeError = (nodeId: string, nodeType: string, issue: ValidationIssue) => {
     if (!errorsByNodeId.has(nodeId)) {
       errorsByNodeId.set(nodeId, []);
     }
-    errorsByNodeId.get(nodeId)!.push(message);
-    invalidNodeIds.add(nodeId);
-    errors.push(`Node [${nodeId}]: ${message}`);
+    errorsByNodeId.get(nodeId)!.push(issue);
+    if (issue.severity === 'error') {
+      invalidNodeIds.add(nodeId);
+      errors.push(`Node [${nodeType}]: ${issue.message}`);
+    }
   };
 
   if (!flow.nodes || flow.nodes.length === 0) {
@@ -30,18 +33,32 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
 
-  // 1. Validate each node's data
+  // 1. Validate each node's data schema (Zod) and semantic rules (validate function)
   for (const node of flow.nodes) {
+    if (node.data?.disabled) {
+      continue;
+    }
     const definition = registrator.nodeDefinitionMap.get(node.type as string);
     if (definition) {
+      // Zod schema validation
       const result = definition.dataSchema.safeParse(node.data);
       if (!result.success) {
         result.error.issues.forEach((issue) => {
-          addNodeError(node.id, `${issue.path.join('.')} - ${issue.message}`);
+          addNodeError(node.id, node.type, {
+            fieldId: issue.path.join('.'),
+            message: issue.message,
+            severity: 'error',
+          });
         });
       }
+
+      // Semantic validation
+      if (definition.validate) {
+        const issues = definition.validate(node as any, flow.edges as any);
+        issues.forEach((issue) => addNodeError(node.id, node.type, issue));
+      }
     } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
-      addNodeError(node.id, `Unknown node type "${node.type}".`);
+      addNodeError(node.id, node.type, { message: `Unknown node type "${node.type}".`, severity: 'error' });
     }
   }
 
@@ -68,7 +85,6 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
 
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
-  let hasCycle = false;
 
   const detectCycle = (nodeId: string) => {
     visited.add(nodeId);
@@ -92,14 +108,9 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
     if (!visited.has(node.id)) {
       if (detectCycle(node.id)) {
         errors.push('Flow has a cycle (circular dependency).');
-        hasCycle = true;
         break;
       }
     }
-  }
-
-  if (hasCycle) {
-    // If a cycle is detected, further validation might be unreliable.
   }
 
   // 4. Validate trigger nodes
@@ -109,8 +120,10 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
   for (const triggerNode of triggerNodes) {
     const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
     if (hasIncomingEdge) {
-      const errorMsg = `Trigger nodes cannot have incoming connections.`;
-      addNodeError(triggerNode.id, errorMsg);
+      addNodeError(triggerNode.id, triggerNode.type, {
+        message: `Trigger nodes cannot have incoming connections.`,
+        severity: 'error',
+      });
     }
   }
 

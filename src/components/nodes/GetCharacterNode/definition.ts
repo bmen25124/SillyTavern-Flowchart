@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetCharacterNode } from './GetCharacterNode.js';
 import { registrator } from '../registrator.js';
@@ -63,6 +64,14 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
       { id: 'mes_example', type: FlowDataType.STRING },
       { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
+  },
+  validate: (node: Node<GetCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'characterAvatar');
+    if (!node.data.characterAvatar && !isConnected) {
+      issues.push({ fieldId: 'characterAvatar', message: 'Character is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { SchemaNode } from './SchemaNode.js';
 import { registrator } from '../registrator.js';
@@ -100,6 +101,28 @@ const execute: NodeExecutor = async (node) => {
   return { result: schema };
 };
 
+const validateFields = (fields: FieldDefinition[]): ValidationIssue[] => {
+  const issues: ValidationIssue[] = [];
+  const names = new Set<string>();
+  for (const field of fields) {
+    if (!field.name || field.name.trim() === '') {
+      issues.push({ message: 'Field names cannot be empty.', severity: 'error' });
+    }
+    if (names.has(field.name)) {
+      issues.push({ message: `Duplicate field name found: "${field.name}".`, severity: 'error' });
+    }
+    names.add(field.name);
+
+    if (field.type === 'object' && field.fields) {
+      issues.push(...validateFields(field.fields));
+    }
+    if (field.type === 'enum' && (!field.values || field.values.length === 0)) {
+      issues.push({ message: `Enum "${field.name}" must have at least one value.`, severity: 'error' });
+    }
+  }
+  return issues;
+};
+
 export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
   type: 'schemaNode',
   label: 'Schema',
@@ -114,6 +137,9 @@ export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.SCHEMA },
     ],
+  },
+  validate: (node: Node<SchemaNodeData>): ValidationIssue[] => {
+    return validateFields(node.data.fields);
   },
   execute,
 };

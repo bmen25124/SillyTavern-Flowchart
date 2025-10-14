@@ -31,6 +31,7 @@ import { registrator } from '../nodes/autogen-imports.js';
 import { SpecFlow } from '../../flow-spec.js';
 import { getHandleSpec } from '../../utils/handle-logic.js';
 import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
+import { ValidationIssue } from '../nodes/definitions/types.js';
 
 const slugify = (text: string) =>
   text
@@ -56,7 +57,7 @@ type ContextMenuState = {
 
 const FlowCanvas: FC<{
   invalidNodeIds: Set<string>;
-  errorsByNodeId: Map<string, string[]>;
+  errorsByNodeId: Map<string, ValidationIssue[]>;
 }> = ({ invalidNodeIds, errorsByNodeId }) => {
   const {
     nodes,

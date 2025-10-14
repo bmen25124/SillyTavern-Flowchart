@@ -1,8 +1,9 @@
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useMemo } from 'react';
 import { NodeResizer } from '@xyflow/react';
 import { useFlowRunStore } from '../popup/flowRunStore.js';
 import { NodeRunReport } from './NodeRunReport.js';
 import { useFlowStore } from '../popup/flowStore.js';
+import { ValidationIssue } from './definitions/types.js';
 
 type BaseNodeProps = {
   id: string;
@@ -19,7 +20,9 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
   }));
   const nodeData = useFlowStore((state) => state.nodesMap.get(id)?.data);
   const isNodeDisabled = nodeData?.disabled;
-  const validationErrors = (nodeData as any)?._validationErrors;
+  const validationIssues = (nodeData as any)?._validationErrors as ValidationIssue[] | undefined;
+
+  const nodeLevelIssues = useMemo(() => validationIssues?.filter((iss) => !iss.fieldId) ?? [], [validationIssues]);
 
   const report = nodeReports.get(id);
   const showReport = isVisualizationVisible && report;
@@ -44,8 +47,8 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
       }}
     >
       {executionOrderIndex > 0 && <div className="execution-order-badge">{executionOrderIndex}</div>}
-      {validationErrors && (
-        <div className="node-validation-error-icon" title={validationErrors.join('\n')}>
+      {nodeLevelIssues.length > 0 && (
+        <div className="node-validation-error-icon" title={nodeLevelIssues.map((iss) => iss.message).join('\n')}>
           <i className="fa-solid fa-triangle-exclamation"></i>
         </div>
       )}

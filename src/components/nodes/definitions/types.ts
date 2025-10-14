@@ -4,6 +4,12 @@ import { z } from 'zod';
 import { FlowDataType } from '../../../flow-types.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 
+export interface ValidationIssue {
+  fieldId?: string; // The ID of the field/handle that is invalid.
+  message: string;
+  severity: 'error' | 'warning';
+}
+
 export type HandleSpec = {
   id: string | null;
   type: FlowDataType;
@@ -42,6 +48,12 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
     outputs: HandleSpec[];
   };
   execute: NodeExecutor;
+  /**
+   * Optional function to perform semantic validation on the node's data and connections.
+   * @returns An array of validation issues. An empty array means the node is valid.
+   */
+  // @ts-ignore
+  validate?: (node: Node<T>, edges: Edge[]) => ValidationIssue[];
   /**
    * A flag indicating that this node can execute arbitrary code and requires user permission.
    */

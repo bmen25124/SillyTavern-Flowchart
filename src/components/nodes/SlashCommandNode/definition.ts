@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
@@ -57,6 +58,24 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
     arguments: [],
   },
   handles: { inputs: [], outputs: [] },
+  validate: (node: Node<SlashCommandNodeData>): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const data = node.data;
+    if (!data.commandName || data.commandName.trim() === '') {
+      issues.push({ message: 'Command Name cannot be empty.', severity: 'error' });
+    }
+    const argNames = new Set<string>();
+    for (const arg of data.arguments) {
+      if (argNames.has(arg.name)) {
+        issues.push({ message: `Duplicate argument name: "${arg.name}".`, severity: 'error' });
+      }
+      if (arg.name.trim() === '') {
+        issues.push({ message: 'Argument names cannot be empty.', severity: 'error' });
+      }
+      argNames.add(arg.name);
+    }
+    return issues;
+  },
   execute,
   // MODIFIED the logic to build a dynamic schema for 'allArgs'
   getDynamicHandles: (node) => {

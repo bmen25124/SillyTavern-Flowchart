@@ -1,6 +1,6 @@
 import { FC, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { NodeDefinition, HandleSpec } from './definitions/types.js';
+import { NodeDefinition, HandleSpec, ValidationIssue } from './definitions/types.js';
 import { FlowDataTypeColors } from '../../flow-types.js';
 import { schemaToText } from '../../utils/schema-inspector.js';
 import { useFlowStore } from '../popup/flowStore.js';
@@ -25,10 +25,11 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
   data,
   updateNodeData,
 }) => {
-  const { node, allNodes, allEdges } = useFlowStore((state) => ({
+  const { node, allNodes, allEdges, validationIssues } = useFlowStore((state) => ({
     node: state.nodesMap.get(nodeId),
     allNodes: state.nodes,
     allEdges: state.edges,
+    validationIssues: (state.nodesMap.get(nodeId)?.data?._validationErrors as ValidationIssue[]) ?? [],
   }));
   const connectedHandles = useConnectedHandles(nodeId);
 
@@ -59,6 +60,7 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
         const fieldConfig = type === 'input' && fields ? fields.find((f) => f.id === handle.id) : undefined;
         const isConnected = connectedHandles.has(handle.id!);
         const showStaticInput = fieldConfig && !isConnected;
+        const validationIssue = validationIssues.find((iss) => iss.fieldId === handle.id);
 
         const handleComponent = (
           <Handle
@@ -113,7 +115,12 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
         );
 
         return (
-          <div key={handle.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div
+            key={handle.id}
+            className={validationIssue ? 'flow-node-field-invalid' : ''}
+            style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+            title={validationIssue?.message}
+          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent }} title={schemaTooltip}>
               {type === 'input' ? (
                 <>

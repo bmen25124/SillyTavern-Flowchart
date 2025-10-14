@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { EditLorebookEntryNode } from './EditLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
@@ -75,6 +76,16 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema },
     ],
+  },
+  validate: (node: Node<EditLorebookEntryNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.worldName && !edges.some((e) => e.target === node.id && e.targetHandle === 'worldName')) {
+      issues.push({ fieldId: 'worldName', message: 'Lorebook Name is required.', severity: 'error' });
+    }
+    if (node.data.entryUid === undefined && !edges.some((e) => e.target === node.id && e.targetHandle === 'entryUid')) {
+      issues.push({ fieldId: 'entryUid', message: 'Entry to Edit is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

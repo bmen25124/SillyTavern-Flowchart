@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { StringToolsNode } from './StringToolsNode.js';
 import { registrator } from '../registrator.js';
@@ -60,6 +61,22 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.ANY },
     ],
+  },
+  validate: (node: Node<StringToolsNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const op = node.data.operation;
+    if (op === 'split') {
+      const isConnected = edges.some((e) => e.target === node.id && e.targetHandle === 'string');
+      if (!isConnected) {
+        issues.push({ message: 'A "string" input must be connected for Split operation.', severity: 'error' });
+      }
+    } else if (op === 'join') {
+      const isConnected = edges.some((e) => e.target === node.id && e.targetHandle === 'array');
+      if (!isConnected) {
+        issues.push({ message: 'An "array" input must be connected for Join operation.', severity: 'error' });
+      }
+    }
+    return issues;
   },
   execute,
   getDynamicHandleId: (index: number) => `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${index}`,

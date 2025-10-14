@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RunSlashCommandNode } from './RunSlashCommandNode.js';
 import { registrator } from '../registrator.js';
@@ -47,6 +48,18 @@ export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeDa
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<RunSlashCommandNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'command');
+    if (!node.data.command && !isConnected) {
+      issues.push({
+        fieldId: 'command',
+        message: 'Command is required.',
+        severity: 'error',
+      });
+    }
+    return issues;
   },
   execute,
 };

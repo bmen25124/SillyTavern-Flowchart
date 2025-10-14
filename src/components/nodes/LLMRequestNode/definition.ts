@@ -1,6 +1,6 @@
 import { Node, Edge } from '@xyflow/react';
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { LLMRequestNode } from './LLMRequestNode.js';
 import { registrator } from '../registrator.js';
@@ -112,26 +112,51 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       { id: 'messages', type: FlowDataType.MESSAGES },
       { id: 'schema', type: FlowDataType.SCHEMA },
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
-      { id: 'promptEngineeringMode', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.ANY },
     ],
   },
+  validate: (node: Node<LLMRequestNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isProfileIdConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'profileId');
+    if (!node.data.profileId && !isProfileIdConnected) {
+      issues.push({
+        fieldId: 'profileId',
+        message: 'Connection Profile is required.',
+        severity: 'error',
+      });
+    }
+    const isMessagesConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'messages');
+    if (!isMessagesConnected) {
+      issues.push({
+        message: 'A "Messages" input is required.',
+        severity: 'error',
+      });
+    }
+    return issues;
+  },
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
     const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
+    const isSchemaConnected = !!schemaEdge;
 
-    if (!schemaEdge) {
-      // No schema connected, result is a plain string.
-      return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.STRING }] };
+    // --- Dynamic Inputs ---
+    const dynamicInputs = [];
+    if (isSchemaConnected) {
+      dynamicInputs.push({ id: 'schemaName', type: FlowDataType.STRING });
+      dynamicInputs.push({ id: 'promptEngineeringMode', type: FlowDataType.STRING });
+    }
+
+    // --- Dynamic Outputs ---
+    if (!isSchemaConnected) {
+      return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
     }
 
     const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
-      // Connection exists but source isn't a valid schema node.
-      return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.STRING }] };
+      return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
     }
 
     const fullSchema = buildZodSchemaFromFields(schemaNode.data.fields as FieldDefinition[]);
@@ -143,17 +168,15 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       schema: buildZodSchema(field),
     }));
 
-    return { inputs: [], outputs: [resultHandle, ...fieldHandles] };
+    return { inputs: dynamicInputs, outputs: [resultHandle, ...fieldHandles] };
   },
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection !== 'output') return undefined;
 
     const schemaEdge = edges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-
     if (!schemaEdge) {
       return handleId === 'result' ? FlowDataType.STRING : undefined;
     }
-
     if (handleId === 'result') return FlowDataType.STRUCTURED_RESULT;
 
     const schemaNode = nodes.find((n) => n.id === schemaEdge.source);

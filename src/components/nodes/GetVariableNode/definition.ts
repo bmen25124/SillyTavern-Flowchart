@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetVariableNode } from './GetVariableNode.js';
 import { registrator } from '../registrator.js';
@@ -37,6 +38,18 @@ export const getVariableNodeDefinition: NodeDefinition<GetVariableNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'value', type: FlowDataType.ANY },
     ],
+  },
+  validate: (node: Node<GetVariableNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'variableName');
+    if (!node.data.variableName && !isConnected) {
+      issues.push({
+        fieldId: 'variableName',
+        message: 'Variable Name is required.',
+        severity: 'error',
+      });
+    }
+    return issues;
   },
   execute,
 };

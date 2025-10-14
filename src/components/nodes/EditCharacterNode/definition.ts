@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { EditCharacterNode } from './EditCharacterNode.js';
 import { registrator } from '../registrator.js';
@@ -89,6 +90,14 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<EditCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'characterAvatar');
+    if (!node.data.characterAvatar && !isConnected) {
+      issues.push({ fieldId: 'characterAvatar', message: 'Character to Edit is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

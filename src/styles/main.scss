@@ -379,6 +379,19 @@
   z-index: 10;
 }
 
+.flow-node-field-invalid {
+  label {
+    color: var(--warning);
+  }
+  .text_pole,
+  .st-select,
+  .CodeMirror,
+  .st-fancy-dropdown-input {
+    border-color: var(--warning) !important;
+    box-shadow: 0 0 3px var(--warning);
+  }
+}
+
 // Styles for disabled nodes
 .react-flow__node > div.node-disabled {
   opacity: 0.5;

@@ -35,7 +35,7 @@ describe('validateFlow', () => {
     };
     const { isValid, errors } = validateFlow(flow);
     expect(isValid).toBe(false);
-    expect(errors).toContain('Node [start]: Trigger nodes cannot have incoming connections.');
+    expect(errors).toContain('Node [triggerNode]: Trigger nodes cannot have incoming connections.');
   });
 
   it('should invalidate a flow with a cycle', () => {
@@ -85,7 +85,7 @@ describe('validateFlow', () => {
     };
     const { isValid, errors, invalidNodeIds } = validateFlow(flow);
     expect(isValid).toBe(false);
-    expect(errors).toContain('Node [a]: Unknown node type "unknownNodeType".');
+    expect(errors).toContain('Node [unknownNodeType]: Unknown node type "unknownNodeType".');
     expect(invalidNodeIds.has('a')).toBe(true);
   });
 });
