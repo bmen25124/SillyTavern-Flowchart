@@ -103,7 +103,11 @@ class FlowRunner {
   private dependencies: FlowRunnerDependencies;
 
   private isExecuting: boolean = false;
-  private flowQueue: { flowId: string; initialInput: Record<string, any> }[] = [];
+  private flowQueue: {
+    flowId: string;
+    initialInput: Record<string, any>;
+    options: { startNodeId?: string; endNodeId?: string };
+  }[] = [];
 
   constructor() {
     this.lowLevelRunner = new LowLevelFlowRunner(registrator.nodeExecutors);
@@ -273,10 +277,10 @@ class FlowRunner {
     }
 
     this.isExecuting = true;
-    const { flowId, initialInput } = this.flowQueue.shift()!;
+    const { flowId, initialInput, options } = this.flowQueue.shift()!;
 
     try {
-      await this._executeFlowInternal(flowId, initialInput, 0);
+      await this._executeFlowInternal(flowId, initialInput, 0, options);
     } catch (error) {
       console.error(`[FlowChart] Critical error during queued flow execution:`, error);
     } finally {
@@ -286,7 +290,12 @@ class FlowRunner {
     }
   }
 
-  public async executeFlow(flowId: string, initialInput: Record<string, any>, depth = 0): Promise<ExecutionReport> {
+  public async executeFlow(
+    flowId: string,
+    initialInput: Record<string, any>,
+    depth = 0,
+    options: { startNodeId?: string; endNodeId?: string } = {},
+  ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows[flowId];
     if (!flowData) throw new Error(`Flow with id ${flowId} not found.`);
 
@@ -296,7 +305,7 @@ class FlowRunner {
 
     // Queue top-level triggers, execute sub-flows directly.
     if (depth === 0) {
-      this.flowQueue.push({ flowId, initialInput });
+      this.flowQueue.push({ flowId, initialInput, options });
       if (!this.isExecuting) {
         this._processQueue();
       } else {
@@ -307,13 +316,14 @@ class FlowRunner {
     }
 
     // This is a sub-flow execution, run it directly.
-    return this._executeFlowInternal(flowId, initialInput, depth);
+    return this._executeFlowInternal(flowId, initialInput, depth, options);
   }
 
   private async _executeFlowInternal(
     flowId: string,
     initialInput: Record<string, any>,
     depth: number,
+    options: { startNodeId?: string; endNodeId?: string } = {},
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows[flowId];
     const flow = flowData.flow;
@@ -346,6 +356,7 @@ class FlowRunner {
         this.dependencies,
         depth,
         this.abortController?.signal,
+        options,
       );
 
       if (depth === 0) {
@@ -425,6 +436,36 @@ class FlowRunner {
     }
 
     return this.executeFlow(flowId, params ?? {}, 0);
+  }
+
+  public async runFlowFromNode(flowId: string, startNodeId: string) {
+    const settings = settingsManager.getSettings();
+    const flowData = settings.flows[flowId];
+    if (!flowData) {
+      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
+      return;
+    }
+    if (settings.enabledFlows[flowId] === false) {
+      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
+      return;
+    }
+    st_echo('info', `FlowChart: Running flow "${flowData.name}" from node ${startNodeId}.`);
+    return this.executeFlow(flowId, {}, 0, { startNodeId });
+  }
+
+  public async runFlowToNode(flowId: string, endNodeId: string) {
+    const settings = settingsManager.getSettings();
+    const flowData = settings.flows[flowId];
+    if (!flowData) {
+      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
+      return;
+    }
+    if (settings.enabledFlows[flowId] === false) {
+      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
+      return;
+    }
+    st_echo('info', `FlowChart: Running flow "${flowData.name}" to node ${endNodeId}.`);
+    return this.executeFlow(flowId, {}, 0, { endNodeId });
   }
 
   public abortCurrentRun() {

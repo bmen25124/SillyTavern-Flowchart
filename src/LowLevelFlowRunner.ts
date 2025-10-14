@@ -28,6 +28,7 @@ export class LowLevelFlowRunner {
     dependencies: FlowRunnerDependencies,
     depth: number,
     signal?: AbortSignal,
+    options: { startNodeId?: string; endNodeId?: string } = {},
   ): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
 
@@ -50,7 +51,16 @@ export class LowLevelFlowRunner {
       }
     }
 
-    const queue = flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id);
+    const queue: string[] = [];
+    if (options.startNodeId) {
+      const startNode = nodesById.get(options.startNodeId);
+      if (!startNode) {
+        throw new Error(`Start node with ID "${options.startNodeId}" not found.`);
+      }
+      queue.push(options.startNodeId);
+    } else {
+      queue.push(...flow.nodes.filter((node) => inDegree[node.id] === 0).map((node) => node.id));
+    }
 
     try {
       while (queue.length > 0) {
@@ -66,7 +76,7 @@ export class LowLevelFlowRunner {
         }
 
         const isRootNode = !flow.edges.some((e) => e.target === nodeId);
-        const baseInput = isRootNode ? initialInput : {};
+        const baseInput = isRootNode || nodeId === options.startNodeId ? initialInput : {};
         const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
 
         eventEmitter.emit('node:run:start', { runId, nodeId });
@@ -106,6 +116,11 @@ export class LowLevelFlowRunner {
           const enhancedError = new Error(nodeReport.error);
           (enhancedError as any).nodeId = node.id;
           throw enhancedError;
+        }
+
+        if (nodeId === options.endNodeId) {
+          console.log(`[FlowChart] Flow execution stopped at designated node ${nodeId}.`);
+          break;
         }
 
         const outgoingEdges = adj.get(nodeId) || [];

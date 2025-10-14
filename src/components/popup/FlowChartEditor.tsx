@@ -131,6 +131,8 @@ const FlowCanvas: FC<{
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
       if (!editorArea) return;
       const bounds = editorArea.getBoundingClientRect();
+      const { activeFlow } = settingsManager.getSettings();
+
       menuJustOpened.current = true;
       setContextMenu({
         x: event.clientX - bounds.left,
@@ -152,6 +154,20 @@ const FlowCanvas: FC<{
             label: 'Duplicate',
             action: () => {
               duplicateNode(node.id);
+              setContextMenu(null);
+            },
+          },
+          {
+            label: 'Run From Here',
+            action: () => {
+              flowRunner.runFlowFromNode(activeFlow, node.id);
+              setContextMenu(null);
+            },
+          },
+          {
+            label: 'Run To Here',
+            action: () => {
+              flowRunner.runFlowToNode(activeFlow, node.id);
               setContextMenu(null);
             },
           },
@@ -449,7 +465,7 @@ const FlowCanvas: FC<{
       >
         <Background color="#444" gap={15} variant={BackgroundVariant.Dots} />
         <Controls />
-        <MiniMap zoomable pannable />
+        <MiniMap />
       </ReactFlow>
       {contextMenu && (
         <div
