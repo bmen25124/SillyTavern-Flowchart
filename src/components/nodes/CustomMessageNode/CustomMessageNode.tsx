@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import { Handle, Position, NodeProps, Node, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { CustomMessageNodeData } from './definition.js';
@@ -12,22 +12,8 @@ export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as CustomMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const edges = useFlowStore((state) => state.edges);
-  const setEdges = useFlowStore((state) => state.setEdges);
   const allEdges = useEdges(); // For UI check
   const definition = registrator.nodeDefinitionMap.get(type);
-
-  useEffect(() => {
-    if (!data) return;
-    const existingHandleIds = new Set(data.messages.flatMap((m) => [m.id, `${m.id}_role`]));
-    const filteredEdges = edges.filter(
-      (edge) => !(edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle)),
-    );
-
-    if (filteredEdges.length < edges.length) {
-      setEdges(filteredEdges);
-    }
-  }, [data?.messages, id, setEdges, edges]);
 
   if (!data || !definition) return null;
 

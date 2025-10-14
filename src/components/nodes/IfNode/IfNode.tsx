@@ -1,5 +1,5 @@
-import { useMemo, useEffect, FC } from 'react';
-import { Handle, Position, Node, NodeProps, useEdges } from '@xyflow/react';
+import { useMemo, FC } from 'react';
+import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
@@ -118,12 +118,8 @@ const ConditionEditor: FC<{
 };
 
 export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
-  const { data, updateNodeData, setEdges } = useFlowStore((state) => ({
-    data: state.nodesMap.get(id)?.data as IfNodeData,
-    updateNodeData: state.updateNodeData,
-    setEdges: state.setEdges,
-  }));
-  const edges = useEdges();
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as IfNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const inputSchema = useInputSchema(id, 'main');
 
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
@@ -131,23 +127,6 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
     if (!isInputAnObject || !inputSchema) return [];
     return flattenZodSchema(inputSchema);
   }, [inputSchema, isInputAnObject]);
-
-  useEffect(() => {
-    if (!data) return;
-    const validSourceHandles = new Set([...data.conditions.map((c) => c.id), 'false']);
-    const validTargetHandles = new Set(['main', ...data.conditions.map((c) => `value_${c.id}`)]);
-
-    const edgesToRemove = edges.filter(
-      (edge) =>
-        (edge.source === id && edge.sourceHandle && !validSourceHandles.has(edge.sourceHandle)) ||
-        (edge.target === id && edge.targetHandle && !validTargetHandles.has(edge.targetHandle)),
-    );
-
-    if (edgesToRemove.length > 0) {
-      const edgeIdsToRemove = new Set(edgesToRemove.map((e) => e.id));
-      setEdges(edges.filter((e) => !edgeIdsToRemove.has(e.id)));
-    }
-  }, [data?.conditions, id, setEdges, edges]);
 
   if (!data) return null;
 

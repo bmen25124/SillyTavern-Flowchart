@@ -395,8 +395,19 @@ class FlowRunner {
     if (!startNode) return;
 
     const eventType = startNode.data.selectedEventType as string;
-    const paramNames = Object.keys(EventNameParameters[eventType] || {});
-    const initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
+    const eventParams = EventNameParameters[eventType];
+    let initialInput: Record<string, any>;
+
+    if (eventParams) {
+      const paramNames = Object.keys(eventParams);
+      initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
+    } else {
+      // Fallback for unknown events
+      initialInput = { allArgs: eventArgs };
+      eventArgs.forEach((arg, index) => {
+        initialInput[`arg${index}`] = arg;
+      });
+    }
 
     return this.executeFlow(flowId, initialInput, 0);
   }

@@ -1,13 +1,23 @@
 import { z } from 'zod';
 import { EventNames } from 'sillytavern-utils-lib/types';
 
-// These parameters are ordered method parameters.
-// For example, `{ messageId: z.number() }` means, `function (messageId: number)`
-// @ts-ignore For now no need to add others
+/**
+ * A mapping of SillyTavern event names to their parameter definitions.
+ * The keys of the inner object represent the parameter names that will be available
+ * as output handles on the TriggerNode. The order of keys is important and must
+ * match the order of arguments emitted by the event.
+ *
+ * If an event is not defined here, the TriggerNode will fall back to providing
+ * generic handles: `allArgs` (an array of all arguments) and `arg0`, `arg1`, etc.
+ * for individual arguments.
+ */
 export const EventNameParameters: Record<string, Record<string, z.ZodType>> = {
+  // Message Events
   [EventNames.USER_MESSAGE_RENDERED]: { messageId: z.number() },
   [EventNames.CHARACTER_MESSAGE_RENDERED]: { messageId: z.number() },
   [EventNames.MESSAGE_UPDATED]: { messageId: z.number() },
+
+  // Chat / Character Events
   [EventNames.CHAT_CHANGED]: {},
 };
 

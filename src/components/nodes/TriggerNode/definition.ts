@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { NodeDefinition, HandleSpec } from '../definitions/types.js';
 import { EventNameParameters, FlowDataType } from '../../../flow-types.js';
 import { TriggerNode } from './TriggerNode.js';
 import { registrator } from '../registrator.js';
@@ -32,26 +32,45 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
   component: TriggerNode,
   dataSchema: TriggerNodeDataSchema,
   currentVersion: 1,
-  initialData: { selectedEventType: EventNames.USER_MESSAGE_RENDERED },
+  initialData: { selectedEventType: 'user_message_rendered' },
   handles: { inputs: [], outputs: [] },
   execute,
   getDynamicHandles: (node) => {
     const { data } = node;
     const eventParams = EventNameParameters[data.selectedEventType];
-    if (!eventParams) return { inputs: [], outputs: [] };
-    const outputs = Object.keys(eventParams).map((paramName) => ({
-      id: paramName,
-      type: zodTypeToFlowType(eventParams[paramName]),
-      schema: eventParams[paramName],
-    }));
+    let outputs: HandleSpec[];
+
+    if (eventParams) {
+      outputs = Object.keys(eventParams).map((paramName) => ({
+        id: paramName,
+        type: zodTypeToFlowType(eventParams[paramName]),
+        schema: eventParams[paramName],
+      }));
+    } else {
+      // Fallback for unknown events
+      outputs = [
+        { id: 'allArgs', type: FlowDataType.OBJECT, schema: z.array(z.any()) },
+        { id: 'arg0', type: FlowDataType.ANY },
+        { id: 'arg1', type: FlowDataType.ANY },
+        { id: 'arg2', type: FlowDataType.ANY },
+        { id: 'arg3', type: FlowDataType.ANY },
+      ];
+    }
     return { inputs: [], outputs };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
-    if (handleDirection === 'output') {
+    if (handleDirection === 'output' && handleId) {
       const { selectedEventType } = node.data as { selectedEventType: string };
       const eventParams = EventNameParameters[selectedEventType];
-      if (eventParams && handleId && eventParams[handleId]) {
-        return zodTypeToFlowType(eventParams[handleId]);
+
+      if (eventParams) {
+        if (eventParams[handleId]) {
+          return zodTypeToFlowType(eventParams[handleId]);
+        }
+      } else {
+        // Fallback for unknown events
+        if (handleId === 'allArgs') return FlowDataType.OBJECT;
+        if (handleId.startsWith('arg')) return FlowDataType.ANY;
       }
     }
     return undefined;

@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { BaseNode } from '../BaseNode.js';
 import { MergeObjectsNodeData } from './definition.js';
@@ -11,29 +11,16 @@ import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 export type MergeObjectsNodeProps = NodeProps<Node<MergeObjectsNodeData>>;
 
 export const MergeObjectsNode: FC<MergeObjectsNodeProps> = ({ id, selected, type }) => {
-  const { data, updateNodeData, edges, setEdges } = useFlowStore(
+  const { data, updateNodeData } = useFlowStore(
     (state) => ({
       data: state.nodes.find((n) => n.id === id)?.data as MergeObjectsNodeData,
       updateNodeData: state.updateNodeData,
-      edges: state.edges,
-      setEdges: state.setEdges,
     }),
     shallow,
   );
 
   const definition = registrator.nodeDefinitionMap.get(type)!;
   const inputCount = data?.inputCount ?? 2;
-
-  useEffect(() => {
-    const existingHandleIds = new Set(Array.from({ length: inputCount }, (_, i) => definition.getDynamicHandleId!(i)));
-    const filteredEdges = edges.filter(
-      (edge) => !(edge.target === id && edge.targetHandle && !existingHandleIds.has(edge.targetHandle)),
-    );
-
-    if (filteredEdges.length < edges.length) {
-      setEdges(filteredEdges);
-    }
-  }, [inputCount, id, setEdges, edges, definition]);
 
   if (!data) return null;
 
