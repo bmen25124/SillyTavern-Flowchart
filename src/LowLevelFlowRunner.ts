@@ -224,11 +224,9 @@ export class LowLevelFlowRunner {
           ? sourceOutput[edge.sourceHandle]
           : sourceOutput;
 
-      if (edge.targetHandle) {
-        inputs[edge.targetHandle] = valueToPass;
-      } else {
-        return valueToPass;
-      }
+      // Use the string 'null' as the key for the default handle.
+      const handleKey = edge.targetHandle || 'null';
+      inputs[handleKey] = valueToPass;
     }
     return inputs;
   }

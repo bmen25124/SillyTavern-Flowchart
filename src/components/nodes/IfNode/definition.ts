@@ -40,14 +40,17 @@ const getConditionValueHandleId = (conditionId: string) => `value_${conditionId}
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = IfNodeDataSchema.parse(node.data);
+  const primaryInput = input['null']; // The data from the main (null) input handle
 
   for (const condition of data.conditions) {
     let result = false;
 
     if (condition.mode === 'simple') {
-      // If inputProperty is set, use it to get a value from the input object.
-      // If inputProperty is empty, use the input value directly (works for primitives and objects).
-      const propertyValue = condition.inputProperty ? get(input, condition.inputProperty, undefined) : input;
+      // If inputProperty is set, get a value from the primary input object.
+      // Otherwise, use the primary input value directly.
+      const propertyValue = condition.inputProperty
+        ? get(primaryInput, condition.inputProperty, undefined)
+        : primaryInput;
 
       const comparisonValue = input[getConditionValueHandleId(condition.id)] ?? condition.value;
 
@@ -78,7 +81,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
           break;
       }
     } else {
-      const context = input ?? {};
+      const context = primaryInput ?? input; // Pass the primary input if it exists, otherwise the whole object
       const variables = { ...Object.fromEntries(executionVariables) };
       try {
         const func = new Function('input', 'variables', 'stContext', condition.code);

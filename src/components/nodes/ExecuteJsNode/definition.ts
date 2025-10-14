@@ -14,9 +14,14 @@ export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = ExecuteJsNodeDataSchema.parse(node.data);
   const variables = { ...Object.fromEntries(executionVariables) };
+
+  // If a default (null) input is connected, pass its value as the primary `input` argument to the script.
+  // Otherwise, pass the whole object of named inputs. This provides an intuitive scripting experience.
+  const scriptInput = input['null'] ?? input;
+
   try {
     const func = new Function('input', 'variables', 'stContext', data.code);
-    return func(input, variables, dependencies.getSillyTavernContext());
+    return func(scriptInput, variables, dependencies.getSillyTavernContext());
   } catch (error: any) {
     throw new Error(`Error executing JS code: ${error.message}`);
   }

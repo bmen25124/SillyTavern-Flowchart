@@ -13,8 +13,7 @@ export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = ProfileIdNodeDataSchema.parse(node.data);
-
-  const connectedValue = input;
+  const connectedValue = input['null'];
 
   if (connectedValue !== undefined && connectedValue !== null && String(connectedValue).trim() !== '') {
     return String(connectedValue);

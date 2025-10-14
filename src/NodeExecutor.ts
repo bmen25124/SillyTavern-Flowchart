@@ -54,8 +54,4 @@ export type NodeExecutorContext = {
   signal?: AbortSignal;
 };
 
-export type NodeExecutor = (
-  node: SpecNode,
-  input: Record<string, any> | any,
-  context: NodeExecutorContext,
-) => Promise<any>;
+export type NodeExecutor = (node: SpecNode, input: Record<string, any>, context: NodeExecutorContext) => Promise<any>;

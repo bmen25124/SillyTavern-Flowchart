@@ -201,7 +201,7 @@ describe('Node Executors', () => {
           { id: trueConditionId, mode: 'simple', operator: 'equals', value: 'correct', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, 'correct', context);
+      const result = await execute(node, { null: 'correct' }, context);
       expect(result).toEqual({ activatedHandle: trueConditionId });
     });
 
@@ -211,7 +211,7 @@ describe('Node Executors', () => {
           { id: 'some-cond', mode: 'simple', operator: 'equals', value: 'nope', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, 'a different value', context);
+      const result = await execute(node, { null: 'a different value' }, context);
       expect(result).toEqual({ activatedHandle: 'false' });
     });
 

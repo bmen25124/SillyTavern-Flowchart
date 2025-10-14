@@ -42,31 +42,21 @@ export const NotificationNode: FC<NotificationNodeProps> = ({ id, selected, type
 
   return (
     <BaseNode id={id} title="Notification" selected={selected}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        id={null}
+        style={{ top: '15px', backgroundColor: FlowDataTypeColors.any }}
+      />
+
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '10px',
-          paddingTop: '5px',
-          borderTop: '1px solid #555',
-        }}
-      >
-        <span>Message (Passthrough)</span>
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="message"
-          style={{
-            position: 'relative',
-            transform: 'none',
-            right: 0,
-            top: 0,
-            backgroundColor: FlowDataTypeColors.string,
-          }}
-        />
-      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        id={null}
+        style={{ top: '15px', backgroundColor: FlowDataTypeColors.any }}
+      />
     </BaseNode>
   );
 };
