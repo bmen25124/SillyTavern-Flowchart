@@ -169,8 +169,6 @@ export class LowLevelFlowRunner {
   }
 
   private async executeNode(node: SpecNode, input: Record<string, any>, context: NodeExecutorContext): Promise<any> {
-    if (node.type === 'groupNode') return {};
-
     const executor = this.nodeExecutors.get(node.type);
     if (!executor) {
       throw new Error(`No executor found for node type "${node.type}". Make sure it's registered correctly.`);

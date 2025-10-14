@@ -391,7 +391,6 @@ const FlowCanvas: FC<{
             _validationErrors: nodeErrors,
           },
           className: classNames.join(' '),
-          zIndex: node.type === 'groupNode' ? -1 : 1,
         };
       }),
     [nodes, invalidNodeIds, isVisualizationVisible, nodeReports, activeNodeId, errorsByNodeId],

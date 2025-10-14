@@ -221,22 +221,6 @@ describe('LowLevelFlowRunner', () => {
     expect(emitSpy).toHaveBeenCalledTimes(4); // start/end for each of the 2 nodes
   });
 
-  it('should ignore group nodes during execution', async () => {
-    const flow: SpecFlow = {
-      nodes: [
-        { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
-        { id: 'group', type: 'groupNode', data: { label: 'My Group' } },
-      ],
-      edges: [],
-    };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
-    expect(report.error).toBeUndefined();
-    expect(report.executedNodes.length).toBe(2);
-    const groupNodeReport = report.executedNodes.find((n) => n.nodeId === 'group');
-    expect(groupNodeReport).toBeDefined();
-    expect(groupNodeReport?.output).toEqual({});
-  });
-
   it('should correctly evaluate an ifNode and follow the false path', async () => {
     const flow: SpecFlow = {
       nodes: [
