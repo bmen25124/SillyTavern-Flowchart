@@ -237,13 +237,23 @@ export class LowLevelFlowRunner {
       }
 
       const sourceOutput = nodeOutputs[edge.source];
+      const sourceNode = nodesById.get(edge.source);
+
       if (sourceOutput === undefined || typeof sourceOutput !== 'object' || sourceOutput === null) {
         continue;
       }
 
       const handleKey = edge.targetHandle ?? 'main';
-      const sourceHandle = edge.sourceHandle ?? 'result'; // Fallback to 'result' for single-output nodes
-      const valueToPass = sourceOutput[sourceHandle];
+      let valueToPass;
+
+      if (sourceNode?.type === 'ifNode') {
+        // For an If node, the data always comes from its 'main' output property,
+        // which contains the passthrough value. The sourceHandle is just for routing.
+        valueToPass = sourceOutput.main;
+      } else {
+        const sourceHandle = edge.sourceHandle ?? 'result';
+        valueToPass = sourceOutput[sourceHandle];
+      }
 
       inputs[handleKey] = valueToPass;
     }

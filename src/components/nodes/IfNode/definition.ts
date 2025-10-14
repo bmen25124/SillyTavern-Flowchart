@@ -5,6 +5,7 @@ import { IfNode } from './IfNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { get } from '../../../utils/node-logic.js';
+import { getHandleSpec } from '../../../utils/handle-logic.js';
 
 export const OPERATORS = [
   'equals',
@@ -46,12 +47,9 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     let result = false;
 
     if (condition.mode === 'simple') {
-      // If inputProperty is set, get a value from the primary input object.
-      // Otherwise, use the primary input value directly.
       const propertyValue = condition.inputProperty
         ? get(primaryInput, condition.inputProperty, undefined)
         : primaryInput;
-
       const comparisonValue = input[getConditionValueHandleId(condition.id)] ?? condition.value;
 
       switch (condition.operator) {
@@ -81,7 +79,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
           break;
       }
     } else {
-      const context = primaryInput ?? input; // Pass the primary input if it exists, otherwise the whole object
+      const context = primaryInput ?? input;
       const variables = { ...Object.fromEntries(executionVariables) };
       try {
         const func = new Function('input', 'variables', 'stContext', condition.code);
@@ -92,11 +90,11 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     }
 
     if (result) {
-      return { activatedHandle: condition.id };
+      return { activatedHandle: condition.id, main: primaryInput };
     }
   }
 
-  return { activatedHandle: 'false' };
+  return { activatedHandle: 'false', main: primaryInput };
 };
 
 export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
@@ -119,28 +117,67 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     ],
   },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }], // Use a default, unnamed input handle
-    outputs: [{ id: 'false', type: FlowDataType.ANY }],
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [], // Make ALL outputs dynamic
   },
   execute,
   isDangerous: true,
-  getDynamicHandles: (node) => {
+  getDynamicHandles: (node, allNodes, allEdges) => {
     const conditions = (node.data as IfNodeData).conditions || [];
+
+    const inputEdge = allEdges.find((e) => e.target === node.id && e.targetHandle === 'main');
+    const sourceNode = inputEdge ? allNodes.find((n) => n.id === inputEdge.source) : undefined;
+
+    let passthroughType = FlowDataType.ANY;
+    // @ts-ignore
+    let passthroughSchema;
+
+    if (sourceNode && inputEdge) {
+      const sourceSpec = getHandleSpec(sourceNode, inputEdge.sourceHandle || null, 'output', allNodes, allEdges);
+      if (sourceSpec) {
+        passthroughType = sourceSpec.type;
+        passthroughSchema = sourceSpec.schema;
+      }
+    }
+
+    const conditionalOutputs = conditions.map((c) => ({
+      id: c.id,
+      type: passthroughType,
+      // @ts-ignore
+      schema: passthroughSchema,
+    }));
+
+    // Add the 'false' handle to the dynamic list
+    const allOutputs = [...conditionalOutputs, { id: 'false', type: passthroughType, schema: passthroughSchema }];
+
     return {
       inputs: conditions.map((c) => ({ id: getConditionValueHandleId(c.id), type: FlowDataType.ANY })),
-      outputs: conditions.map((c) => ({ id: c.id, type: FlowDataType.ANY })),
+      outputs: allOutputs,
     };
   },
-  getHandleType: ({ handleId, handleDirection, node }) => {
-    const conditions = (node.data as IfNodeData).conditions || [];
-    if (handleDirection === 'output') {
-      const isConditionHandle = conditions.some((c) => c.id === handleId);
-      if (handleId === 'false' || isConditionHandle) return FlowDataType.ANY;
-    }
+  getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection === 'input') {
-      if (handleId === 'main') return FlowDataType.ANY; // Check for the default handle
+      if (handleId === 'main') return FlowDataType.ANY;
+      const conditions = (node.data as IfNodeData).conditions || [];
       const isValueHandle = conditions.some((c) => getConditionValueHandleId(c.id) === handleId);
       if (isValueHandle) return FlowDataType.ANY;
+    }
+
+    if (handleDirection === 'output') {
+      const conditions = (node.data as IfNodeData).conditions || [];
+      const isConditionHandle = conditions.some((c) => c.id === handleId);
+
+      if (handleId === 'false' || isConditionHandle) {
+        const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'main');
+        if (inputEdge) {
+          const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+          if (sourceNode) {
+            const sourceSpec = getHandleSpec(sourceNode, inputEdge.sourceHandle || null, 'output', nodes, edges);
+            return sourceSpec?.type ?? FlowDataType.ANY;
+          }
+        }
+        return FlowDataType.ANY;
+      }
     }
     return undefined;
   },
