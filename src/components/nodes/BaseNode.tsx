@@ -17,7 +17,9 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
     nodeReports: state.nodeReports,
     executionOrder: state.executionOrder,
   }));
-  const isNodeDisabled = useFlowStore((state) => state.nodesMap.get(id)?.data?.disabled);
+  const nodeData = useFlowStore((state) => state.nodesMap.get(id)?.data);
+  const isNodeDisabled = nodeData?.disabled;
+  const validationErrors = (nodeData as any)?._validationErrors;
 
   const report = nodeReports.get(id);
   const showReport = isVisualizationVisible && report;
@@ -42,6 +44,11 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected }) =
       }}
     >
       {executionOrderIndex > 0 && <div className="execution-order-badge">{executionOrderIndex}</div>}
+      {validationErrors && (
+        <div className="node-validation-error-icon" title={validationErrors.join('\n')}>
+          <i className="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      )}
       <NodeResizer isVisible={selected} minWidth={180} minHeight={50} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
         <label>{title}</label>

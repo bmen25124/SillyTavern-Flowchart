@@ -6,30 +6,11 @@ import { BaseNode } from '../BaseNode.js';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
-import { z } from 'zod';
+import { schemaToText, flattenZodSchema } from '../../../utils/schema-inspector.js';
 import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 import { FlowDataTypeColors } from '../../../flow-types.js';
 
 export type GetPropertyNodeProps = NodeProps<Node<GetPropertyNodeData>>;
-
-// Helper to generate a flat list of dot-notation paths from a Zod schema.
-function flattenZodSchema(schema: z.ZodType, prefix = ''): string[] {
-  if ('unwrap' in schema && typeof schema.unwrap === 'function') {
-    // @ts-ignore
-    return flattenZodSchema(schema.unwrap(), prefix);
-  }
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    return Object.entries(shape).flatMap(([key, value]) => flattenZodSchema(value, prefix ? `${prefix}.${key}` : key));
-  }
-  if (schema instanceof z.ZodArray) {
-    // Suggest accessing the first element for properties
-    // @ts-ignore
-    return flattenZodSchema(schema.element, `${prefix}[0]`);
-  }
-  return prefix ? [prefix] : [];
-}
 
 const fields = [
   createFieldConfig({

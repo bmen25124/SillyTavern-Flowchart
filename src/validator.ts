@@ -6,15 +6,26 @@ export interface ValidationResult {
   errors: string[];
   invalidNodeIds: Set<string>;
   invalidEdgeIds: Set<string>;
+  errorsByNodeId: Map<string, string[]>;
 }
 
 export const validateFlow = (flow: SpecFlow): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
+  const errorsByNodeId = new Map<string, string[]>();
+
+  const addNodeError = (nodeId: string, message: string) => {
+    if (!errorsByNodeId.has(nodeId)) {
+      errorsByNodeId.set(nodeId, []);
+    }
+    errorsByNodeId.get(nodeId)!.push(message);
+    invalidNodeIds.add(nodeId);
+    errors.push(`Node [${nodeId}]: ${message}`);
+  };
 
   if (!flow.nodes || flow.nodes.length === 0) {
-    return { isValid: true, errors: [], invalidNodeIds, invalidEdgeIds };
+    return { isValid: true, errors: [], invalidNodeIds, invalidEdgeIds, errorsByNodeId };
   }
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
@@ -25,15 +36,12 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
     if (definition) {
       const result = definition.dataSchema.safeParse(node.data);
       if (!result.success) {
-        const formattedErrors = result.error.issues.map(
-          (issue) => `Node [${node.id} (${node.type})]: ${issue.path.join('.')} - ${issue.message}`,
-        );
-        errors.push(...formattedErrors);
-        invalidNodeIds.add(node.id);
+        result.error.issues.forEach((issue) => {
+          addNodeError(node.id, `${issue.path.join('.')} - ${issue.message}`);
+        });
       }
     } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
-      errors.push(`Node [${node.id}]: Unknown node type "${node.type}".`);
-      invalidNodeIds.add(node.id);
+      addNodeError(node.id, `Unknown node type "${node.type}".`);
     }
   }
 
@@ -101,8 +109,8 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
   for (const triggerNode of triggerNodes) {
     const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
     if (hasIncomingEdge) {
-      errors.push(`Trigger Node [${triggerNode.id}] cannot have incoming connections.`);
-      invalidNodeIds.add(triggerNode.id);
+      const errorMsg = `Trigger nodes cannot have incoming connections.`;
+      addNodeError(triggerNode.id, errorMsg);
     }
   }
 
@@ -111,5 +119,6 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
     errors,
     invalidNodeIds,
     invalidEdgeIds,
+    errorsByNodeId,
   };
 };

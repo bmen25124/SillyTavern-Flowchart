@@ -6,7 +6,12 @@ import { ExecutionReport } from './LowLevelFlowRunner.js';
 
 export interface FlowRunnerDependencies {
   getBaseMessagesForProfile: (profileId: string, options?: any) => Promise<any[]>;
-  makeSimpleRequest: (profileId: string, messages: any[], maxResponseToken: number) => Promise<string>;
+  makeSimpleRequest: (
+    profileId: string,
+    messages: any[],
+    maxResponseToken: number,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   makeStructuredRequest: (
     profileId: string,
     messages: any[],
@@ -14,6 +19,7 @@ export interface FlowRunnerDependencies {
     schemaName: string,
     promptEngineeringMode: any,
     maxResponseToken: number,
+    signal?: AbortSignal,
   ) => Promise<any>;
   getSillyTavernContext: () => SillyTavernContext;
   createCharacter: (data: any) => Promise<void>;
@@ -41,6 +47,7 @@ export type NodeExecutorContext = {
   dependencies: FlowRunnerDependencies;
   executionVariables: Map<string, any>;
   depth: number;
+  signal?: AbortSignal;
 };
 
 export type NodeExecutor = (

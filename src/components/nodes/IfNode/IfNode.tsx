@@ -9,19 +9,8 @@ import { IfNodeData, Condition, OPERATORS, Operator } from './definition.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { z } from 'zod';
 import { useIsConnected } from '../../../hooks/useIsConnected.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
+import { schemaToText, flattenZodSchema } from '../../../utils/schema-inspector.js';
 import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
-
-function flattenZodSchema(schema: z.ZodType, prefix = ''): string[] {
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    return Object.entries(shape).flatMap(([key, value]) => flattenZodSchema(value, prefix ? `${prefix}.${key}` : key));
-  }
-  if ('unwrap' in schema && typeof schema.unwrap === 'function') {
-    return flattenZodSchema(schema.unwrap(), prefix);
-  }
-  return prefix ? [prefix] : [];
-}
 
 const ConditionEditor: FC<{
   nodeId: string;

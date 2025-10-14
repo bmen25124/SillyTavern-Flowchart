@@ -48,7 +48,8 @@ type ContextMenuState = {
 
 const FlowCanvas: FC<{
   invalidNodeIds: Set<string>;
-}> = ({ invalidNodeIds }) => {
+  errorsByNodeId: Map<string, string[]>;
+}> = ({ invalidNodeIds, errorsByNodeId }) => {
   const {
     nodes,
     edges,
@@ -58,6 +59,8 @@ const FlowCanvas: FC<{
     addNode,
     duplicateNode,
     toggleNodeDisabled,
+    copySelection,
+    setNodes,
   } = useFlowStore();
   const { screenToFlowPosition, getNodes, deleteElements } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
@@ -129,6 +132,17 @@ const FlowCanvas: FC<{
         showSearch: false,
         items: [
           {
+            label: 'Copy',
+            action: () => {
+              setNodes(getNodes().map((n) => ({ ...n, selected: n.id === node.id })));
+              setTimeout(() => {
+                copySelection();
+                st_echo('info', `Node '${(node.data as any).label || node.type}' copied.`);
+              }, 50);
+              setContextMenu(null);
+            },
+          },
+          {
             label: 'Duplicate',
             action: () => {
               duplicateNode(node.id);
@@ -152,7 +166,7 @@ const FlowCanvas: FC<{
         ],
       });
     },
-    [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled],
+    [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled, copySelection, setNodes, getNodes],
   );
 
   const openNodeCreationMenu = useCallback(
@@ -357,13 +371,19 @@ const FlowCanvas: FC<{
           classNames.push(report?.status === 'error' ? 'flow-node-error' : 'flow-node-success');
         }
 
+        const nodeErrors = errorsByNodeId.get(node.id);
+
         return {
           ...node,
+          data: {
+            ...node.data,
+            _validationErrors: nodeErrors,
+          },
           className: classNames.join(' '),
           zIndex: node.type === 'groupNode' ? -1 : 1,
         };
       }),
-    [nodes, invalidNodeIds, isVisualizationVisible, nodeReports, activeNodeId],
+    [nodes, invalidNodeIds, isVisualizationVisible, nodeReports, activeNodeId, errorsByNodeId],
   );
 
   const filteredMenuOptions = useMemo(() => {
@@ -530,7 +550,10 @@ const FlowManager: FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [copySelection, paste, getNodes, screenToFlowPosition]);
 
-  const { isValid, errors, invalidNodeIds } = useMemo(() => validateFlow(getSpecFlow()), [nodes, edges, getSpecFlow]);
+  const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
+    () => validateFlow(getSpecFlow()),
+    [nodes, edges, getSpecFlow],
+  );
 
   const flowItems = useMemo(
     () =>
@@ -541,85 +564,100 @@ const FlowManager: FC = () => {
     [settings.flows],
   );
 
-  const handleSelectChange = (flowId?: string) => {
-    if (flowId && settings.flows[flowId]) {
-      settings.activeFlow = flowId;
-      loadFlow(structuredClone(settings.flows[flowId].flow));
+  const handleSelectChange = useCallback(
+    (flowId?: string) => {
+      if (flowId && settings.flows[flowId]) {
+        settings.activeFlow = flowId;
+        loadFlow(structuredClone(settings.flows[flowId].flow));
+        forceUpdate();
+      }
+    },
+    [settings, loadFlow, forceUpdate],
+  );
+
+  const handleCreateFlow = useCallback(
+    (newName: string) => {
+      if (Object.values(settings.flows).some((f) => f.name === newName)) {
+        st_echo('error', `A flow named "${newName}" already exists.`);
+        return { confirmed: false };
+      }
+      return { confirmed: true, value: crypto.randomUUID() };
+    },
+    [settings.flows],
+  );
+
+  const handleRenameFlow = useCallback(
+    (flowId: string, newName: string) => {
+      if (Object.values(settings.flows).some((f) => f.name === newName && f !== settings.flows[flowId])) {
+        st_echo('error', `A flow named "${newName}" already exists.`);
+        return { confirmed: false };
+      }
+      return { confirmed: true };
+    },
+    [settings.flows],
+  );
+
+  const handleDeleteFlow = useCallback(
+    (flowId: string) => {
+      if (Object.keys(settings.flows).length <= 1) {
+        st_echo('error', 'Cannot delete the last flow.');
+        return false;
+      }
+      return true; // STPresetSelect handles confirmation
+    },
+    [settings.flows],
+  );
+
+  const handleItemsChange = useCallback(
+    (newItems: PresetItem[]) => {
+      const newFlows: Record<string, FlowData> = {};
+      const newEnabledFlows: Record<string, boolean> = {};
+
+      for (const item of newItems) {
+        const existingFlow = settings.flows[item.value];
+        if (existingFlow) {
+          newFlows[item.value] = { ...existingFlow, name: item.label };
+          newEnabledFlows[item.value] = settings.enabledFlows[item.value] ?? true;
+        } else {
+          newFlows[item.value] = { name: item.label, flow: createDefaultFlow(), allowJsExecution: false };
+          newEnabledFlows[item.value] = true;
+        }
+      }
+
+      settings.flows = newFlows;
+      settings.enabledFlows = newEnabledFlows;
+
+      if (!settings.flows[settings.activeFlow]) {
+        const newActiveFlowId = newItems[0]?.value || '';
+        settings.activeFlow = newActiveFlowId;
+        if (newActiveFlowId) {
+          loadFlow(structuredClone(settings.flows[newActiveFlowId].flow));
+        }
+      }
+
       forceUpdate();
-    }
-  };
+    },
+    [settings, loadFlow, forceUpdate],
+  );
 
-  const handleCreateFlow = (newName: string) => {
-    if (Object.values(settings.flows).some((f) => f.name === newName)) {
-      st_echo('error', `A flow named "${newName}" already exists.`);
-      return { confirmed: false };
-    }
-    return { confirmed: true, value: crypto.randomUUID() };
-  };
-
-  const handleRenameFlow = (flowId: string, newName: string) => {
-    if (Object.values(settings.flows).some((f) => f.name === newName && f !== settings.flows[flowId])) {
-      st_echo('error', `A flow named "${newName}" already exists.`);
-      return { confirmed: false };
-    }
-    return { confirmed: true };
-  };
-
-  const handleDeleteFlow = (flowId: string) => {
-    if (Object.keys(settings.flows).length <= 1) {
-      st_echo('error', 'Cannot delete the last flow.');
-      return false;
-    }
-    return true; // STPresetSelect handles confirmation
-  };
-
-  const handleItemsChange = (newItems: PresetItem[]) => {
-    const newFlows: Record<string, FlowData> = {};
-    const newEnabledFlows: Record<string, boolean> = {};
-
-    for (const item of newItems) {
-      const existingFlow = settings.flows[item.value];
-      if (existingFlow) {
-        newFlows[item.value] = { ...existingFlow, name: item.label };
-        newEnabledFlows[item.value] = settings.enabledFlows[item.value] ?? true;
-      } else {
-        newFlows[item.value] = { name: item.label, flow: createDefaultFlow(), allowJsExecution: false };
-        newEnabledFlows[item.value] = true;
-      }
-    }
-
-    settings.flows = newFlows;
-    settings.enabledFlows = newEnabledFlows;
-
-    if (!settings.flows[settings.activeFlow]) {
-      const newActiveFlowId = newItems[0]?.value || '';
-      settings.activeFlow = newActiveFlowId;
-      if (newActiveFlowId) {
-        loadFlow(structuredClone(settings.flows[newActiveFlowId].flow));
-      }
-    }
-
-    forceUpdate();
-  };
-
-  const handleClearInvalid = () => {
+  const handleClearInvalid = useCallback(() => {
     const newNodes = nodes.filter((node) => !invalidNodeIds.has(node.id));
     const newNodeIds = new Set(newNodes.map((n) => n.id));
     const newEdges = edges.filter((e) => newNodeIds.has(e.source) && newNodeIds.has(e.target));
     setNodes(newNodes);
     setEdges(newEdges);
-  };
+  }, [nodes, edges, invalidNodeIds, setNodes, setEdges]);
 
-  const handleRunFlow = () => {
+  const handleRunFlow = useCallback(() => {
     if (!isValid) {
       st_echo('error', 'Cannot run an invalid flow. Please fix the errors first.');
       return;
     }
     clearRun();
     flowRunner.runFlowManually(settings.activeFlow);
-  };
+  }, [isValid, settings.activeFlow, clearRun]);
 
-  const handleCopyFlow = async () => {
+  const handleCopyFlow = useCallback(async () => {
     try {
       const flowData = getSpecFlow();
       const jsonString = JSON.stringify(flowData, null, 2);
@@ -629,9 +667,9 @@ const FlowManager: FC = () => {
       console.error('Failed to copy flow:', err);
       st_echo('error', 'Failed to copy flow to clipboard.');
     }
-  };
+  }, [getSpecFlow, settings.activeFlow, settings.flows]);
 
-  const handlePasteFlow = async () => {
+  const handlePasteFlow = useCallback(async () => {
     try {
       const clipboardText = await navigator.clipboard.readText();
       if (!clipboardText) {
@@ -641,7 +679,6 @@ const FlowManager: FC = () => {
 
       const parsedData = JSON.parse(clipboardText);
 
-      // Basic validation
       if (!parsedData || !Array.isArray(parsedData.nodes) || !Array.isArray(parsedData.edges)) {
         throw new Error('Parsed JSON is not a valid flow structure.');
       }
@@ -652,7 +689,7 @@ const FlowManager: FC = () => {
       console.error('Failed to paste flow:', error);
       st_echo('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.');
     }
-  };
+  }, [loadFlow]);
 
   const handleScreenshot = useCallback(async () => {
     const flowElement = document.querySelector<HTMLElement>('.react-flow');
@@ -709,42 +746,48 @@ const FlowManager: FC = () => {
     }, 100);
   }, [getNodes, setViewport, getViewport, settings.activeFlow, settings.flows]);
 
-  const handleToggleFlow = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isEnabled = e.target.checked;
-    settings.enabledFlows[settings.activeFlow] = isEnabled;
-    settingsManager.saveSettings();
-    flowRunner.reinitialize();
-    forceUpdate();
-  };
+  const handleToggleFlow = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const isEnabled = e.target.checked;
+      settings.enabledFlows[settings.activeFlow] = isEnabled;
+      settingsManager.saveSettings();
+      flowRunner.reinitialize();
+      forceUpdate();
+    },
+    [settings, forceUpdate],
+  );
 
-  const handleToggleJsPermission = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const allow = e.target.checked;
-    const activeFlowData = settings.flows[settings.activeFlow];
-    if (!activeFlowData) return;
+  const handleToggleJsPermission = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const allow = e.target.checked;
+      const activeFlowData = settings.flows[settings.activeFlow];
+      if (!activeFlowData) return;
 
-    if (allow) {
-      const { Popup } = SillyTavern.getContext();
-      const confirmation = await Popup.show.confirm(
-        'Allow JavaScript Execution?',
-        'Enabling this allows the flow to run arbitrary JavaScript code, which can be a security risk if you import a flow from an untrusted source. Do you want to proceed?',
-      );
-      if (confirmation) {
-        activeFlowData.allowJsExecution = true;
+      if (allow) {
+        const { Popup } = SillyTavern.getContext();
+        const confirmation = await Popup.show.confirm(
+          'Allow JavaScript Execution?',
+          'Enabling this allows the flow to run arbitrary JavaScript code, which can be a security risk if you import a flow from an untrusted source. Do you want to proceed?',
+        );
+        if (confirmation) {
+          activeFlowData.allowJsExecution = true;
+        } else {
+          e.target.checked = false;
+        }
       } else {
-        e.target.checked = false;
+        activeFlowData.allowJsExecution = false;
       }
-    } else {
-      activeFlowData.allowJsExecution = false;
-    }
-    settingsManager.saveSettings();
-    forceUpdate();
-  };
+      settingsManager.saveSettings();
+      forceUpdate();
+    },
+    [settings, forceUpdate],
+  );
 
-  const togglePalette = () => {
+  const togglePalette = useCallback(() => {
     settings.isPaletteCollapsed = !settings.isPaletteCollapsed;
     settingsManager.saveSettings();
     forceUpdate();
-  };
+  }, [settings, forceUpdate]);
 
   return (
     <div className="flowchart-ground-manager">
@@ -830,7 +873,7 @@ const FlowManager: FC = () => {
           <i className={`fa-solid fa-chevron-${settings.isPaletteCollapsed ? 'right' : 'left'}`}></i>
         </div>
         <NodePalette />
-        <FlowCanvas invalidNodeIds={invalidNodeIds} />
+        <FlowCanvas invalidNodeIds={invalidNodeIds} errorsByNodeId={errorsByNodeId} />
       </div>
     </div>
   );

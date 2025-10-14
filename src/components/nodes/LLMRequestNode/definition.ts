@@ -63,7 +63,7 @@ function buildZodSchemaFromFields(fields: FieldDefinition[]): z.ZodObject<any> {
   return z.object(shape);
 }
 
-const execute: NodeExecutor = async (node, input, { dependencies }) => {
+const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
   const data = LLMRequestNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
@@ -83,10 +83,11 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
       schemaName || 'response',
       promptEngineeringMode,
       maxResponseToken,
+      signal,
     );
     return { ...result, result };
   } else {
-    const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken);
+    const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken, signal);
     return { result };
   }
 };

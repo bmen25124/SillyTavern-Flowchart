@@ -25,6 +25,15 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
           const handleSpec = definition?.handles.inputs.find((h) => h.id === field.id);
           const handleType = handleSpec?.type ?? FlowDataType.ANY;
 
+          let handleTitle = `Type: ${handleType}`;
+          if (handleType === FlowDataType.STRING) {
+            handleTitle += ` (or Profile ID)`;
+          } else if (handleType === FlowDataType.PROFILE_ID) {
+            handleTitle += ` (or String)`;
+          } else if (handleType === FlowDataType.OBJECT) {
+            handleTitle += ` (or Structured Result)`;
+          }
+
           const handleChange = (event: any) => {
             if (field.customChangeHandler) {
               field.customChangeHandler(event, { nodeId, updateNodeData });
@@ -53,6 +62,7 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
                 type="target"
                 position={Position.Left}
                 id={field.id}
+                title={handleTitle}
                 style={{
                   top: '0.5rem',
                   transform: 'translateY(-50%)',

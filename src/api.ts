@@ -49,6 +49,7 @@ async function makeRequest(
   streamCallbacks?: {
     onStream: (chunk: string) => void;
   },
+  signal?: AbortSignal,
 ): Promise<ExtractedData | StreamResponse | undefined> {
   const stream = !overridePayload.json_schema && !!streamCallbacks;
   let accumulatedText = '';
@@ -61,7 +62,7 @@ async function makeRequest(
         profileId,
         prompt,
         maxTokens,
-        custom: { stream, signal: abortController.signal },
+        custom: { stream, signal: signal ?? abortController.signal },
         overridePayload,
       },
       {
@@ -95,8 +96,16 @@ export async function makeSimpleRequest(
   profileId: string,
   baseMessages: Message[],
   maxResponseToken: number,
+  signal?: AbortSignal,
 ): Promise<string> {
-  const response = (await makeRequest(profileId, baseMessages, maxResponseToken, {})) as ExtractedData;
+  const response = (await makeRequest(
+    profileId,
+    baseMessages,
+    maxResponseToken,
+    {},
+    undefined,
+    signal,
+  )) as ExtractedData;
   if (!response?.content) {
     throw new Error('LLM request failed to return content.');
   }
@@ -110,6 +119,7 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
   schemaName: string,
   promptEngineeringMode: PromptEngineeringMode,
   maxResponseToken: number,
+  signal?: AbortSignal,
 ): Promise<z.infer<T>> {
   const settings = settingsManager.getSettings();
 
@@ -118,9 +128,16 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
 
   if (promptEngineeringMode === PromptEngineeringMode.NATIVE) {
     // @ts-ignore
-    response = await makeRequest(profileId, baseMessages, maxResponseToken, {
-      json_schema: { name: schemaName, strict: true, value: z.toJSONSchema(schema) },
-    });
+    response = await makeRequest(
+      profileId,
+      baseMessages,
+      maxResponseToken,
+      {
+        json_schema: { name: schemaName, strict: true, value: z.toJSONSchema(schema) },
+      },
+      undefined,
+      signal,
+    );
     if (!response?.content) {
       throw new Error(`Structured request for ${schemaName} failed to return content.`);
     }
@@ -150,6 +167,8 @@ export async function makeStructuredRequest<T extends z.ZodType<any, any, any>>(
       [...baseMessages, { role: 'user', content: resolvedPrompt }],
       maxResponseToken,
       {},
+      undefined,
+      signal,
     );
 
     if (!response?.content) {

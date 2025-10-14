@@ -78,6 +78,7 @@ export class LowLevelFlowRunner {
             dependencies,
             executionVariables,
             depth,
+            signal,
           });
 
           if (output === END_NODE_SENTINEL) {

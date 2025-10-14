@@ -378,6 +378,23 @@
   }
 }
 
+.node-validation-error-icon {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--warning);
+  color: var(--text-color-black);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: help;
+  z-index: 10;
+}
+
 // Styles for disabled nodes
 .react-flow__node > div.node-disabled {
   opacity: 0.5;

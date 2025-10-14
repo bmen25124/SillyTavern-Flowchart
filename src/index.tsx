@@ -10,8 +10,6 @@ import { flowRunner } from './FlowRunner.js';
 import './styles/main.scss';
 import '@xyflow/react/dist/style.css';
 
-async function initializeGlobalUI() {}
-
 function renderReactSettings() {
   const settingsContainer = document.getElementById('extensions_settings');
   if (!settingsContainer) {
@@ -36,7 +34,6 @@ function renderReactSettings() {
 
 function main() {
   renderReactSettings();
-  initializeGlobalUI();
   flowRunner.reinitialize();
 }
 

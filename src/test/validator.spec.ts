@@ -35,7 +35,7 @@ describe('validateFlow', () => {
     };
     const { isValid, errors } = validateFlow(flow);
     expect(isValid).toBe(false);
-    expect(errors).toContain('Trigger Node [start] cannot have incoming connections.');
+    expect(errors).toContain('Node [start]: Trigger nodes cannot have incoming connections.');
   });
 
   it('should invalidate a flow with a cycle', () => {
