@@ -155,20 +155,35 @@ export const useFlowStore = create(
         }));
       },
       updateNodeData: (nodeId, newData) => {
-        const node = get().nodesMap.get(nodeId);
-        if (!node) return;
-        // This triggers onNodesChange, which handles the cleanup.
-        // @ts-ignore
-        get().onNodesChange([{ type: 'replace', id: nodeId, data: { ...node.data, ...newData } }]);
+        set((state) => {
+          const newNodes = state.nodes.map((node) => {
+            if (node.id === nodeId) {
+              return { ...node, data: { ...node.data, ...newData } };
+            }
+            return node;
+          });
+          const cleanedEdges = cleanupEdges(newNodes, state.edges);
+          return {
+            nodes: newNodes,
+            edges: cleanedEdges,
+            nodesMap: new Map(newNodes.map((n) => [n.id, n])),
+          };
+        });
       },
       toggleNodeDisabled: (nodeIds) => {
-        // @ts-ignore
-        const changes: NodeChange[] = nodeIds.map((nodeId) => {
-          const node = get().nodesMap.get(nodeId);
-          if (!node) return { type: 'select', id: nodeId, selected: false }; // No-op
-          return { type: 'replace', id: nodeId, data: { ...node.data, disabled: !node.data.disabled } };
+        set((state) => {
+          const nodesToToggle = new Set(nodeIds);
+          const newNodes = state.nodes.map((node) => {
+            if (nodesToToggle.has(node.id)) {
+              return { ...node, data: { ...node.data, disabled: !node.data.disabled } };
+            }
+            return node;
+          });
+          return {
+            nodes: newNodes,
+            nodesMap: new Map(newNodes.map((n) => [n.id, n])),
+          };
         });
-        get().onNodesChange(changes.filter((c) => c.type === 'replace'));
       },
       loadFlow: (flowData) => {
         const migratedFlow = runMigrations(flowData);
