@@ -260,3 +260,13 @@ export const useFlowStore = create(
     },
   ),
 );
+
+useFlowStore.subscribe((state, prevState) => {
+  // This listener is called after every state change.
+  // When undo/redo happens, `state.nodes` will be a new array instance.
+  // We check for reference inequality to detect this change and sync our derived state.
+  if (state.nodes !== prevState.nodes) {
+    // This setState call is not tracked by zundo and keeps nodesMap in sync.
+    useFlowStore.setState({ nodesMap: new Map(state.nodes.map((n) => [n.id, n])) });
+  }
+});
