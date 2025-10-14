@@ -13,6 +13,7 @@ import {
   getViewportForBounds,
   MiniMap,
   BackgroundVariant,
+  OnNodeDrag,
 } from '@xyflow/react';
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
@@ -73,12 +74,16 @@ const FlowCanvas: FC<{
     nodeReports: state.nodeReports,
     activeNodeId: state.activeNodeId,
   }));
+  const { pause, resume } = useFlowStore.temporal.getState();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isPopupActive = !!document.querySelector('.flowchart-data-popup');
       const isInputFocused =
-        document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement ||
+        !!document.activeElement?.closest('.cm-content');
+
       if (!isPopupActive || isInputFocused) return;
 
       if (event.code === 'Space') {
@@ -122,6 +127,7 @@ const FlowCanvas: FC<{
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
+      resume();
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
       if (!editorArea) return;
       const bounds = editorArea.getBoundingClientRect();
@@ -166,12 +172,14 @@ const FlowCanvas: FC<{
         ],
       });
     },
-    [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled, copySelection, setNodes, getNodes],
+    [duplicateNode, deleteElements, setContextMenu, toggleNodeDisabled, copySelection, setNodes, getNodes, resume],
   );
 
   const openNodeCreationMenu = useCallback(
     (event: React.MouseEvent | MouseEvent) => {
       event.preventDefault();
+      resume();
+
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
       if (!editorArea) return;
 
@@ -201,7 +209,7 @@ const FlowCanvas: FC<{
         showSearch: true,
       });
     },
-    [screenToFlowPosition, addNode, setContextMenu],
+    [screenToFlowPosition, addNode, setContextMenu, resume],
   );
 
   const onConnectEnd = useCallback(
@@ -302,6 +310,9 @@ const FlowCanvas: FC<{
         return;
       }
 
+      // If we are about to show a menu or create nodes, ensure history is active.
+      resume();
+
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
       const editorArea = (event.target as HTMLElement).closest('.flowchart-editor-area');
@@ -355,7 +366,7 @@ const FlowCanvas: FC<{
       }
       connectingNode.current = null;
     },
-    [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu],
+    [getNodes, edges, screenToFlowPosition, addNode, onConnect, setContextMenu, resume],
   );
 
   const nodesWithDynamicClasses = useMemo(
@@ -406,8 +417,16 @@ const FlowCanvas: FC<{
     });
   }, [nodes, edges, getNodes]);
 
+  const onNodeDragStart: OnNodeDrag = useCallback(() => {
+    pause();
+  }, [pause]);
+
+  const onNodeDragStop: OnNodeDrag = useCallback(() => {
+    resume();
+  }, [resume]);
+
   return (
-    <div className="flowchart-popup-ground" onContextMenu={(e) => e.preventDefault()}>
+    <div className="flowchart-editor-canvas" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
         nodes={nodesWithDynamicClasses}
         edges={styledEdges}
@@ -419,6 +438,8 @@ const FlowCanvas: FC<{
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
         onPaneContextMenu={openNodeCreationMenu}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={registrator.nodeTypes}
         colorMode="dark"
         fitView
@@ -470,8 +491,9 @@ const FlowCanvas: FC<{
 };
 
 const FlowManager: FC = () => {
-  const { nodes, edges, loadFlow, getSpecFlow, setNodes, setEdges, copySelection, paste } = useFlowStore();
-  const { getNodes, setViewport, getViewport, screenToFlowPosition } = useReactFlow();
+  const { nodes, edges, loadFlow, getSpecFlow, copySelection, paste } = useFlowStore();
+  const { undo, redo } = useFlowStore.temporal.getState();
+  const { getNodes, setViewport, screenToFlowPosition, fitView, getViewport } = useReactFlow();
   const settings = settingsManager.getSettings();
   const forceUpdate = useForceUpdate();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -496,6 +518,7 @@ const FlowManager: FC = () => {
     }
     const activeFlowData = settings.flows[settings.activeFlow]?.flow || { nodes: [], edges: [] };
     loadFlow(structuredClone(activeFlowData));
+    useFlowStore.temporal.getState().clear(); // Clear history when loading a new flow
   }, []);
 
   useEffect(() => {
@@ -517,11 +540,22 @@ const FlowManager: FC = () => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isPopupActive = !!document.querySelector('.flowchart-data-popup');
       const isInputFocused =
-        document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement ||
+        !!document.activeElement?.closest('.cm-content');
 
       if (!isPopupActive || isInputFocused) return;
 
-      if (event.ctrlKey || event.metaKey) {
+      const isUndo = (event.ctrlKey || event.metaKey) && event.key === 'z';
+      const isRedo = (event.ctrlKey || event.metaKey) && event.key === 'y';
+
+      if (isUndo) {
+        event.preventDefault();
+        undo();
+      } else if (isRedo) {
+        event.preventDefault();
+        redo();
+      } else if (event.ctrlKey || event.metaKey) {
         if (event.key === 'c') {
           event.preventDefault();
           copySelection();
@@ -531,10 +565,8 @@ const FlowManager: FC = () => {
           }
         } else if (event.key === 'v') {
           event.preventDefault();
-          const flowWrapperBounds = flowWrapperRef.current?.getBoundingClientRect();
           const reactFlowPane = document.querySelector('.react-flow__pane');
-
-          if (flowWrapperBounds && reactFlowPane) {
+          if (reactFlowPane) {
             const paneBounds = reactFlowPane.getBoundingClientRect();
             const position = screenToFlowPosition({
               x: paneBounds.x + paneBounds.width / 2,
@@ -548,7 +580,7 @@ const FlowManager: FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelection, paste, getNodes, screenToFlowPosition]);
+  }, [copySelection, paste, getNodes, screenToFlowPosition, undo, redo, fitView]);
 
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
     () => validateFlow(getSpecFlow()),
@@ -569,6 +601,7 @@ const FlowManager: FC = () => {
       if (flowId && settings.flows[flowId]) {
         settings.activeFlow = flowId;
         loadFlow(structuredClone(settings.flows[flowId].flow));
+        useFlowStore.temporal.getState().clear(); // Clear history when changing flows
         forceUpdate();
       }
     },
@@ -632,6 +665,7 @@ const FlowManager: FC = () => {
         settings.activeFlow = newActiveFlowId;
         if (newActiveFlowId) {
           loadFlow(structuredClone(settings.flows[newActiveFlowId].flow));
+          useFlowStore.temporal.getState().clear();
         }
       }
 
@@ -639,14 +673,6 @@ const FlowManager: FC = () => {
     },
     [settings, loadFlow, forceUpdate],
   );
-
-  const handleClearInvalid = useCallback(() => {
-    const newNodes = nodes.filter((node) => !invalidNodeIds.has(node.id));
-    const newNodeIds = new Set(newNodes.map((n) => n.id));
-    const newEdges = edges.filter((e) => newNodeIds.has(e.source) && newNodeIds.has(e.target));
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [nodes, edges, invalidNodeIds, setNodes, setEdges]);
 
   const handleRunFlow = useCallback(() => {
     if (!isValid) {
@@ -684,6 +710,7 @@ const FlowManager: FC = () => {
       }
 
       loadFlow(parsedData as SpecFlow);
+      useFlowStore.temporal.getState().clear();
       st_echo('info', 'Flow pasted from clipboard, replacing current flow.');
     } catch (error) {
       console.error('Failed to paste flow:', error);
@@ -790,7 +817,7 @@ const FlowManager: FC = () => {
   }, [settings, forceUpdate]);
 
   return (
-    <div className="flowchart-ground-manager">
+    <div className="flowchart-editor-manager">
       <div className="flowchart-preset-selector" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <STPresetSelect
           label="Flow"
@@ -838,8 +865,8 @@ const FlowManager: FC = () => {
           </>
         )}
         {!isValid && (
-          <STButton color="danger" onClick={handleClearInvalid} title={errors.join('\n')}>
-            Fix Errors ({errors.length})
+          <STButton color="warning" title={errors.join('\n')}>
+            Invalid ({errors.length})
           </STButton>
         )}
         {runStatus === 'running' ? (
@@ -855,10 +882,10 @@ const FlowManager: FC = () => {
             <i className="fa-solid fa-play"></i> Run
           </STButton>
         )}
-        <STButton onClick={handleCopyFlow} title="Copy Flow JSON">
+        <STButton onClick={handleCopyFlow} title="Copy Flow JSON (Ctrl+C)">
           <i className="fa-solid fa-copy"></i>
         </STButton>
-        <STButton onClick={handlePasteFlow} title="Paste Flow from Clipboard">
+        <STButton onClick={handlePasteFlow} title="Paste Flow from Clipboard (Ctrl+V)">
           <i className="fa-solid fa-paste"></i>
         </STButton>
         <STButton onClick={handleScreenshot} title="Take Screenshot">
@@ -879,7 +906,7 @@ const FlowManager: FC = () => {
   );
 };
 
-export const FlowChartGround: FC = () => {
+export const FlowChartEditor: FC = () => {
   return (
     <ReactFlowProvider>
       <FlowManager />

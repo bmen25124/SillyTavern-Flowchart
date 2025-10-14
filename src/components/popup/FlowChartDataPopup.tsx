@@ -1,18 +1,18 @@
 import { FC, useState, useEffect } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { PromptsSettings } from './PromptsSettings.js';
-import { FlowChartGround } from './FlowChartGround.js';
+import { FlowChartEditor } from './FlowChartEditor.js';
 import { FlowHistory } from './FlowHistory.js';
 import { eventEmitter } from '../../events.js';
 
-type Tab = 'prompts' | 'ground' | 'history';
+type Tab = 'editor' | 'prompts' | 'history';
 
 interface FlowChartDataPopupProps {
   onSave: () => void;
 }
 
 export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('ground');
+  const [activeTab, setActiveTab] = useState<Tab>('editor');
   const [importKey, setImportKey] = useState(0);
 
   useEffect(() => {
@@ -33,13 +33,13 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
     <div className="flowchart-data-popup">
       <div className="flowchart-popup-header">
         <div className="flowchart-popup-tabs">
-          <STButton onClick={() => setActiveTab('ground')}>Ground</STButton>
+          <STButton onClick={() => setActiveTab('editor')}>Editor</STButton>
           <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('history')}>History</STButton>
         </div>
       </div>
       <div className="flowchart-popup-content">
-        {activeTab === 'ground' && <FlowChartGround key={`ground-${importKey}`} />}
+        {activeTab === 'editor' && <FlowChartEditor key={`editor-${importKey}`} />}
         {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'history' && <FlowHistory />}
       </div>

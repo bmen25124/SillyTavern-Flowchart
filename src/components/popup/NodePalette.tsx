@@ -10,6 +10,7 @@ export const NodePalette: FC = () => {
   const addNode = useFlowStore((state) => state.addNode);
   const { screenToFlowPosition } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
+  const [openCategory, setOpenCategory] = useState<string | null>('Trigger');
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
 
   const onNodeClick = (event: React.MouseEvent, nodeType: string, data: any) => {
@@ -89,25 +90,30 @@ export const NodePalette: FC = () => {
       </div>
       <div className="palette-categories">
         {groupedNodes.map(([category, nodes]) => (
-          <div key={category} className="palette-category">
-            <div className="category-label">
+          <div key={category} className={`palette-category ${openCategory === category ? 'open' : ''}`}>
+            <div
+              className="category-label"
+              onClick={() => setOpenCategory(openCategory === category ? null : category)}
+            >
               {category}
               <span className="fa-solid fa-chevron-right"></span>
             </div>
-            <div className="category-nodes">
-              <div className="category-nodes-list">
-                {nodes.map((node) => (
-                  <div
-                    key={node.type}
-                    className="node-item"
-                    onClick={(e) => onNodeClick(e, node.type, structuredClone(node.initialData))}
-                    title={node.label}
-                  >
-                    {node.label}
-                  </div>
-                ))}
+            {openCategory === category && (
+              <div className="category-nodes">
+                <div className="category-nodes-list">
+                  {nodes.map((node) => (
+                    <div
+                      key={node.type}
+                      className="node-item"
+                      onClick={(e) => onNodeClick(e, node.type, structuredClone(node.initialData))}
+                      title={node.label}
+                    >
+                      {node.label}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ))}
       </div>

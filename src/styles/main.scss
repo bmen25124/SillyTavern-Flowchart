@@ -93,7 +93,7 @@
     display: flex;
     flex-direction: column;
 
-    // Styles for non-ground tabs
+    // Styles for non-editor tabs
     > .flowchart-popup-section {
       overflow-y: auto;
       height: 100%;
@@ -178,8 +178,8 @@
   border: 1px solid var(--SmartThemeBorderColor);
 }
 
-// Main Layout for Ground Tab
-.flowchart-ground-manager {
+// Main Layout for Editor Tab
+.flowchart-editor-manager {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -269,8 +269,6 @@
   }
 
   .palette-category {
-    position: relative;
-
     .category-label {
       padding: 10px;
       cursor: pointer;
@@ -284,6 +282,7 @@
       .fa-chevron-right {
         font-size: 0.8em;
         opacity: 0.5;
+        transition: transform 0.2s ease-in-out;
       }
 
       &:hover {
@@ -292,38 +291,23 @@
       }
     }
 
-    .category-nodes {
-      display: none; // Hidden by default
-      position: absolute;
-      left: 100%;
-      top: 0;
-      width: 220px;
-      background-color: var(--background-color-modal);
-      border: 1px solid var(--SmartThemeBorderColor);
-      box-shadow: 2px 2px 10px var(--SmartThemeShadowColor);
-      z-index: 20;
-      border-radius: 0 4px 4px 0;
-      max-height: 400px;
-      overflow-y: auto;
-
-      .category-nodes-list {
-        padding: 5px;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-    }
-
-    &:hover {
+    &.open {
       .category-label {
         background-color: var(--SmartThemeHoverColor);
         color: var(--SmartThemeHoverTextStyle);
+        .fa-chevron-right {
+          transform: rotate(90deg);
+        }
       }
+    }
 
-      .category-nodes {
+    .category-nodes {
+      padding: 0 5px 5px 5px;
+      .category-nodes-list {
+        padding-top: 5px;
         display: flex;
         flex-direction: column;
-        position: sticky;
+        gap: 2px;
       }
     }
   }
@@ -353,7 +337,7 @@
   }
 }
 
-.flowchart-popup-ground {
+.flowchart-editor-canvas {
   flex-grow: 1;
   height: 100%;
   width: 100%;
