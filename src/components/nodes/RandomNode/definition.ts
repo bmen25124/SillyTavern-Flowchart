@@ -42,12 +42,16 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
   initialData: { mode: 'number', min: 0, max: 100 },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'mode', type: FlowDataType.STRING },
       { id: 'min', type: FlowDataType.NUMBER },
       { id: 'max', type: FlowDataType.NUMBER },
       { id: 'array', type: FlowDataType.OBJECT },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.ANY },
+    ],
   },
   execute,
 };

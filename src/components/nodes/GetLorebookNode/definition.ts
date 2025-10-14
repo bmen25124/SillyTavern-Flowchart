@@ -33,8 +33,14 @@ export const getLorebookNodeDefinition: NodeDefinition<GetLorebookNodeData> = {
   currentVersion: 1,
   initialData: { worldName: '' },
   handles: {
-    inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
-    outputs: [{ id: 'entries', type: FlowDataType.OBJECT, schema: WIEntryListSchema }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'worldName', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'entries', type: FlowDataType.OBJECT, schema: WIEntryListSchema },
+    ],
   },
   execute,
 };

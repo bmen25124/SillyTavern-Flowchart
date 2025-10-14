@@ -49,6 +49,7 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
   },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'profileId', type: FlowDataType.PROFILE_ID },
       { id: 'startMessageId', type: FlowDataType.NUMBER },
       { id: 'endMessageId', type: FlowDataType.NUMBER },
@@ -56,7 +57,10 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
       { id: 'ignoreAuthorNote', type: FlowDataType.BOOLEAN },
       { id: 'ignoreWorldInfo', type: FlowDataType.BOOLEAN },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.MESSAGES }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.MESSAGES },
+    ],
   },
   execute,
 };

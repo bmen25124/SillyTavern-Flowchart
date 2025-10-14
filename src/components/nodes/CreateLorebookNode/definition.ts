@@ -31,8 +31,14 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
   currentVersion: 1,
   initialData: { worldName: 'My Lorebook' },
   handles: {
-    inputs: [{ id: 'worldName', type: FlowDataType.STRING }],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'worldName', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };

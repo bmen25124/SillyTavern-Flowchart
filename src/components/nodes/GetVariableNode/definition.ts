@@ -29,8 +29,14 @@ export const getVariableNodeDefinition: NodeDefinition<GetVariableNodeData> = {
   currentVersion: 1,
   initialData: { variableName: 'myVar' },
   handles: {
-    inputs: [{ id: 'variableName', type: FlowDataType.STRING }],
-    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'variableName', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
   },
   execute,
 };

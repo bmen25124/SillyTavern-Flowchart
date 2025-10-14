@@ -103,20 +103,54 @@ const FancyDropdownPicker: FC<{
 
 export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as PickCharacterNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const { characters } = SillyTavern.getContext();
   const definition = registrator.nodeDefinitionMap.get('pickCharacterNode');
   if (!data || !definition) return null;
 
+  const characterOptions = useMemo(
+    () => characters.map((c: any) => ({ value: c.avatar, label: c.name })),
+    [characters],
+  );
+
+  const handleLabels: Record<string, string> = {
+    avatar: 'Selected',
+    activeAvatar: 'Active',
+  };
+
   return (
-    <FancyDropdownPicker
-      id={id}
-      selected={selected}
-      title="Pick Character"
-      data={data}
-      items={characters.map((c: any) => ({ value: c.avatar, label: c.name }))}
-      dataKey="characterAvatar"
-      outputHandle={definition.handles.outputs[0]}
-    />
+    <BaseNode id={id} title="Pick Character" selected={selected}>
+      <STFancyDropdown
+        value={[data.characterAvatar ?? '']}
+        onChange={(e) => updateNodeData(id, { characterAvatar: e[0] })}
+        multiple={false}
+        items={characterOptions}
+        inputClasses="nodrag"
+        containerClasses="nodrag"
+        closeOnSelect={true}
+        enableSearch={true}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+        {definition.handles.outputs.map((handle) => {
+          const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
+          return (
+            <div
+              key={handle.id}
+              style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}
+              title={schemaText}
+            >
+              <span>{handleLabels[handle.id!] ?? handle.id}</span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={handle.id!}
+                style={{ position: 'relative', transform: 'none', right: 0, top: 0, marginLeft: '5px' }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </BaseNode>
   );
 };
 

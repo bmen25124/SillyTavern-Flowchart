@@ -57,8 +57,12 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
   currentVersion: 1,
   initialData: { messageId: 'last' },
   handles: {
-    inputs: [{ id: 'messageId', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'messageId', type: FlowDataType.ANY },
+    ],
     outputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'id', type: FlowDataType.NUMBER },
       { id: 'result', type: FlowDataType.OBJECT, schema: ChatMessageSchema },
       { id: 'name', type: FlowDataType.STRING },

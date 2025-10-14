@@ -41,10 +41,12 @@ export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNode
   initialData: { worldName: '', entryUid: undefined },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'worldName', type: FlowDataType.STRING },
       { id: 'entryUid', type: FlowDataType.NUMBER },
     ],
     outputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'entry', type: FlowDataType.OBJECT, schema: WIEntrySchema },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },

@@ -60,6 +60,7 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
   initialData: { name: 'New Character' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'name', type: FlowDataType.STRING },
       { id: 'description', type: FlowDataType.STRING },
       { id: 'first_mes', type: FlowDataType.STRING },
@@ -68,7 +69,10 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
       { id: 'mes_example', type: FlowDataType.STRING },
       { id: 'tags', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };

@@ -71,8 +71,12 @@ export const dateTimeNodeDefinition: NodeDefinition<DateTimeNodeData> = {
   currentVersion: 1,
   initialData: {},
   handles: {
-    inputs: [{ id: 'format', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'format', type: FlowDataType.STRING },
+    ],
     outputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'iso', type: FlowDataType.STRING },
       { id: 'formatted', type: FlowDataType.STRING },
       { id: 'timestamp', type: FlowDataType.NUMBER },

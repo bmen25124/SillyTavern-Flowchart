@@ -71,10 +71,14 @@ export const getPropertyNodeDefinition: NodeDefinition<GetPropertyNodeData> = {
   initialData: { path: '' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'object', type: FlowDataType.OBJECT },
       { id: 'path', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'value', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
   },
   execute,
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {

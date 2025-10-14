@@ -17,6 +17,7 @@ import {
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
+import { this_chid } from 'sillytavern-utils-lib/config';
 
 // Schemas
 export const PickCharacterNodeDataSchema = z.object({
@@ -87,7 +88,22 @@ export type PickFlowNodeData = z.infer<typeof PickFlowNodeDataSchema>;
 
 // Executors
 const pickerExecutors: Record<string, NodeExecutor> = {
-  pickCharacterNode: async (node) => ({ avatar: PickCharacterNodeDataSchema.parse(node.data).characterAvatar }),
+  pickCharacterNode: async (node, _input, { dependencies }) => {
+    const data = PickCharacterNodeDataSchema.parse(node.data);
+    const selectedAvatar = data.characterAvatar;
+
+    const { characters } = dependencies.getSillyTavernContext();
+    let activeAvatar: string | undefined;
+
+    if (this_chid !== undefined && characters[this_chid]) {
+      activeAvatar = characters[this_chid].avatar;
+    }
+
+    return {
+      avatar: selectedAvatar,
+      activeAvatar,
+    };
+  },
   pickLorebookNode: async (node) => ({ name: PickLorebookNodeDataSchema.parse(node.data).worldName }),
   pickPromptNode: async (node) => ({ name: PickPromptNodeDataSchema.parse(node.data).promptName }),
   pickRegexScriptNode: async (node) => ({ id: PickRegexScriptNodeDataSchema.parse(node.data).scriptId }),
@@ -116,7 +132,13 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickCharacterNodeDataSchema,
     currentVersion: 1,
     initialData: { characterAvatar: '' },
-    handles: { inputs: [], outputs: [{ id: 'avatar', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: [],
+      outputs: [
+        { id: 'avatar', type: FlowDataType.STRING },
+        { id: 'activeAvatar', type: FlowDataType.STRING },
+      ],
+    },
     execute: pickerExecutors.pickCharacterNode,
   },
   {

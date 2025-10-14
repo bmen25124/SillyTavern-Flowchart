@@ -64,13 +64,17 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
   initialData: { worldName: '', entryUid: undefined },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'worldName', type: FlowDataType.STRING },
       { id: 'entryUid', type: FlowDataType.NUMBER },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema },
+    ],
   },
   execute,
 };

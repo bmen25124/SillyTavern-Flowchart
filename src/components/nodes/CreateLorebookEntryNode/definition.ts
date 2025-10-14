@@ -51,12 +51,16 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
   initialData: { worldName: '', key: '', content: '', comment: '' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'worldName', type: FlowDataType.STRING },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema },
+    ],
   },
   execute,
 };
