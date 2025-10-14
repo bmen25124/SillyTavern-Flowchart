@@ -201,7 +201,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { main: 'correct' }, context);
-      expect(result).toEqual({ activatedHandle: trueConditionId });
+      expect(result).toEqual({ activatedHandle: trueConditionId, main: 'correct' });
     });
 
     it('should return "false" if no conditions are met', async () => {
@@ -211,7 +211,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { main: 'a different value' }, context);
-      expect(result).toEqual({ activatedHandle: 'false' });
+      expect(result).toEqual({ activatedHandle: 'false', main: 'a different value' });
     });
 
     it('should execute advanced code and return the ID on truthy result', async () => {

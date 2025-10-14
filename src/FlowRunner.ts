@@ -262,7 +262,6 @@ class FlowRunner {
 
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
-        notify('info', `FlowChart: Event "${eventType}" triggered.`, 'execution');
         for (const trigger of eventTriggers[eventType]) {
           this.executeFlowFromEvent(trigger.flowId, trigger.nodeId, args);
         }
@@ -297,7 +296,7 @@ class FlowRunner {
     depth = 0,
     options: { startNodeId?: string; endNodeId?: string } = {},
   ): Promise<ExecutionReport> {
-    const flowData = settingsManager.getSettings().flows[flowId];
+    const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
     if (!flowData) throw new Error(`Flow with id ${flowId} not found.`);
 
     if (depth > 10) {
@@ -326,7 +325,12 @@ class FlowRunner {
     depth: number,
     options: { startNodeId?: string; endNodeId?: string } = {},
   ): Promise<ExecutionReport> {
-    const flowData = settingsManager.getSettings().flows[flowId];
+    const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
+    if (!flowData) {
+      const errorMsg = `Flow with id ${flowId} not found.`;
+      console.error(`[FlowChart] ${errorMsg}`);
+      return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
+    }
     const flow = flowData.flow;
 
     const hasDangerousNode = flow.nodes.some((node) => {
@@ -390,7 +394,11 @@ class FlowRunner {
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
-    const flow = settingsManager.getSettings().flows[flowId]?.flow;
+    const flow = settingsManager.getSettings().flows.find((f) => f.id === flowId)?.flow;
+    if (!flow) {
+      console.error(`[FlowChart] Flow with id ${flowId} not found for event trigger.`);
+      return;
+    }
     const startNode = flow?.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
 
@@ -437,7 +445,7 @@ class FlowRunner {
 
   async runFlowManually(flowId: string, params?: Record<string, any>) {
     const settings = settingsManager.getSettings();
-    const flowData = settings.flows[flowId];
+    const flowData = settings.flows.find((f) => f.id === flowId);
     if (!flowData) {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
@@ -452,7 +460,7 @@ class FlowRunner {
 
   public async runFlowFromNode(flowId: string, startNodeId: string) {
     const settings = settingsManager.getSettings();
-    const flowData = settings.flows[flowId];
+    const flowData = settings.flows.find((f) => f.id === flowId);
     if (!flowData) {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
@@ -467,7 +475,7 @@ class FlowRunner {
 
   public async runFlowToNode(flowId: string, endNodeId: string) {
     const settings = settingsManager.getSettings();
-    const flowData = settings.flows[flowId];
+    const flowData = settings.flows.find((f) => f.id === flowId);
     if (!flowData) {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
