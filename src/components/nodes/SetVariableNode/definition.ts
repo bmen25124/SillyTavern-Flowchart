@@ -15,7 +15,7 @@ export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
 const execute: NodeExecutor = async (node, input, { executionVariables }) => {
   const data = SetVariableNodeDataSchema.parse(node.data);
   const variableName = resolveInput(input, data, 'variableName');
-  const value = input.main;
+  const value = input.value;
   if (!variableName) throw new Error('Variable name is required.');
 
   executionVariables.set(variableName, value);
@@ -33,6 +33,7 @@ export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
       { id: 'variableName', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],

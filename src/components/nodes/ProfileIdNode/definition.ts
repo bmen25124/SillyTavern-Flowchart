@@ -4,6 +4,7 @@ import { FlowDataType } from '../../../flow-types.js';
 import { ProfileIdNode } from './ProfileIdNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { resolveInput } from '../../../utils/node-logic.js';
 
 export const ProfileIdNodeDataSchema = z.object({
   profileId: z.string().default(''),
@@ -13,13 +14,13 @@ export type ProfileIdNodeData = z.infer<typeof ProfileIdNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = ProfileIdNodeDataSchema.parse(node.data);
-  const connectedValue = input.main;
+  const connectedValue = resolveInput(input, data, 'profileId');
 
   if (connectedValue !== undefined && connectedValue !== null && String(connectedValue).trim() !== '') {
-    return String(connectedValue);
+    return { profileId: String(connectedValue) };
   }
 
-  return data.profileId;
+  return { profileId: data.profileId };
 };
 
 export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {
@@ -31,8 +32,14 @@ export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {
   currentVersion: 1,
   initialData: { profileId: '' },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
-    outputs: [{ id: 'main', type: FlowDataType.PROFILE_ID }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'profileId', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'profileId', type: FlowDataType.PROFILE_ID },
+    ],
   },
   execute,
 };

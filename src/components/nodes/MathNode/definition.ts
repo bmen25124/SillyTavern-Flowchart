@@ -50,11 +50,15 @@ export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
   initialData: { operation: 'add', a: 0, b: 0 },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'operation', type: FlowDataType.STRING },
       { id: 'a', type: FlowDataType.NUMBER },
       { id: 'b', type: FlowDataType.NUMBER },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.NUMBER }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.NUMBER },
+    ],
   },
   execute,
 };

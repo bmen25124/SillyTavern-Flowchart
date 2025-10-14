@@ -169,7 +169,7 @@ describe('Node Executors', () => {
       // Set the variable
       const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'myVar' });
       const setValue = { data: 'test-data' };
-      await setExecute(setNode, { main: setValue }, context);
+      await setExecute(setNode, { value: setValue }, context);
 
       // Verify side effect (context modification)
       expect(context.executionVariables.get('myVar')).toBe(setValue);
@@ -200,7 +200,7 @@ describe('Node Executors', () => {
           { id: trueConditionId, mode: 'simple', operator: 'equals', value: 'correct', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, { main: 'correct' }, context);
+      const result = await execute(node, { value: 'correct' }, context);
       expect(result).toEqual({ activatedHandle: trueConditionId, main: 'correct' });
     });
 
@@ -210,7 +210,7 @@ describe('Node Executors', () => {
           { id: 'some-cond', mode: 'simple', operator: 'equals', value: 'nope', code: '', inputProperty: '' },
         ],
       });
-      const result = await execute(node, { main: 'a different value' }, context);
+      const result = await execute(node, { value: 'a different value' }, context);
       expect(result).toEqual({ activatedHandle: 'false', main: 'a different value' });
     });
 
@@ -221,7 +221,7 @@ describe('Node Executors', () => {
           {
             id: trueConditionId,
             mode: 'advanced',
-            code: 'return input.value > 10;',
+            code: 'return input > 10;',
             inputProperty: '',
             operator: 'equals',
             value: '',
@@ -229,7 +229,7 @@ describe('Node Executors', () => {
         ],
       });
       const result = await execute(node, { value: 20 }, context);
-      expect(result).toEqual({ activatedHandle: trueConditionId });
+      expect(result).toEqual({ activatedHandle: trueConditionId, main: 20 });
     });
   });
 
@@ -301,7 +301,7 @@ describe('Node Executors', () => {
     const { execute } = handlebarNodeDefinition;
     it('should render a template with the provided data context', async () => {
       const node = createMockNode(handlebarNodeDefinition, { template: 'Hello, {{name}}!' });
-      const result = await execute(node, { name: 'World' }, context);
+      const result = await execute(node, { context: { name: 'World' } }, context);
       expect(result).toEqual({ result: 'Hello, World!' });
     });
   });
@@ -385,7 +385,7 @@ describe('Node Executors', () => {
 
     it('should execute code and return the result', async () => {
       const node = createMockNode(executeJsNodeDefinition, { code: 'return input.a + input.b;' });
-      const result = await execute(node, { a: 10, b: 5 }, context);
+      const result = await execute(node, { scriptInput: { a: 10, b: 5 } }, context);
       expect(result).toBe(15);
     });
 

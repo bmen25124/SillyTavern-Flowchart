@@ -27,8 +27,14 @@ export const stringNodeDefinition: NodeDefinition<StringNodeData> = {
   currentVersion: 1,
   initialData: { value: 'hello' },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
-    outputs: [{ id: 'value', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };

@@ -13,7 +13,7 @@ export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = LogNodeDataSchema.parse(node.data);
-  console.log(data.prefix, input.main);
+  console.log(data.prefix, input.value);
   // Returns void. The runner handles the passthrough automatically.
 };
 
@@ -26,7 +26,10 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   currentVersion: 1,
   initialData: { prefix: 'Log:' },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,

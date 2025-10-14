@@ -19,7 +19,7 @@ export const ProfileIdNode: FC<ProfileIdNodeProps> = ({ id, selected, type }) =>
   const fields = useMemo(
     () => [
       createFieldConfig({
-        id: 'main',
+        id: 'profileId',
         label: 'Connection Profile',
         component: STConnectionProfileSelect,
         props: {

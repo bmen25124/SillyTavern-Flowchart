@@ -26,7 +26,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected, type }) =>
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
   useEdges();
-  const inputSchema = useInputSchema(id, 'main');
+  const inputSchema = useInputSchema(id, 'scriptInput');
 
   const isInputAnObject = inputSchema instanceof z.ZodObject;
 

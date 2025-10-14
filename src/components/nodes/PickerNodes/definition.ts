@@ -122,6 +122,12 @@ const pickerExecutors: Record<string, NodeExecutor> = {
   pickFlowNode: async (node) => ({ flowId: PickFlowNodeDataSchema.parse(node.data).flowId }),
 };
 
+// Common handles for all picker nodes
+const commonHandles = {
+  inputs: [{ id: 'main', type: FlowDataType.ANY }],
+  outputs: [{ id: 'main', type: FlowDataType.ANY }],
+};
+
 // Definitions
 const definitions: NodeDefinition[] = [
   {
@@ -133,8 +139,9 @@ const definitions: NodeDefinition[] = [
     currentVersion: 1,
     initialData: { characterAvatar: '' },
     handles: {
-      inputs: [],
+      inputs: commonHandles.inputs,
       outputs: [
+        ...commonHandles.outputs,
         { id: 'avatar', type: FlowDataType.STRING },
         { id: 'activeAvatar', type: FlowDataType.STRING },
       ],
@@ -149,7 +156,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickLorebookNodeDataSchema,
     currentVersion: 1,
     initialData: { worldName: '' },
-    handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'name', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickLorebookNode,
   },
   {
@@ -160,7 +170,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickPromptNodeDataSchema,
     currentVersion: 1,
     initialData: { promptName: '' },
-    handles: { inputs: [], outputs: [{ id: 'name', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'name', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickPromptNode,
   },
   {
@@ -171,7 +184,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickRegexScriptNodeDataSchema,
     currentVersion: 1,
     initialData: { scriptId: '' },
-    handles: { inputs: [], outputs: [{ id: 'id', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'id', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickRegexScriptNode,
   },
   {
@@ -182,7 +198,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickMathOperationNodeDataSchema,
     currentVersion: 1,
     initialData: { operation: 'add' },
-    handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'operation', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickMathOperationNode,
   },
   {
@@ -193,7 +212,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickStringToolsOperationNodeDataSchema,
     currentVersion: 1,
     initialData: { operation: 'merge' },
-    handles: { inputs: [], outputs: [{ id: 'operation', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'operation', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickStringToolsOperationNode,
   },
   {
@@ -204,7 +226,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickPromptEngineeringModeNodeDataSchema,
     currentVersion: 1,
     initialData: { mode: PromptEngineeringMode.NATIVE },
-    handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'mode', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickPromptEngineeringModeNode,
   },
   {
@@ -215,7 +240,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickRandomModeNodeDataSchema,
     currentVersion: 1,
     initialData: { mode: 'number' },
-    handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'mode', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickRandomModeNode,
   },
   {
@@ -226,7 +254,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickRegexModeNodeDataSchema,
     currentVersion: 1,
     initialData: { mode: 'sillytavern' },
-    handles: { inputs: [], outputs: [{ id: 'mode', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'mode', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickRegexModeNode,
   },
   {
@@ -237,7 +268,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickTypeConverterTargetNodeDataSchema,
     currentVersion: 1,
     initialData: { targetType: 'string' },
-    handles: { inputs: [], outputs: [{ id: 'type', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'type', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickTypeConverterTargetNode,
   },
   {
@@ -248,7 +282,10 @@ const definitions: NodeDefinition[] = [
     dataSchema: PickFlowNodeDataSchema,
     currentVersion: 1,
     initialData: { flowId: '' },
-    handles: { inputs: [], outputs: [{ id: 'flowId', type: FlowDataType.STRING }] },
+    handles: {
+      inputs: commonHandles.inputs,
+      outputs: [...commonHandles.outputs, { id: 'flowId', type: FlowDataType.STRING }],
+    },
     execute: pickerExecutors.pickFlowNode,
   },
 ];

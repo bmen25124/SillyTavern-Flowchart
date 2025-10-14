@@ -41,7 +41,7 @@ const getConditionValueHandleId = (conditionId: string) => `value_${conditionId}
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = IfNodeDataSchema.parse(node.data);
-  const primaryInput = input.main; // The data from the main (default) input handle
+  const primaryInput = input.value; // The data from the new 'value' input handle
 
   for (const condition of data.conditions) {
     let result = false;
@@ -117,7 +117,10 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     ],
   },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
     outputs: [], // Make ALL outputs dynamic
   },
   execute,
@@ -125,7 +128,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   getDynamicHandles: (node, allNodes, allEdges) => {
     const conditions = (node.data as IfNodeData).conditions || [];
 
-    const inputEdge = allEdges.find((e) => e.target === node.id && e.targetHandle === 'main');
+    const inputEdge = allEdges.find((e) => e.target === node.id && e.targetHandle === 'value');
     const sourceNode = inputEdge ? allNodes.find((n) => n.id === inputEdge.source) : undefined;
 
     let passthroughType = FlowDataType.ANY;
@@ -158,6 +161,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection === 'input') {
       if (handleId === 'main') return FlowDataType.ANY;
+      if (handleId === 'value') return FlowDataType.ANY;
       const conditions = (node.data as IfNodeData).conditions || [];
       const isValueHandle = conditions.some((c) => getConditionValueHandleId(c.id) === handleId);
       if (isValueHandle) return FlowDataType.ANY;
@@ -168,7 +172,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       const isConditionHandle = conditions.some((c) => c.id === handleId);
 
       if (handleId === 'false' || isConditionHandle) {
-        const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'main');
+        const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'value');
         if (inputEdge) {
           const sourceNode = nodes.find((n) => n.id === inputEdge.source);
           if (sourceNode) {

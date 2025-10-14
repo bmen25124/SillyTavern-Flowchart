@@ -16,7 +16,7 @@ export type SendChatMessageNodeData = z.infer<typeof SendChatMessageNodeDataSche
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = SendChatMessageNodeDataSchema.parse(node.data);
-  const message = input.main ?? resolveInput(input, data, 'message');
+  const message = resolveInput(input, data, 'message');
   if (!message) throw new Error('Message content is required.');
 
   const role = resolveInput(input, data, 'role');
@@ -38,13 +38,14 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
   initialData: { message: '', role: 'assistant' },
   handles: {
     inputs: [
-      { id: 'main', type: FlowDataType.STRING },
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'message', type: FlowDataType.STRING },
       { id: 'role', type: FlowDataType.STRING },
       { id: 'name', type: FlowDataType.STRING },
     ],
     outputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'messageId', type: FlowDataType.NUMBER },
-      { id: 'main', type: FlowDataType.STRING },
     ],
   },
   execute,

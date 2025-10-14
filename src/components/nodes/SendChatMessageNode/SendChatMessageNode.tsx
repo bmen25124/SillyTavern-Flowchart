@@ -11,7 +11,7 @@ import { registrator } from '../autogen-imports.js';
 export type SendChatMessageNodeProps = NodeProps<Node<SendChatMessageNodeData>>;
 
 const fields = [
-  createFieldConfig({ id: 'main', label: 'Message Content', component: STTextarea, props: { rows: 3 } }),
+  createFieldConfig({ id: 'message', label: 'Message Content', component: STTextarea, props: { rows: 3 } }),
   createFieldConfig({
     id: 'role',
     label: 'Role',

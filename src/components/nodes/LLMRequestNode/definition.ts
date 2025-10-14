@@ -107,13 +107,17 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
   },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'profileId', type: FlowDataType.PROFILE_ID },
       { id: 'messages', type: FlowDataType.MESSAGES },
       { id: 'schema', type: FlowDataType.SCHEMA },
       { id: 'maxResponseToken', type: FlowDataType.NUMBER },
       { id: 'promptEngineeringMode', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.ANY },
+    ],
   },
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {

@@ -109,7 +109,13 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   dataSchema: JsonNodeDataSchema,
   currentVersion: 1,
   initialData: { items: [], rootType: 'object' },
-  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.OBJECT }] },
+  handles: {
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.OBJECT },
+    ],
+  },
   execute,
   getDynamicHandles: (node) => {
     const data = node.data;

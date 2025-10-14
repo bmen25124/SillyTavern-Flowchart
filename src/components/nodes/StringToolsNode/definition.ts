@@ -52,10 +52,14 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   initialData: { operation: 'merge', inputCount: 2, delimiter: '' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'operation', type: FlowDataType.STRING },
       { id: 'delimiter', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.ANY },
+    ],
   },
   execute,
   getDynamicHandleId: (index: number) => `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${index}`,

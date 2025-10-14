@@ -31,8 +31,14 @@ export const stringToNumberNodeDefinition: NodeDefinition<StringToNumberNodeData
   currentVersion: 1,
   initialData: {},
   handles: {
-    inputs: [{ id: 'string', type: FlowDataType.STRING }],
-    outputs: [{ id: 'result', type: FlowDataType.NUMBER }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'string', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.NUMBER },
+    ],
   },
   execute,
 };

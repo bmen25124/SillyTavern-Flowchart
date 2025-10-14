@@ -26,7 +26,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
-  const inputSchema = useInputSchema(id, 'data');
+  const inputSchema = useInputSchema(id, 'context');
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
 
   if (!data || !definition) return null;
@@ -45,7 +45,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
 
         {isInputAnObject && inputSchema && (
           <div style={{ fontSize: '10px', color: '#aaa', marginTop: '5px' }}>
-            <b>Available properties in `data`:</b>
+            <b>Available properties in `context`:</b>
             <pre
               style={{
                 margin: '2px 0 0 0',

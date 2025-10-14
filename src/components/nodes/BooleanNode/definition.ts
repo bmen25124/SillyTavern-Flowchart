@@ -29,8 +29,14 @@ export const booleanNodeDefinition: NodeDefinition<BooleanNodeData> = {
   currentVersion: 1,
   initialData: { value: false },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
-    outputs: [{ id: 'value', type: FlowDataType.BOOLEAN }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.BOOLEAN },
+    ],
   },
   execute,
 };

@@ -120,7 +120,7 @@ const ConditionEditor: FC<{
 export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as IfNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const inputSchema = useInputSchema(id, 'main');
+  const inputSchema = useInputSchema(id, 'value');
 
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
   const availableProperties = useMemo(() => {
@@ -155,8 +155,9 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="If Conditions" selected={selected}>
       <div style={{ position: 'relative', marginBottom: '10px' }}>
-        <Handle type="target" position={Position.Left} id="main" style={{ top: '50%' }} />
-        <label style={{ marginLeft: '10px' }}>Input</label>
+        <Handle type="target" position={Position.Left} id="main" />
+        <Handle type="target" position={Position.Left} id="value" style={{ top: '25px' }} />
+        <label style={{ marginLeft: '10px' }}>Input Value</label>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

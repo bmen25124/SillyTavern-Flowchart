@@ -39,8 +39,14 @@ export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeDa
   currentVersion: 1,
   initialData: { command: '' },
   handles: {
-    inputs: [{ id: 'command', type: FlowDataType.STRING }],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'command', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };

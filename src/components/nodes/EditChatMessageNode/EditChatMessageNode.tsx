@@ -19,7 +19,7 @@ const fields = [
     getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
   }),
   createFieldConfig({
-    id: 'main',
+    id: 'message',
     label: 'New Message Content',
     component: STTextarea,
     props: { rows: 3 },

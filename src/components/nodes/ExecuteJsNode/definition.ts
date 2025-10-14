@@ -15,9 +15,9 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
   const data = ExecuteJsNodeDataSchema.parse(node.data);
   const variables = { ...Object.fromEntries(executionVariables) };
 
-  // If a 'main' input is connected, pass its value as the primary `input` argument to the script.
+  // If a 'scriptInput' is connected, pass its value as the primary `input` argument to the script.
   // Otherwise, pass the whole object of named inputs. This provides an intuitive scripting experience.
-  const scriptInput = input.main ?? input;
+  const scriptInput = input.scriptInput ?? input;
 
   try {
     const func = new Function('input', 'variables', 'stContext', data.code);
@@ -36,7 +36,10 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   currentVersion: 1,
   initialData: { code: 'return input;' },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'scriptInput', type: FlowDataType.ANY },
+    ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,

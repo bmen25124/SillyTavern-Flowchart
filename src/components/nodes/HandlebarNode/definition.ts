@@ -17,7 +17,8 @@ const execute: NodeExecutor = async (node, input) => {
   const data = HandlebarNodeDataSchema.parse(node.data);
   const template = resolveInput(input, data, 'template');
 
-  const context = input;
+  // 'context' handle gathers all inputs into one object for the template
+  const context = input.context ?? input;
 
   try {
     const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
@@ -37,10 +38,14 @@ export const handlebarNodeDefinition: NodeDefinition<HandlebarNodeData> = {
   initialData: { template: 'Hello, {{name}}!' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'template', type: FlowDataType.STRING },
-      { id: 'data', type: FlowDataType.ANY },
+      { id: 'context', type: FlowDataType.ANY },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };

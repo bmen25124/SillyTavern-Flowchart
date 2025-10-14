@@ -37,7 +37,13 @@ export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> 
   initialData: {
     messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }],
   },
-  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.MESSAGES }] },
+  handles: {
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.MESSAGES },
+    ],
+  },
   execute,
   getDynamicHandles: (node) => ({
     inputs: (node.data.messages || []).flatMap((m) => [

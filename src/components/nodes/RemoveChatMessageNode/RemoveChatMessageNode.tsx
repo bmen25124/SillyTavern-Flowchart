@@ -12,7 +12,7 @@ export type RemoveChatMessageNodeProps = NodeProps<Node<RemoveChatMessageNodeDat
 
 const fields = [
   createFieldConfig({
-    id: 'main',
+    id: 'messageId',
     label: 'Message ID',
     component: STInput,
     props: { type: 'number' },

@@ -14,7 +14,7 @@ export type RemoveChatMessageNodeData = z.infer<typeof RemoveChatMessageNodeData
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = RemoveChatMessageNodeDataSchema.parse(node.data);
-  const messageId = input.main ?? resolveInput(input, data, 'messageId');
+  const messageId = resolveInput(input, data, 'messageId');
   if (messageId === undefined) throw new Error('Message ID is required.');
 
   await dependencies.deleteMessage(messageId);
@@ -30,8 +30,11 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
   currentVersion: 1,
   initialData: {},
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.NUMBER }],
-    outputs: [{ id: 'main', type: FlowDataType.NUMBER }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'messageId', type: FlowDataType.NUMBER },
+    ],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
 };

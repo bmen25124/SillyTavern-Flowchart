@@ -27,8 +27,14 @@ export const numberNodeDefinition: NodeDefinition<NumberNodeData> = {
   currentVersion: 1,
   initialData: { value: 123 },
   handles: {
-    inputs: [{ id: 'value', type: FlowDataType.ANY }],
-    outputs: [{ id: 'value', type: FlowDataType.NUMBER }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.ANY },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'value', type: FlowDataType.NUMBER },
+    ],
   },
   execute,
 };

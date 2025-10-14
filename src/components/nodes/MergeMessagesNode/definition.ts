@@ -30,7 +30,13 @@ export const mergeMessagesNodeDefinition: NodeDefinition<MergeMessagesNodeData> 
   dataSchema: MergeMessagesNodeDataSchema,
   currentVersion: 1,
   initialData: { inputCount: 2 },
-  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.MESSAGES }] },
+  handles: {
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.MESSAGES },
+    ],
+  },
   execute,
   getDynamicHandleId: (index: number) => `${MERGE_MESSAGES_HANDLE_PREFIX}${index}`,
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_MESSAGES_HANDLE_PREFIX) ?? false,

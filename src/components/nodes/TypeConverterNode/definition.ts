@@ -66,10 +66,14 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
   initialData: { targetType: 'string' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'value', type: FlowDataType.ANY },
       { id: 'targetType', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'result', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.ANY },
+    ],
   },
   execute,
   getHandleType: ({ handleId, handleDirection, node }) => {

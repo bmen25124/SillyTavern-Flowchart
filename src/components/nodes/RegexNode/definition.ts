@@ -66,11 +66,13 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
   initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '' },
   handles: {
     inputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'string', type: FlowDataType.STRING },
       { id: 'mode', type: FlowDataType.STRING },
       { id: 'scriptId', type: FlowDataType.STRING },
     ],
     outputs: [
+      { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
       { id: 'matches', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
