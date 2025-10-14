@@ -108,7 +108,13 @@ export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
   dataSchema: SchemaNodeDataSchema,
   currentVersion: 1,
   initialData: { fields: [] },
-  handles: { inputs: [], outputs: [{ id: 'result', type: FlowDataType.SCHEMA }] },
+  handles: {
+    inputs: [{ id: 'main', type: FlowDataType.ANY }],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.SCHEMA },
+    ],
+  },
   execute,
 };
 

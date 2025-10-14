@@ -151,7 +151,11 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     }));
 
     // Add the 'false' handle to the dynamic list
-    const allOutputs = [...conditionalOutputs, { id: 'false', type: passthroughType, schema: passthroughSchema }];
+    const allOutputs = [
+      { id: 'main', type: passthroughType, schema: passthroughSchema },
+      ...conditionalOutputs,
+      { id: 'false', type: passthroughType, schema: passthroughSchema },
+    ];
 
     return {
       inputs: conditions.map((c) => ({ id: getConditionValueHandleId(c.id), type: FlowDataType.ANY })),
@@ -171,7 +175,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       const conditions = (node.data as IfNodeData).conditions || [];
       const isConditionHandle = conditions.some((c) => c.id === handleId);
 
-      if (handleId === 'false' || isConditionHandle) {
+      if (handleId === 'main' || handleId === 'false' || isConditionHandle) {
         const inputEdge = edges.find((e) => e.target === node.id && e.targetHandle === 'value');
         if (inputEdge) {
           const sourceNode = nodes.find((n) => n.id === inputEdge.source);

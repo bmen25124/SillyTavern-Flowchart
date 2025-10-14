@@ -35,8 +35,14 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
   currentVersion: 1,
   initialData: { promptName: '' },
   handles: {
-    inputs: [{ id: 'promptName', type: FlowDataType.STRING }],
-    outputs: [{ id: 'result', type: FlowDataType.STRING }],
+    inputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'promptName', type: FlowDataType.STRING },
+    ],
+    outputs: [
+      { id: 'main', type: FlowDataType.ANY },
+      { id: 'result', type: FlowDataType.STRING },
+    ],
   },
   execute,
 };
