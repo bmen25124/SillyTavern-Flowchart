@@ -6,8 +6,6 @@ import { BaseNode } from '../BaseNode.js';
 import { STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { registrator } from '../autogen-imports.js';
-import { schemaToText } from '../../../utils/schema-inspector.js';
 
 export type SendChatMessageNodeProps = NodeProps<Node<SendChatMessageNodeData>>;
 
@@ -33,17 +31,21 @@ const fields = [
 export const SendChatMessageNode: FC<SendChatMessageNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SendChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
-  const definition = registrator.nodeDefinitionMap.get('sendChatMessageNode');
-  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'messageId');
-  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Send Chat Message" selected={selected}>
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <div title={schemaText}>
-        <Handle type="source" position={Position.Right} id="messageId" />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+          <span>Message ID</span>
+          <Handle type="source" position={Position.Right} id="messageId" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+          <span>Message (Passthrough)</span>
+          <Handle type="source" position={Position.Right} id="message" />
+        </div>
       </div>
     </BaseNode>
   );

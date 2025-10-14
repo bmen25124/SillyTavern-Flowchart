@@ -31,16 +31,26 @@ export const EditChatMessageNode: FC<EditChatMessageNodeProps> = ({ id, selected
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as EditChatMessageNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get('editChatMessageNode');
-  const resultHandle = definition?.handles.outputs.find((h) => h.id === 'messageObject');
-  const schemaText = resultHandle?.schema ? schemaToText(resultHandle.schema) : resultHandle?.type;
+  const objectHandle = definition?.handles.outputs.find((h) => h.id === 'messageObject');
+  const schemaText = objectHandle?.schema ? schemaToText(objectHandle.schema) : objectHandle?.type;
 
   if (!data) return null;
 
   return (
     <BaseNode id={id} title="Edit Chat Message" selected={selected}>
       <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
-      <div title={schemaText}>
-        <Handle type="source" position={Position.Right} id="messageObject" />
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}
+          title={schemaText}
+        >
+          <span>Message Object</span>
+          <Handle type="source" position={Position.Right} id="messageObject" />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
+          <span>Message (Passthrough)</span>
+          <Handle type="source" position={Position.Right} id="message" />
+        </div>
       </div>
     </BaseNode>
   );

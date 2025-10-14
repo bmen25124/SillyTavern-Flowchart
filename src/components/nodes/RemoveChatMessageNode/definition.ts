@@ -18,7 +18,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   if (messageId === undefined) throw new Error('Message ID is required.');
 
   await dependencies.deleteMessage(messageId);
-  return {};
+  return { messageId }; // Passthrough the ID
 };
 
 export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNodeData> = {
@@ -31,9 +31,11 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
   initialData: {},
   handles: {
     inputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
-    outputs: [],
+    outputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
   },
   execute,
+  isPassthrough: true,
+  passthroughHandleId: 'messageId',
 };
 
 registrator.register(removeChatMessageNodeDefinition);

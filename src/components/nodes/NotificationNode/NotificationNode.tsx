@@ -1,0 +1,72 @@
+import { FC } from 'react';
+import { NodeProps, Node, Handle, Position } from '@xyflow/react';
+import { useFlowStore } from '../../popup/flowStore.js';
+import { NotificationNodeData } from './definition.js';
+import { BaseNode } from '../BaseNode.js';
+import { STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { NodeFieldRenderer } from '../NodeFieldRenderer.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { FlowDataTypeColors } from '../../../flow-types.js';
+
+export type NotificationNodeProps = NodeProps<Node<NotificationNodeData>>;
+
+const fields = [
+  createFieldConfig({
+    id: 'message',
+    label: 'Message',
+    component: STTextarea,
+    props: { rows: 3 },
+  }),
+  createFieldConfig({
+    id: 'notificationType',
+    label: 'Type',
+    component: STSelect,
+    props: {
+      children: (
+        <>
+          <option value="info">Info</option>
+          <option value="success">Success</option>
+          <option value="warning">Warning</option>
+          <option value="error">Error</option>
+        </>
+      ),
+    },
+  }),
+];
+
+export const NotificationNode: FC<NotificationNodeProps> = ({ id, selected, type }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as NotificationNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+
+  if (!data) return null;
+
+  return (
+    <BaseNode id={id} title="Notification" selected={selected}>
+      <NodeFieldRenderer nodeId={id} nodeType={type} fields={fields} data={data} updateNodeData={updateNodeData} />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '10px',
+          paddingTop: '5px',
+          borderTop: '1px solid #555',
+        }}
+      >
+        <span>Message (Passthrough)</span>
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="message"
+          style={{
+            position: 'relative',
+            transform: 'none',
+            right: 0,
+            top: 0,
+            backgroundColor: FlowDataTypeColors.string,
+          }}
+        />
+      </div>
+    </BaseNode>
+  );
+};

@@ -24,7 +24,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   await dependencies.sendChatMessage(message, role, name);
 
   const newChatLength = dependencies.getSillyTavernContext().chat.length;
-  return { messageId: newChatLength - 1 };
+  return { messageId: newChatLength - 1, message };
 };
 
 export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeData> = {
@@ -41,9 +41,14 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
       { id: 'role', type: FlowDataType.STRING },
       { id: 'name', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'messageId', type: FlowDataType.NUMBER }],
+    outputs: [
+      { id: 'messageId', type: FlowDataType.NUMBER },
+      { id: 'message', type: FlowDataType.STRING },
+    ],
   },
   execute,
+  isPassthrough: true,
+  passthroughHandleId: 'message',
 };
 
 registrator.register(sendChatMessageNodeDefinition);

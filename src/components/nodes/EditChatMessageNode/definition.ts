@@ -28,7 +28,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   message.mes = newMessage;
   dependencies.st_updateMessageBlock(messageId, message);
   await dependencies.saveChat();
-  return { messageObject: structuredClone(message) };
+  return { messageObject: structuredClone(message), message: newMessage };
 };
 
 export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeData> = {
@@ -44,9 +44,14 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
       { id: 'messageId', type: FlowDataType.NUMBER },
       { id: 'message', type: FlowDataType.STRING },
     ],
-    outputs: [{ id: 'messageObject', type: FlowDataType.OBJECT, schema: ChatMessageSchema }],
+    outputs: [
+      { id: 'messageObject', type: FlowDataType.OBJECT, schema: ChatMessageSchema },
+      { id: 'message', type: FlowDataType.STRING },
+    ],
   },
   execute,
+  isPassthrough: true,
+  passthroughHandleId: 'message',
 };
 
 registrator.register(editChatMessageNodeDefinition);
