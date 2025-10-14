@@ -1,6 +1,6 @@
 {
     "name": "sillytavern-flowchart",
-    "version": "1.0.0",
+    "version": "0.3.0",
     "description": "A web application using pure JS and SCSS.",
     "type": "module",
     "main": "src/scripts/main.js",

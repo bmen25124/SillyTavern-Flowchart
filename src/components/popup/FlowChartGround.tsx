@@ -404,7 +404,7 @@ const FlowCanvas: FC<{
         fitView
         isValidConnection={isValidConnection}
         minZoom={0.1}
-        deleteKeyCode="Delete"
+        deleteKeyCode={["Delete", "Backspace"]}
         proOptions={{ hideAttribution: true }}
       >
         <Background color="#444" gap={15} variant={BackgroundVariant.Dots} />
