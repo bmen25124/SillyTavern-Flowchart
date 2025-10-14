@@ -77,7 +77,7 @@ export class LowLevelFlowRunner {
 
         const isRootNode = !flow.edges.some((e) => e.target === nodeId);
         const baseInput = isRootNode || nodeId === options.startNodeId ? initialInput : {};
-        const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput);
+        const inputs = this.getNodeInputs(node, flow.edges, nodeOutputs, baseInput, nodesById);
 
         eventEmitter.emit('node:run:start', { runId, nodeId });
         const nodeReport: NodeReport = { status: 'completed', input: inputs, output: {}, error: undefined };
@@ -161,11 +161,22 @@ export class LowLevelFlowRunner {
     edges: SpecEdge[],
     nodeOutputs: Record<string, any>,
     baseInput: Record<string, any>,
+    nodesById: Map<string, SpecNode>,
   ): Record<string, any> {
     const inputs: Record<string, any> = { ...baseInput };
     const incomingEdges = edges.filter((edge) => edge.target === node.id);
 
     for (const edge of incomingEdges) {
+      if (!Object.prototype.hasOwnProperty.call(nodeOutputs, edge.source)) {
+        const sourceNode = nodesById.get(edge.source);
+        const sourceNodeType = sourceNode?.type ?? 'unknown';
+        throw new Error(
+          `Required input for handle "${
+            edge.targetHandle ?? 'default'
+          }" is missing. Its source node "${sourceNodeType} (${edge.source})" was not executed.`,
+        );
+      }
+
       const sourceOutput = nodeOutputs[edge.source];
       if (sourceOutput === undefined) continue;
 

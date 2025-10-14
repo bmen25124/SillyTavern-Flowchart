@@ -32,26 +32,36 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const stContext = dependencies.getSillyTavernContext();
   let existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
   if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
-  existingChar = structuredClone(existingChar);
 
   const fields: (keyof typeof data)[] = ['name', 'description', 'first_mes', 'scenario', 'personality', 'mes_example'];
 
+  const characterPartial: Partial<Character> & { avatar: string } = { avatar: existingChar.avatar };
+
+  let anyChanges = false;
   fields.forEach((field) => {
     const value = resolveInput(input, data, field);
     if (value) {
-      (existingChar as any)[field] = value;
+      (characterPartial as any)[field] = value;
+      if (!characterPartial.data) {
+        characterPartial.data = {};
+      }
+      characterPartial.data[field] = value;
+      anyChanges = true;
     }
   });
 
   const tagsStr = resolveInput(input, data, 'tags');
   if (tagsStr) {
-    existingChar.tags = tagsStr
+    characterPartial.tags = tagsStr
       .split(',')
       .map((t: string) => t.trim())
       .filter(Boolean);
+    anyChanges = true;
   }
 
-  await dependencies.saveCharacter(existingChar);
+  if (!anyChanges) throw new Error('No changes provided to update the character.');
+
+  await dependencies.saveCharacter(characterPartial);
   return existingChar.name;
 };
 

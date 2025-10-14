@@ -1,5 +1,5 @@
 import { SpecFlow, SpecNode } from './flow-spec.js';
-import { SillyTavernContext } from 'sillytavern-utils-lib/types';
+import { Character, SillyTavernContext } from 'sillytavern-utils-lib/types';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { z } from 'zod';
 import { ExecutionReport } from './LowLevelFlowRunner.js';
@@ -23,7 +23,11 @@ export interface FlowRunnerDependencies {
   ) => Promise<any>;
   getSillyTavernContext: () => SillyTavernContext;
   createCharacter: (data: any) => Promise<void>;
-  saveCharacter: (data: any) => Promise<void>;
+  saveCharacter: (
+    data: Partial<Character> & {
+      avatar: string;
+    },
+  ) => Promise<void>;
   st_createNewWorldInfo: (worldName: string) => Promise<boolean>;
   applyWorldInfoEntry: (options: {
     entry: WIEntry;
