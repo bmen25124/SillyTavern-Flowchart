@@ -1,5 +1,5 @@
 import { EventNameParameters } from './flow-types.js';
-import { sendChatMessage, st_createNewWorldInfo, st_echo, st_runRegexScript } from 'sillytavern-utils-lib/config';
+import { sendChatMessage, st_createNewWorldInfo, st_runRegexScript } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { makeSimpleRequest, getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
@@ -11,6 +11,7 @@ import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
 import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
+import { notify } from './utils/notify.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -82,7 +83,7 @@ function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Da
   } catch (e: any) {
     console.error('[FlowChart] Failed to save execution history:', e);
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      st_echo('error', 'FlowChart: Could not save execution history. Storage quota exceeded.');
+      notify('error', 'FlowChart: Could not save execution history. Storage quota exceeded.', 'execution');
     }
   }
 }
@@ -261,7 +262,7 @@ class FlowRunner {
 
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
-        st_echo('info', `FlowChart: Event "${eventType}" triggered.`);
+        notify('info', `FlowChart: Event "${eventType}" triggered.`, 'execution');
         for (const trigger of eventTriggers[eventType]) {
           this.executeFlowFromEvent(trigger.flowId, trigger.nodeId, args);
         }
@@ -309,7 +310,7 @@ class FlowRunner {
       if (!this.isExecuting) {
         this._processQueue();
       } else {
-        st_echo('info', `FlowChart: Another flow is running. "${flowData.name}" has been queued.`);
+        notify('info', `FlowChart: Another flow is running. "${flowData.name}" has been queued.`, 'execution');
       }
       // Top-level calls are fire-and-forget; results are handled by events.
       return { executedNodes: [], lastOutput: undefined };
@@ -336,7 +337,7 @@ class FlowRunner {
 
     if (hasDangerousNode && !flowData.allowJsExecution) {
       const errorMsg = `Flow "${flowData.name}" contains nodes that can execute code but it does not have permission. You can grant permission in the Flow Ground.`;
-      st_echo('error', `FlowChart: ${errorMsg}`);
+      notify('error', `FlowChart: ${errorMsg}`, 'execution');
       return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
     }
 
@@ -363,9 +364,9 @@ class FlowRunner {
         if (report.error) {
           const isAbort = report.error.message.includes('aborted');
           if (isAbort) {
-            st_echo('info', `Flow "${flowData.name}" was stopped.`);
+            notify('info', `Flow "${flowData.name}" was stopped.`, 'execution');
           } else {
-            st_echo('error', `Flow "${flowData.name}" failed: ${report.error.message}`);
+            notify('error', `Flow "${flowData.name}" failed: ${report.error.message}`, 'execution');
           }
           eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
         } else {
@@ -427,11 +428,11 @@ class FlowRunner {
     const settings = settingsManager.getSettings();
     const flowData = settings.flows[flowId];
     if (!flowData) {
-      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
+      notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
     if (settings.enabledFlows[flowId] === false) {
-      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
+      notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
 
@@ -442,14 +443,14 @@ class FlowRunner {
     const settings = settingsManager.getSettings();
     const flowData = settings.flows[flowId];
     if (!flowData) {
-      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
+      notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
     if (settings.enabledFlows[flowId] === false) {
-      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
+      notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    st_echo('info', `FlowChart: Running flow "${flowData.name}" from node ${startNodeId}.`);
+    notify('info', `FlowChart: Running flow "${flowData.name}" from node ${startNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { startNodeId });
   }
 
@@ -457,14 +458,14 @@ class FlowRunner {
     const settings = settingsManager.getSettings();
     const flowData = settings.flows[flowId];
     if (!flowData) {
-      st_echo('error', `Flow with ID "${flowId}" not found for manual run.`);
+      notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
     if (settings.enabledFlows[flowId] === false) {
-      st_echo('error', `Flow "${flowData.name}" is disabled and cannot be run.`);
+      notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    st_echo('info', `FlowChart: Running flow "${flowData.name}" to node ${endNodeId}.`);
+    notify('info', `FlowChart: Running flow "${flowData.name}" to node ${endNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { endNodeId });
   }
 

@@ -72,6 +72,20 @@ export const FlowChartSettings: FC = () => {
             </div>
 
             <div className="setting-row">
+              <label title="Show toast notifications for automatic flow events like 'flow started'. Does not affect errors or UI feedback.">
+                Show flow execution notifications
+              </label>
+              <STInput
+                type="checkbox"
+                checked={settings.showExecutionNotifications}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  updateAndRefresh((s) => (s.showExecutionNotifications = checked));
+                }}
+              />
+            </div>
+
+            <div className="setting-row">
               <STButton onClick={() => eventEmitter.emit('openFlowChartDataPopup')}>Customize Prompts & Data</STButton>
             </div>
 

@@ -17,7 +17,7 @@ import {
 } from '@xyflow/react';
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { notify } from '../../utils/notify.js';
 import { STButton, STInput, STPresetSelect, PresetItem } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
@@ -152,7 +152,7 @@ const FlowCanvas: FC<{
               setNodes(getNodes().map((n) => ({ ...n, selected: n.id === node.id })));
               setTimeout(() => {
                 copySelection();
-                st_echo('info', `Node '${(node.data as any).label || node.type}' copied.`);
+                notify('info', `Node '${(node.data as any).label || node.type}' copied.`, 'ui_action');
               }, 50);
               setContextMenu(null);
             },
@@ -583,7 +583,7 @@ const FlowManager: FC = () => {
           copySelection();
           const selectedCount = getNodes().filter((n) => n.selected).length;
           if (selectedCount > 0) {
-            st_echo('info', `${selectedCount} node(s) copied.`);
+            notify('info', `${selectedCount} node(s) copied.`, 'ui_action');
           }
         } else if (event.key === 'v') {
           event.preventDefault();
@@ -634,11 +634,11 @@ const FlowManager: FC = () => {
     (newName: string) => {
       const newFlowId = slugify(newName);
       if (!newFlowId) {
-        st_echo('error', 'Flow name cannot be empty.');
+        notify('error', 'Flow name cannot be empty.', 'ui_action');
         return { confirmed: false };
       }
       if (settings.flows[newFlowId]) {
-        st_echo('error', `A flow with the name "${newName}" already exists.`);
+        notify('error', `A flow with the name "${newName}" already exists.`, 'ui_action');
         return { confirmed: false };
       }
       return { confirmed: true, value: newFlowId };
@@ -650,11 +650,11 @@ const FlowManager: FC = () => {
     (flowId: string, newName: string) => {
       const newFlowId = slugify(newName);
       if (!newFlowId) {
-        st_echo('error', 'Flow name cannot be empty.');
+        notify('error', 'Flow name cannot be empty.', 'ui_action');
         return { confirmed: false };
       }
       if (newFlowId !== flowId && settings.flows[newFlowId]) {
-        st_echo('error', `A flow with the name "${newName}" already exists.`);
+        notify('error', `A flow with the name "${newName}" already exists.`, 'ui_action');
         return { confirmed: false };
       }
       return { confirmed: true };
@@ -665,7 +665,7 @@ const FlowManager: FC = () => {
   const handleDeleteFlow = useCallback(
     (flowId: string) => {
       if (Object.keys(settings.flows).length <= 1) {
-        st_echo('error', 'Cannot delete the last flow.');
+        notify('error', 'Cannot delete the last flow.', 'ui_action');
         return false;
       }
       return true; // STPresetSelect handles confirmation
@@ -729,7 +729,7 @@ const FlowManager: FC = () => {
 
   const handleRunFlow = useCallback(() => {
     if (!isValid) {
-      st_echo('error', 'Cannot run an invalid flow. Please fix the errors first.');
+      notify('error', 'Cannot run an invalid flow. Please fix the errors first.', 'ui_action');
       return;
     }
     clearRun();
@@ -741,10 +741,10 @@ const FlowManager: FC = () => {
       const flowData = getSpecFlow();
       const jsonString = JSON.stringify(flowData, null, 2);
       await navigator.clipboard.writeText(jsonString);
-      st_echo('info', `Flow "${settings.flows[settings.activeFlow].name}" copied to clipboard as JSON.`);
+      notify('info', `Flow "${settings.flows[settings.activeFlow].name}" copied to clipboard as JSON.`, 'ui_action');
     } catch (err) {
       console.error('Failed to copy flow:', err);
-      st_echo('error', 'Failed to copy flow to clipboard.');
+      notify('error', 'Failed to copy flow to clipboard.', 'ui_action');
     }
   }, [getSpecFlow, settings.activeFlow, settings.flows]);
 
@@ -752,7 +752,7 @@ const FlowManager: FC = () => {
     try {
       const clipboardText = await navigator.clipboard.readText();
       if (!clipboardText) {
-        st_echo('error', 'Clipboard is empty.');
+        notify('error', 'Clipboard is empty.', 'ui_action');
         return;
       }
 
@@ -764,22 +764,22 @@ const FlowManager: FC = () => {
 
       loadFlow(parsedData as SpecFlow);
       useFlowStore.temporal.getState().clear();
-      st_echo('info', 'Flow pasted from clipboard, replacing current flow.');
+      notify('info', 'Flow pasted from clipboard, replacing current flow.', 'ui_action');
     } catch (error) {
       console.error('Failed to paste flow:', error);
-      st_echo('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.');
+      notify('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.', 'ui_action');
     }
   }, [loadFlow]);
 
   const handleScreenshot = useCallback(async () => {
     const flowElement = document.querySelector<HTMLElement>('.react-flow');
     if (!flowElement) {
-      st_echo('error', 'Could not find the flow element to screenshot.');
+      notify('error', 'Could not find the flow element to screenshot.', 'ui_action');
       return;
     }
     const nodes = getNodes();
     if (nodes.length === 0) {
-      st_echo('info', 'Cannot take screenshot of an empty flow.');
+      notify('warning', 'Cannot take screenshot of an empty flow.', 'ui_action');
       return;
     }
 
@@ -816,10 +816,10 @@ const FlowManager: FC = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        st_echo('info', 'Screenshot saved.');
+        notify('info', 'Screenshot saved.', 'ui_action');
       } catch (err) {
         console.error('Failed to take screenshot:', err);
-        st_echo('error', 'Failed to take screenshot.');
+        notify('error', 'Failed to take screenshot.', 'ui_action');
       } finally {
         setViewport(originalViewport, { duration: 0 });
       }

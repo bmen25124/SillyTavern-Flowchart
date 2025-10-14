@@ -6,6 +6,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { NotificationNode } from './NotificationNode.js';
+import { notify } from '../../../utils/notify.js';
 
 const NotificationTypeSchema = z.enum(['info', 'success', 'error', 'warning']);
 
@@ -25,7 +26,7 @@ const execute: NodeExecutor = async (node, input) => {
   if (message) {
     const validatedType = NotificationTypeSchema.safeParse(notificationType);
     if (!validatedType.success) {
-      st_echo('error', `Invalid notification type: ${notificationType}. Defaulting to 'info'.`);
+      notify('error', `Invalid notification type: ${notificationType}. Defaulting to 'info'.`, 'ui_action');
     }
     st_echo(validatedType.data || 'info', String(message));
   }

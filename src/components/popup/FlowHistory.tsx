@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { notify } from '../../utils/notify.js';
 import { clearExecutionHistory, executionHistory } from '../../FlowRunner.js';
 import { safeJsonStringify } from '../../utils/safeJsonStringify.js';
 
@@ -17,10 +17,10 @@ export const FlowHistory: FC = () => {
     navigator.clipboard
       .writeText(jsonString)
       .then(() => {
-        st_echo('info', 'History JSON copied to clipboard.');
+        notify('info', 'History JSON copied to clipboard.', 'ui_action');
       })
       .catch((err) => {
-        st_echo('error', 'Failed to copy history JSON.');
+        notify('error', 'Failed to copy history JSON.', 'ui_action');
         console.error('Failed to copy text: ', err);
       });
   };

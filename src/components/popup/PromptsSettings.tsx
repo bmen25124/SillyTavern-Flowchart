@@ -7,7 +7,7 @@ import {
   LLM_REQUEST_JSON_PROMPT_KEY,
   LLM_REQUEST_XML_PROMPT_KEY,
 } from '../../config.js';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { notify } from '../../utils/notify.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 
 const CORE_PROMPTS = [LLM_REQUEST_JSON_PROMPT_KEY, LLM_REQUEST_XML_PROMPT_KEY];
@@ -45,7 +45,7 @@ export const PromptsSettings: FC = () => {
 
   const handleRenamePrompt = (oldKey: string, newKey: string) => {
     if (!newKey || CORE_PROMPTS.includes(newKey) || settings.prompts[newKey]) {
-      st_echo('error', `Invalid or duplicate prompt name: ${newKey}`);
+      notify('error', `Invalid or duplicate prompt name: ${newKey}`, 'ui_action');
       forceUpdate(); // Re-render to revert the input field value
       return;
     }

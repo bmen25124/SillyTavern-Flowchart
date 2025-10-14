@@ -2,7 +2,7 @@ import { FC, useState } from 'react';
 import { NodeReport } from '../popup/flowRunStore.js';
 import { safeJsonStringify } from '../../utils/safeJsonStringify.js';
 import { STButton } from 'sillytavern-utils-lib/components';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { notify } from '../../utils/notify.js';
 
 interface NodeRunReportProps {
   report: NodeReport;
@@ -14,8 +14,8 @@ export const NodeRunReport: FC<NodeRunReportProps> = ({ report }) => {
   const handleCopy = (data: any) => {
     navigator.clipboard
       .writeText(safeJsonStringify(data))
-      .then(() => st_echo('info', 'Copied to clipboard.'))
-      .catch(() => st_echo('error', 'Failed to copy.'));
+      .then(() => notify('info', 'Copied to clipboard.', 'ui_action'))
+      .catch(() => notify('error', 'Failed to copy.', 'ui_action'));
   };
 
   return (
