@@ -80,7 +80,9 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected, type }) =>
             style={{ cursor: 'text' }}
           />
         </div>
-        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+        <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+          <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+        </div>
       </div>
     </BaseNode>
   );

@@ -34,6 +34,8 @@ const EnumPicker: FC<{
   outputHandle: HandleSpec;
   onUpdate: (value: string) => void;
 }> = ({ id, selected, title, value, options, outputHandle, onUpdate }) => {
+  // Provide a fallback in case definition hasn't loaded or index is wrong
+  if (!outputHandle) return null;
   const schemaText = outputHandle.schema ? schemaToText(outputHandle.schema) : outputHandle.type;
   return (
     <BaseNode id={id} title={title} selected={selected}>
@@ -48,14 +50,16 @@ const EnumPicker: FC<{
         style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
         title={schemaText}
       >
-        <span>Value</span>
+        <span style={{ textTransform: 'capitalize' }}>{outputHandle.label ?? outputHandle.id}</span>
         <Handle
           type="source"
           position={Position.Right}
           id={outputHandle.id!}
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0, marginLeft: '5px' }}
         />
       </div>
+      {/* Always render main output for control flow */}
+      <Handle type="source" position={Position.Right} id="main" style={{ top: '50%', transform: 'translateY(-50%)' }} />
     </BaseNode>
   );
 };
@@ -71,6 +75,8 @@ const FancyDropdownPicker: FC<{
   outputHandle: HandleSpec;
 }> = ({ id, selected, title, data, items, dataKey, outputHandle }) => {
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  // Provide a fallback in case definition hasn't loaded or index is wrong
+  if (!outputHandle) return null;
   const schemaText = outputHandle.schema ? schemaToText(outputHandle.schema) : outputHandle.type;
 
   return (
@@ -89,14 +95,16 @@ const FancyDropdownPicker: FC<{
         style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '10px' }}
         title={schemaText}
       >
-        <span style={{ textTransform: 'capitalize' }}>{outputHandle.id}</span>
+        <span style={{ textTransform: 'capitalize' }}>{outputHandle.label ?? outputHandle.id}</span>
         <Handle
           type="source"
           position={Position.Right}
           id={outputHandle.id!}
-          style={{ position: 'relative', transform: 'none', right: 0, top: 0 }}
+          style={{ position: 'relative', transform: 'none', right: 0, top: 0, marginLeft: '5px' }}
         />
       </div>
+      {/* Always render main output for control flow */}
+      <Handle type="source" position={Position.Right} id="main" style={{ top: '50%', transform: 'translateY(-50%)' }} />
     </BaseNode>
   );
 };
@@ -132,21 +140,37 @@ export const PickCharacterNode: FC<NodeProps<Node<PickCharacterNodeData>>> = ({ 
         enableSearch={true}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+        {/* Render main handle implicitly via BaseNode or explicitly here if needed,
+            but for this custom layout we iterate definition outputs */}
         {definition.handles.outputs.map((handle) => {
-          if (handle.id === 'main') return null;
+          // Main handle is usually invisible/implicit in BaseNode, but let's render it explicitly for clarity in pickers
+          const isMain = handle.id === 'main';
           const schemaText = handle.schema ? schemaToText(handle.schema) : handle.type;
+          const label = isMain ? null : (handleLabels[handle.id!] ?? handle.id);
+
           return (
             <div
               key={handle.id}
-              style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                height: isMain ? '0' : 'auto',
+              }}
               title={schemaText}
             >
-              <span>{handleLabels[handle.id!] ?? handle.id}</span>
+              {label && <span>{label}</span>}
               <Handle
                 type="source"
                 position={Position.Right}
                 id={handle.id!}
-                style={{ position: 'relative', transform: 'none', right: 0, top: 0, marginLeft: '5px' }}
+                style={{
+                  position: 'relative',
+                  transform: 'none',
+                  right: 0,
+                  top: isMain ? '50%' : 0,
+                  marginLeft: '5px',
+                }}
               />
             </div>
           );
@@ -171,7 +195,7 @@ export const PickLorebookNode: FC<NodeProps<Node<PickLorebookNodeData>>> = ({ id
       data={data}
       items={lorebookNames.map((name) => ({ value: name, label: name }))}
       dataKey="worldName"
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1 for specific data handle
     />
   );
 };
@@ -193,7 +217,7 @@ export const PickPromptNode: FC<NodeProps<Node<PickPromptNodeData>>> = ({ id, se
       data={data}
       items={promptOptions}
       dataKey="promptName"
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1 for specific data handle
     />
   );
 };
@@ -213,7 +237,7 @@ export const PickRegexScriptNode: FC<NodeProps<Node<PickRegexScriptNodeData>>> =
       data={data}
       items={allRegexes.map((r) => ({ value: r.id, label: r.scriptName }))}
       dataKey="scriptId"
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1 for specific data handle
     />
   );
 };
@@ -235,7 +259,7 @@ export const PickFlowNode: FC<NodeProps<Node<PickFlowNodeData>>> = ({ id, select
       data={data}
       items={flowOptions}
       dataKey="flowId"
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1 for specific data handle
     />
   );
 };
@@ -260,7 +284,7 @@ export const PickMathOperationNode: FC<NodeProps<Node<PickMathOperationNodeData>
         { value: 'divide', label: 'Divide' },
         { value: 'modulo', label: 'Modulo' },
       ]}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -295,7 +319,7 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
         { value: 'startsWith', label: 'startsWith' },
         { value: 'endsWith', label: 'endsWith' },
       ]}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}
     />
   );
@@ -317,7 +341,7 @@ export const PickPromptEngineeringModeNode: FC<NodeProps<Node<PickPromptEngineer
       title="Pick Prompt Mode"
       value={data.mode}
       options={Object.values(PromptEngineeringMode).map((mode) => ({ value: mode, label: mode }))}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -339,7 +363,7 @@ export const PickRandomModeNode: FC<NodeProps<Node<PickRandomModeNodeData>>> = (
         { value: 'number', label: 'Number' },
         { value: 'array', label: 'From Array' },
       ]}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -361,7 +385,7 @@ export const PickRegexModeNode: FC<NodeProps<Node<PickRegexModeNodeData>>> = ({ 
         { value: 'sillytavern', label: 'SillyTavern' },
         { value: 'custom', label: 'Custom' },
       ]}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { mode: value as any })}
     />
   );
@@ -385,7 +409,7 @@ export const PickTypeConverterTargetNode: FC<NodeProps<Node<PickTypeConverterTar
         { value: 'object', label: 'Object (from JSON)' },
         { value: 'array', label: 'Array (from JSON)' },
       ]}
-      outputHandle={definition.handles.outputs[0]}
+      outputHandle={definition.handles.outputs[1]} // Use index 1
       onUpdate={(value) => updateNodeData(id, { targetType: value as any })}
     />
   );
