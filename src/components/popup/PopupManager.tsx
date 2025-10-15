@@ -23,6 +23,7 @@ export const PopupManager = () => {
         content={<FlowChartDataPopup onSave={closePopup} />}
         type={POPUP_TYPE.DISPLAY}
         onComplete={closePopup}
+        preventEscape={true}
         options={{
           large: true,
           wide: true,
