@@ -12,11 +12,7 @@ import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { registrator } from '../autogen-imports.js';
 
 function getZodTypeName(schema: z.ZodType): string {
-  const typeName = (schema._def as any).typeName;
-  if (typeName) {
-    return typeName.replace('Zod', '').toLowerCase();
-  }
-  return 'unknown';
+  return schema.def.type;
 }
 
 export type ExecuteJsNodeProps = NodeProps<Node<ExecuteJsNodeData>>;
