@@ -78,7 +78,7 @@ export const PickerNode: FC<PickerNodeProps> = ({ id, selected, type }) => {
   const dynamicOptions = useMemo(() => {
     const settings = settingsManager.getSettings();
     return {
-      character: characters.map((c: any) => ({ value: c.avatar, label: c.name })),
+      character: characters.map((c: { avatar: string; name: string }) => ({ value: c.avatar, label: c.name })),
       lorebook: world_names.map((name: string) => ({ value: name, label: name })),
       prompt: Object.keys(settings.prompts).map((name) => ({ value: name, label: name })),
       flow: Object.values(settings.flows).map((flow) => ({ value: flow.id, label: flow.name })),

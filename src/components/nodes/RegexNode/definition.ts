@@ -41,15 +41,16 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
       const regex = new RegExp(findRegex, 'g');
       result = inputString.replace(regex, replaceString ?? '');
       finalFindRegex = findRegex;
-    } catch (e: any) {
-      throw new Error(`Invalid custom regex: ${e.message}`);
+    } catch (e: unknown) {
+      const error = e as Error;
+      throw new Error(`Invalid custom regex: ${error.message}`);
     }
   }
 
   if (finalFindRegex) {
     try {
       matches = inputString.match(new RegExp(finalFindRegex, 'g'));
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Ignore
     }
   }
@@ -98,8 +99,9 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
       }
       try {
         new RegExp(data.findRegex);
-      } catch (e: any) {
-        issues.push({ fieldId: 'findRegex', message: `Invalid Regex: ${e.message}`, severity: 'error' });
+      } catch (e: unknown) {
+        const error = e as Error;
+        issues.push({ fieldId: 'findRegex', message: `Invalid Regex: ${error.message}`, severity: 'error' });
       }
     }
     return issues;

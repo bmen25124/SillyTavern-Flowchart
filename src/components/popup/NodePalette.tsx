@@ -13,7 +13,7 @@ export const NodePalette: FC = () => {
   const [openCategory, setOpenCategory] = useState<string | null>('Trigger');
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
 
-  const onNodeClick = (event: React.MouseEvent, nodeType: string, data: any) => {
+  const onNodeClick = (event: React.MouseEvent, nodeType: string, data: Record<string, unknown>) => {
     const flowWrapper = document.querySelector('.react-flow') as HTMLElement;
     const center = {
       x: flowWrapper.clientWidth / 2,
@@ -57,8 +57,8 @@ export const NodePalette: FC = () => {
     const categoryOrder = ALL_CATEGORIES;
 
     return Object.entries(groups).sort(([a], [b]) => {
-      const indexA = categoryOrder.indexOf(a as any);
-      const indexB = categoryOrder.indexOf(b as any);
+      const indexA = categoryOrder.indexOf(a as NodeDefinition['category']);
+      const indexB = categoryOrder.indexOf(b as NodeDefinition['category']);
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;

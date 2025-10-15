@@ -25,8 +25,9 @@ const execute: NodeExecutor = async (node, input) => {
   try {
     const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
     return { result: compiled(context) };
-  } catch (e: any) {
-    throw new Error(`Error executing handlebar template: ${e.message}`);
+  } catch (e: unknown) {
+    const error = e as Error;
+    throw new Error(`Error executing handlebar template: ${error.message}`);
   }
 };
 

@@ -1,5 +1,7 @@
 # AGENTS.md
 
+Be objective. You can even be brutal if it's necessary. Remember, there is no point to glaze too much.
+
 ## Build/Lint/Test Commands
 
 - Build: `npm run build`

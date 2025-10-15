@@ -37,8 +37,8 @@ const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
     name: z.string(),
     type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
     description: z.string().optional(),
-    fields: z.array(FieldDefinitionSchema).optional(),
-    items: SchemaTypeDefinitionSchema.optional(),
+    fields: z.array(z.lazy(() => FieldDefinitionSchema)).optional(),
+    items: z.lazy(() => SchemaTypeDefinitionSchema).optional(),
     values: z.array(z.string()).optional(),
   }),
 );

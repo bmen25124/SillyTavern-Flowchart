@@ -172,7 +172,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     const schemaNode = nodes.find((n) => n.id === schemaEdge.source);
     if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return undefined;
 
-    const field = schemaNode.data.fields.find((f: any) => f.name === handleId);
+    const field = schemaNode.data.fields.find((f: FieldDefinition) => f.name === handleId);
     if (!field) return undefined;
 
     return zodTypeToFlowType(buildZodSchema(field));

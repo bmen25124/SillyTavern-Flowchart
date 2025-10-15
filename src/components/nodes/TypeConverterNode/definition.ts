@@ -51,8 +51,9 @@ const execute: NodeExecutor = async (node, input) => {
       default:
         throw new Error(`Unsupported target type: ${targetType}`);
     }
-  } catch (e: any) {
-    throw new Error(`Type conversion failed: ${e.message}`);
+  } catch (e: unknown) {
+    const error = e as Error;
+    throw new Error(`Type conversion failed: ${error.message}`);
   }
 };
 

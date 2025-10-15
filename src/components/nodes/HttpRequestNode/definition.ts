@@ -33,8 +33,9 @@ const execute: NodeExecutor = async (node, input) => {
     } else {
       throw new Error('Headers must be a JSON object.');
     }
-  } catch (e: any) {
-    throw new Error(`Invalid JSON in headers: ${e.message}`);
+  } catch (e: unknown) {
+    const error = e as Error;
+    throw new Error(`Invalid JSON in headers: ${error.message}`);
   }
 
   let body: BodyInit | null = null;
@@ -82,8 +83,9 @@ const execute: NodeExecutor = async (node, input) => {
       statusCode: response.status,
       headers: responseHeaders,
     };
-  } catch (e: any) {
-    throw new Error(`HTTP request failed: ${e.message}`);
+  } catch (e: unknown) {
+    const error = e as Error;
+    throw new Error(`HTTP request failed: ${error.message}`);
   }
 };
 

@@ -26,8 +26,9 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
   try {
     const func = new Function('input', 'variables', 'stContext', data.code);
     result = await func(scriptInput, variables, dependencies.getSillyTavernContext());
-  } catch (error: any) {
-    throw new Error(`Error executing JS code: ${error.message}`);
+  } catch (error: unknown) {
+    const e = error as Error;
+    throw new Error(`Error executing JS code: ${e.message}`);
   }
 
   if (providedSchema instanceof z.ZodType) {
