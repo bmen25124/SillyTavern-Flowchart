@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { SendChatMessageNode } from './SendChatMessageNode.js';
 import { registrator } from '../registrator.js';
@@ -7,7 +8,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 
 export const SendChatMessageNodeDataSchema = z.object({
-  message: z.string().default(''),
+  message: z.string().optional(),
   role: z.enum(['user', 'assistant', 'system']).default('assistant'),
   name: z.string().optional(),
   _version: z.number().optional(),
@@ -47,6 +48,13 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
       { id: 'main', type: FlowDataType.ANY },
       { id: 'messageId', type: FlowDataType.NUMBER },
     ],
+  },
+  validate: (node: Node<SendChatMessageNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
+      issues.push({ fieldId: 'message', message: 'Message Content is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

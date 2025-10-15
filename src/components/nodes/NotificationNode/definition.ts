@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { Node, Edge } from '@xyflow/react';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { NodeDefinition } from '../definitions/types.js';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
@@ -11,7 +12,7 @@ import { notify } from '../../../utils/notify.js';
 const NotificationTypeSchema = z.enum(['info', 'success', 'error', 'warning']);
 
 export const NotificationNodeDataSchema = z.object({
-  message: z.string().default(''),
+  message: z.string().optional(),
   notificationType: NotificationTypeSchema.default('info'),
   _version: z.number().optional(),
 });
@@ -49,6 +50,13 @@ export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = 
       { id: 'notificationType', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
+  },
+  validate: (node: Node<NotificationNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
+      issues.push({ fieldId: 'message', message: 'Message is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

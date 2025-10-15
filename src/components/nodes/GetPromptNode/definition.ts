@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetPromptNode } from './GetPromptNode.js';
 import { registrator } from '../registrator.js';
@@ -8,7 +9,7 @@ import { settingsManager } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 
 export const GetPromptNodeDataSchema = z.object({
-  promptName: z.string().default(''),
+  promptName: z.string().optional(),
   _version: z.number().optional(),
 });
 export type GetPromptNodeData = z.infer<typeof GetPromptNodeDataSchema>;
@@ -43,6 +44,13 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<GetPromptNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.promptName && !edges.some((e) => e.target === node.id && e.targetHandle === 'promptName')) {
+      issues.push({ fieldId: 'promptName', message: 'Prompt Name is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

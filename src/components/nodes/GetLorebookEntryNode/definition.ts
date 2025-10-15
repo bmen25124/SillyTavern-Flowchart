@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetLorebookEntryNode } from './GetLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
@@ -52,6 +53,16 @@ export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNode
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<GetLorebookEntryNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.worldName && !edges.some((e) => e.target === node.id && e.targetHandle === 'worldName')) {
+      issues.push({ fieldId: 'worldName', message: 'Lorebook Name is required.', severity: 'error' });
+    }
+    if (node.data.entryUid === undefined && !edges.some((e) => e.target === node.id && e.targetHandle === 'entryUid')) {
+      issues.push({ fieldId: 'entryUid', message: 'Entry is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { CreateLorebookNode } from './CreateLorebookNode.js';
 import { registrator } from '../registrator.js';
@@ -39,6 +40,13 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<CreateLorebookNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.worldName && !edges.some((e) => e.target === node.id && e.targetHandle === 'worldName')) {
+      issues.push({ fieldId: 'worldName', message: 'Lorebook Name is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };

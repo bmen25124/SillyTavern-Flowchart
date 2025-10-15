@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { NodeDefinition } from '../definitions/types.js';
+import { Node, Edge } from '@xyflow/react';
+import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { CreateCharacterNode } from './CreateCharacterNode.js';
 import { registrator } from '../registrator.js';
@@ -73,6 +74,13 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
     ],
+  },
+  validate: (node: Node<CreateCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [];
+    if (!node.data.name && !edges.some((e) => e.target === node.id && e.targetHandle === 'name')) {
+      issues.push({ fieldId: 'name', message: 'Name is required.', severity: 'error' });
+    }
+    return issues;
   },
   execute,
 };
