@@ -59,7 +59,6 @@ Here is a list of all available nodes and what they do.
 
 *   **If:** The most important logic node. It directs the flow based on one or more conditions. If a condition is true, the flow continues from that condition's output. If none are true, it continues from the "Else" output.
 *   **End Flow:** Immediately stops the flow's execution at that point.
-*   **For Each:** Iterates over an array and runs a separate sub-flow for each item. Essential for processing lists.
 
 #### **Input Nodes**
 
