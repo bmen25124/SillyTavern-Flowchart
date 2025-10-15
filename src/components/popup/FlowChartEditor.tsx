@@ -18,7 +18,7 @@ import {
 import { useFlowStore } from './flowStore.js';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import { notify } from '../../utils/notify.js';
-import { STButton, STInput, STPresetSelect, PresetItem } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STPresetSelect, PresetItem, PresetButtonDef } from 'sillytavern-utils-lib/components';
 import { NodePalette } from './NodePalette.js';
 import { flowRunner } from '../../FlowRunner.js';
 import { validateFlow } from '../../validator.js';
@@ -701,7 +701,7 @@ const FlowManager: FC = () => {
     flowRunner.runFlowManually(settings.activeFlow);
   }, [isValid, settings.activeFlow, clearRun]);
 
-  const handleCopyFlow = useCallback(async () => {
+  const handleCopyToClipboard = useCallback(async () => {
     const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
     if (!activeFlow) return;
     try {
@@ -714,7 +714,7 @@ const FlowManager: FC = () => {
     }
   }, [getSpecFlow, settings.activeFlow, settings.flows]);
 
-  const handlePasteFlow = useCallback(async () => {
+  const handlePasteFromClipboard = useCallback(async () => {
     try {
       const clipboardText = await navigator.clipboard.readText();
       if (!clipboardText) {
@@ -733,6 +733,88 @@ const FlowManager: FC = () => {
       notify('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.', 'ui_action');
     }
   }, [loadFlow]);
+
+  const handleExportToFile = useCallback(() => {
+    const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
+    if (!activeFlow) return;
+
+    try {
+      const jsonString = JSON.stringify(getSpecFlow(), null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `flow-${activeFlow.name}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      notify('info', `Flow "${activeFlow.name}" exported.`, 'ui_action');
+    } catch (err) {
+      console.error('Failed to export flow:', err);
+      notify('error', 'Failed to export flow.', 'ui_action');
+    }
+  }, [getSpecFlow, settings.activeFlow, settings.flows]);
+
+  const handleImportFromFile = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const text = event.target?.result as string;
+          const importedFlow = JSON.parse(text) as SpecFlow;
+
+          if (!importedFlow || !Array.isArray(importedFlow.nodes) || !Array.isArray(importedFlow.edges)) {
+            throw new Error('Invalid flow file structure.');
+          }
+
+          const currentSettings = settingsManager.getSettings();
+          let newName = slugify(file.name.replace(/\.json$/, ''));
+          if (!newName) {
+            newName = 'imported-flow';
+          }
+
+          const existingNames = new Set(currentSettings.flows.map((f) => f.name));
+          if (existingNames.has(newName)) {
+            let i = 1;
+            while (existingNames.has(`${newName}-${i}`)) {
+              i++;
+            }
+            newName = `${newName}-${i}`;
+          }
+
+          const newFlow: FlowData = {
+            id: crypto.randomUUID(),
+            name: newName,
+            flow: importedFlow,
+            allowJsExecution: false, // Security: never trust imported flows by default
+          };
+
+          currentSettings.flows = [...currentSettings.flows, newFlow];
+          currentSettings.enabledFlows[newFlow.id] = true;
+          currentSettings.activeFlow = newFlow.id;
+
+          settingsManager.saveSettings();
+          loadFlow(importedFlow);
+          useFlowStore.temporal.getState().clear();
+          forceUpdate();
+
+          notify('info', `Flow "${newName}" imported successfully.`, 'ui_action');
+        } catch (err: any) {
+          console.error('Failed to import flow:', err);
+          notify('error', `Failed to import flow: ${err.message}`, 'ui_action');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, [loadFlow, forceUpdate]);
 
   const handleScreenshot = useCallback(async () => {
     const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
@@ -789,6 +871,42 @@ const FlowManager: FC = () => {
     }, 100);
   }, [getNodes, setViewport, getViewport, settings.activeFlow, settings.flows]);
 
+  const presetButtons = useMemo(
+    (): PresetButtonDef[] => [
+      {
+        key: 'copy-clipboard',
+        icon: 'fa-solid fa-copy',
+        title: 'Copy Flow JSON to Clipboard (Ctrl+C)',
+        onClick: handleCopyToClipboard,
+      },
+      {
+        key: 'paste-clipboard',
+        icon: 'fa-solid fa-paste',
+        title: 'Paste Flow from Clipboard (Ctrl+V)',
+        onClick: handlePasteFromClipboard,
+      },
+      {
+        key: 'export-file',
+        icon: 'fa-solid fa-file-export',
+        title: 'Export Flow to File',
+        onClick: handleExportToFile,
+      },
+      {
+        key: 'import-file',
+        icon: 'fa-solid fa-file-import',
+        title: 'Import Flow from File',
+        onClick: handleImportFromFile,
+      },
+      {
+        key: 'screenshot',
+        icon: 'fa-solid fa-camera',
+        title: 'Take Screenshot',
+        onClick: handleScreenshot,
+      },
+    ],
+    [handleCopyToClipboard, handlePasteFromClipboard, handleExportToFile, handleImportFromFile, handleScreenshot],
+  );
+
   const handleToggleFlow = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       settings.enabledFlows[settings.activeFlow] = e.target.checked;
@@ -844,6 +962,7 @@ const FlowManager: FC = () => {
           enableCreate
           enableRename
           enableDelete
+          buttons={presetButtons}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <STInput
@@ -894,15 +1013,6 @@ const FlowManager: FC = () => {
             <i className="fa-solid fa-play"></i> Run
           </STButton>
         )}
-        <STButton onClick={handleCopyFlow} title="Copy Flow JSON (Ctrl+C)">
-          <i className="fa-solid fa-copy"></i>
-        </STButton>
-        <STButton onClick={handlePasteFlow} title="Paste Flow from Clipboard (Ctrl+V)">
-          <i className="fa-solid fa-paste"></i>
-        </STButton>
-        <STButton onClick={handleScreenshot} title="Take Screenshot">
-          <i className="fa-solid fa-camera"></i>
-        </STButton>
       </div>
       <div
         className={`flowchart-editor-area ${settings.isPaletteCollapsed ? 'palette-collapsed' : ''}`}
