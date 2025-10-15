@@ -17,6 +17,7 @@
 - Types: Strict typing with TypeScript interfaces and types
 - React: Functional components with hooks
 - Node structure: Each node has a .tsx component and definition.ts file
+- Comments: No need to write a comment for each code block. Write only for complicated and necessary code blocks.
 
 ## Testing
 

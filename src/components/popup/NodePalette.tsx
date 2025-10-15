@@ -2,7 +2,7 @@ import { FC, useMemo, useState } from 'react';
 import { useFlowStore } from './flowStore.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 import { registrator } from '../nodes/autogen-imports.js';
-import { NodeDefinition } from '../nodes/definitions/types.js';
+import { ALL_CATEGORIES, NodeDefinition } from '../nodes/definitions/types.js';
 import { useReactFlow } from '@xyflow/react';
 import { useDebounce } from '../../hooks/useDebounce.js';
 
@@ -54,27 +54,11 @@ export const NodePalette: FC = () => {
       groups[def.category].push(def);
     }
 
-    const categoryOrder = [
-      'Trigger',
-      'Logic',
-      'Input',
-      'Picker',
-      'Chat',
-      'API Request',
-      'Character',
-      'Lorebook',
-      'JSON',
-      'Data Processing',
-      'Math & Logic',
-      'System',
-      'Variables',
-      'User Interaction',
-      'Utility',
-    ];
+    const categoryOrder = ALL_CATEGORIES;
 
     return Object.entries(groups).sort(([a], [b]) => {
-      const indexA = categoryOrder.indexOf(a);
-      const indexB = categoryOrder.indexOf(b);
+      const indexA = categoryOrder.indexOf(a as any);
+      const indexB = categoryOrder.indexOf(b as any);
       if (indexA !== -1 && indexB !== -1) return indexA - indexB;
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;

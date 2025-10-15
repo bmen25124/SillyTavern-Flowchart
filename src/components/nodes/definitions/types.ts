@@ -25,25 +25,27 @@ export type GetHandleTypeParams = {
   edges: Edge[];
 };
 
+export type NodeCategory =
+  | 'Trigger'
+  | 'Logic'
+  | 'Input'
+  | 'Picker'
+  | 'API Request'
+  | 'Chat'
+  | 'Character'
+  | 'Lorebook'
+  | 'JSON'
+  | 'Data Processing'
+  | 'Math & Logic'
+  | 'System'
+  | 'Variables'
+  | 'User Interaction'
+  | 'Utility';
+
 export interface NodeDefinition<T extends Node<Record<string, unknown>, string | undefined | any> | any = any> {
   type: string;
   label: string;
-  category:
-    | 'Trigger'
-    | 'Logic'
-    | 'Input'
-    | 'Picker'
-    | 'API Request'
-    | 'Chat'
-    | 'Character'
-    | 'Lorebook'
-    | 'JSON'
-    | 'Utility'
-    | 'Data Processing'
-    | 'Math & Logic'
-    | 'System'
-    | 'Variables'
-    | 'User Interaction';
+  category: NodeCategory;
   // @ts-ignore
   component: FC<NodeProps<Node<T>>>;
   dataSchema: z.ZodType<T>;
@@ -91,3 +93,21 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
 }
 
 export type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;
+
+export const ALL_CATEGORIES = [
+  'Trigger',
+  'Logic',
+  'Input',
+  'Picker',
+  'Chat',
+  'API Request',
+  'Character',
+  'Lorebook',
+  'JSON',
+  'Data Processing',
+  'Math & Logic',
+  'System',
+  'Variables',
+  'User Interaction',
+  'Utility',
+] as const satisfies readonly NodeCategory[];
