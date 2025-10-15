@@ -50,7 +50,7 @@ async function makeRequest(
     onStream: (chunk: string) => void;
   },
   signal?: AbortSignal,
-): Promise<ExtractedData | StreamResponse | undefined> {
+): Promise<ExtractedData | undefined> {
   const stream = !overridePayload.json_schema && !!streamCallbacks;
   let accumulatedText = '';
 
@@ -70,8 +70,10 @@ async function makeRequest(
         onEntry: stream
           ? (_requestId, chunkData) => {
               const chunk = (chunkData as StreamResponse).text;
-              accumulatedText = chunk;
               if (chunk && streamCallbacks) {
+                // When streaming, the chunk is the full text so far.
+                // We don't need to accumulate it ourselves if we just pass it on.
+                accumulatedText = chunk;
                 streamCallbacks.onStream(chunk);
               }
             }
@@ -81,11 +83,13 @@ async function makeRequest(
 
           if (data === undefined && error === undefined) {
             if (stream) {
-              return resolve({ text: accumulatedText } as StreamResponse);
+              return resolve({ content: accumulatedText });
             }
             return reject(new DOMException('Request aborted by user', 'AbortError'));
           }
-          resolve(data);
+          if (!data) reject(new Error('No data received from LLM'));
+          if (error) return reject(error);
+          return streamCallbacks ? resolve({ content: accumulatedText }) : resolve(data as ExtractedData);
         },
       },
     );
@@ -96,6 +100,7 @@ export async function makeSimpleRequest(
   profileId: string,
   baseMessages: Message[],
   maxResponseToken: number,
+  onStream?: (chunk: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
   const response = (await makeRequest(
@@ -103,7 +108,7 @@ export async function makeSimpleRequest(
     baseMessages,
     maxResponseToken,
     {},
-    undefined,
+    onStream ? { onStream } : undefined,
     signal,
   )) as ExtractedData;
   if (!response?.content) {

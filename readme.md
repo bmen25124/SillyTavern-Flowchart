@@ -59,6 +59,7 @@ Here is a list of all available nodes and what they do.
 
 *   **If:** The most important logic node. It directs the flow based on one or more conditions. If a condition is true, the flow continues from that condition's output. If none are true, it continues from the "Else" output.
 *   **End Flow:** Immediately stops the flow's execution at that point.
+*   **For Each:** Iterates over an array and runs a separate sub-flow for each item. Essential for processing lists.
 
 #### **Input Nodes**
 
@@ -76,7 +77,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Pick Flow:** Outputs the selected flow's ID.
 *   **Pick Regex Script:** Outputs the selected SillyTavern regex script's ID.
 *   **Pick Math Operation:** Outputs the name of a math operation (add, subtract, etc.) for the `Math` node.
-*   **Pick String Operation:** Outputs the name of a string operation (merge, split, join) for the `String Tools` node.
+*   **Pick String Operation:** Outputs the name of a string operation for the `String Tools` node.
 *   **Pick Prompt Mode:** Outputs a prompt engineering mode (native, json, xml) for the `LLM Request` node.
 *   **Pick Random Mode:** Outputs a mode (number, array) for the `Random` node.
 *   **Pick Regex Mode:** Outputs a mode (sillytavern, custom) for the `Regex` node.
@@ -85,6 +86,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 #### **Chat Nodes**
 
 *   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system.
+*   **Create Empty Message:** Creates a new, empty chat message and outputs its ID. Useful for streaming responses with the `LLM Request` node.
 *   **Get Chat Message:** Retrieves the details of a specific message from the chat history (e.g., the very last message).
 *   **Edit Chat Message:** Modifies the content of an existing message.
 *   **Remove Chat Message:** Deletes a message from the chat history.
@@ -94,8 +96,9 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 
 *   **Create Messages:** Gathers the current chat context (system prompt, character definitions, chat history) to prepare it for an LLM request.
 *   **Custom Message:** Lets you build a list of messages from scratch, ignoring the current chat context.
-*   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided.
+*   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text to update a message in real-time.
 *   **Merge Messages:** Combines multiple sets of messages into a single list.
+*   **HTTP Request:** (Advanced) Make requests to any external API. Allows you to connect your flows to other web services.
 
 #### **Character Nodes**
 
@@ -122,7 +125,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Set Variable / Get Variable:** Allows you to store a piece of data in a temporary variable and retrieve it later in the flow.
 *   **Get Property:** Pulls a specific piece of data out of an object (e.g., getting the `name` from a character object).
 *   **Math:** Performs basic arithmetic operations (add, subtract, etc.).
-*   **String Tools:** Manipulate text. Merge multiple strings, split a string into a list, or join a list into a single string.
+*   **String Tools:** Manipulate text. Includes `toUpperCase`, `toLowerCase`, `trim`, `replace`, `slice`, `length`, `startsWith`, `endsWith`, and more.
 *   **Handlebar:** A powerful templating tool. You can create a template like "Hello, {{name}}!" and provide data to fill it in.
 *   **Date/Time:** Gets the current date and time in various formats.
 *   **Random:** Generates a random number in a range or picks a random item from a list.
@@ -133,6 +136,8 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Execute JS Code:** **(Advanced & Dangerous)** Runs arbitrary JavaScript code. A permission toggle on the flow is required to use this node. Only use it if you understand the code you are writing or pasting.
 *   **Merge Objects:** Combines multiple objects into a single one. If keys conflict, the object connected to a higher-numbered input wins.
 *   **Notification:** Displays a toast notification in the SillyTavern UI (info, success, warning, error).
+*   **Prompt User:** Shows a popup to get text input from the user during a flow run.
+*   **Confirm With User:** Shows a popup with "OK/Cancel" to get a yes/no confirmation from the user.
 
 ### Simple Example: Reacting to a Keyword
 

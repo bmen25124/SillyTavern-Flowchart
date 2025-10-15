@@ -152,22 +152,27 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
       }
     }
 
-    const conditionalOutputs = conditions.map((c) => ({
+    const conditionalOutputs = conditions.map((c, index) => ({
       id: c.id,
       type: passthroughType,
       // @ts-ignore
       schema: passthroughSchema,
+      label: `Condition ${index + 1} True`,
     }));
 
     // Add the 'false' handle to the dynamic list
     const allOutputs = [
-      { id: 'main', type: passthroughType, schema: passthroughSchema },
+      { id: 'main', type: passthroughType, schema: passthroughSchema, label: 'Main (Passthrough)' },
       ...conditionalOutputs,
-      { id: 'false', type: passthroughType, schema: passthroughSchema },
+      { id: 'false', type: passthroughType, schema: passthroughSchema, label: 'Else' },
     ];
 
     return {
-      inputs: conditions.map((c) => ({ id: getConditionValueHandleId(c.id), type: FlowDataType.ANY })),
+      inputs: conditions.map((c, index) => ({
+        id: getConditionValueHandleId(c.id),
+        type: FlowDataType.ANY,
+        label: `Value for Condition ${index + 1}`,
+      })),
       outputs: allOutputs,
     };
   },

@@ -117,6 +117,7 @@ class FlowRunner {
   }
 
   private getDependencies(): FlowRunnerDependencies {
+    const { Popup } = SillyTavern.getContext();
     return {
       getBaseMessagesForProfile,
       makeSimpleRequest,
@@ -135,6 +136,8 @@ class FlowRunner {
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
       executeSubFlow: (flowId, initialInput, depth) => this.executeFlow(flowId, initialInput, depth),
+      promptUser: (message, defaultValue) => Popup.show.input('Question', message, defaultValue),
+      confirmUser: (message) => Popup.show.confirm('Confirm', message),
     };
   }
 

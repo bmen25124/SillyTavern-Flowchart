@@ -493,7 +493,7 @@ describe('Node Executors', () => {
       });
       const messages = [{ role: 'user', content: 'Hi' }];
       const result = await execute(node, { profileId: 'test-profile', messages, maxResponseToken: 50 }, context);
-      expect(dependencies.makeSimpleRequest).toHaveBeenCalledWith('test-profile', messages, 50, undefined);
+      expect(dependencies.makeSimpleRequest).toHaveBeenCalledWith('test-profile', messages, 50, undefined, undefined);
       expect(result).toEqual({ result: 'Simple response' });
     });
 

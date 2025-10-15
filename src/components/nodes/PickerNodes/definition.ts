@@ -51,7 +51,22 @@ export const PickMathOperationNodeDataSchema = z.object({
 export type PickMathOperationNodeData = z.infer<typeof PickMathOperationNodeDataSchema>;
 
 export const PickStringToolsOperationNodeDataSchema = z.object({
-  operation: z.enum(['merge', 'split', 'join']).default('merge'),
+  operation: z
+    .enum([
+      'merge',
+      'split',
+      'join',
+      'toUpperCase',
+      'toLowerCase',
+      'trim',
+      'replace',
+      'replaceAll',
+      'slice',
+      'length',
+      'startsWith',
+      'endsWith',
+    ])
+    .default('merge'),
   _version: z.number().optional(),
 });
 export type PickStringToolsOperationNodeData = z.infer<typeof PickStringToolsOperationNodeDataSchema>;

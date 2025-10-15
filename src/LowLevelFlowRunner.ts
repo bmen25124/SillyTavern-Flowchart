@@ -179,7 +179,7 @@ export class LowLevelFlowRunner {
         const outgoingEdges = adj.get(nodeId) || [];
         let edgesToFollow = outgoingEdges;
 
-        if (node.type === 'ifNode' && nodeReport.output?.activatedHandle) {
+        if (['ifNode', 'confirmUserNode'].includes(node.type) && nodeReport.output?.activatedHandle) {
           edgesToFollow = outgoingEdges.filter((edge) => edge.sourceHandle === nodeReport.output.activatedHandle);
         }
 

@@ -12,8 +12,9 @@ import { FieldDefinition } from '../SchemaNode/definition.js';
 export const LLMRequestNodeDataSchema = z.object({
   profileId: z.string().default(''),
   schemaName: z.string().default('responseSchema'),
-  promptEngineeringMode: z.nativeEnum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
+  promptEngineeringMode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
   maxResponseToken: z.number().default(1000),
+  stream: z.boolean().default(false),
   _version: z.number().optional(),
 });
 export type LLMRequestNodeData = z.infer<typeof LLMRequestNodeDataSchema>;
@@ -67,6 +68,8 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
   const data = LLMRequestNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
+  const stream = resolveInput(input, data, 'stream');
+  const messageIdToUpdate = input.messageIdToUpdate;
   const { messages, schema } = input;
 
   if (!profileId || !messages || maxResponseToken === undefined) {
@@ -74,6 +77,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
   }
 
   if (schema) {
+    // Streaming is not supported for structured requests
     const schemaName = resolveInput(input, data, 'schemaName');
     const promptEngineeringMode = resolveInput(input, data, 'promptEngineeringMode');
     const result = await dependencies.makeStructuredRequest(
@@ -87,7 +91,30 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
     );
     return { ...result, result };
   } else {
-    const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken, signal);
+    let onStream: ((chunk: string) => void) | undefined;
+    if (stream && typeof messageIdToUpdate === 'number') {
+      const { chat } = dependencies.getSillyTavernContext();
+      const messageToUpdate = chat[messageIdToUpdate];
+      if (!messageToUpdate) {
+        throw new Error(`Message with ID ${messageIdToUpdate} not found for streaming.`);
+      }
+
+      onStream = (fullText: string) => {
+        const updatedMessage = { ...messageToUpdate, mes: fullText };
+        dependencies.st_updateMessageBlock(messageIdToUpdate, updatedMessage, { rerenderMessage: true });
+      };
+    }
+
+    const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken, onStream, signal);
+
+    // Final update to ensure the message is saved correctly.
+    if (onStream && typeof messageIdToUpdate === 'number') {
+      const { chat } = dependencies.getSillyTavernContext();
+      const finalMessage = { ...chat[messageIdToUpdate], mes: result };
+      dependencies.st_updateMessageBlock(messageIdToUpdate, finalMessage, { rerenderMessage: true });
+      await dependencies.saveChat();
+    }
+
     return { result };
   }
 };
@@ -104,6 +131,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     schemaName: 'mySchema',
     promptEngineeringMode: PromptEngineeringMode.NATIVE,
     maxResponseToken: 1000,
+    stream: false,
   },
   handles: {
     inputs: [
@@ -135,18 +163,31 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
         severity: 'error',
       });
     }
+    if (node.data.stream && edges.some((edge) => edge.target === node.id && edge.targetHandle === 'schema')) {
+      issues.push({
+        message: 'Streaming is not supported for structured (schema-based) requests.',
+        severity: 'error',
+      });
+    }
     return issues;
   },
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
     const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
     const isSchemaConnected = !!schemaEdge;
+    const isStreaming = node.data.stream;
 
     // --- Dynamic Inputs ---
     const dynamicInputs = [];
     if (isSchemaConnected) {
       dynamicInputs.push({ id: 'schemaName', type: FlowDataType.STRING });
       dynamicInputs.push({ id: 'promptEngineeringMode', type: FlowDataType.STRING });
+    }
+    if (!isSchemaConnected) {
+      dynamicInputs.push({ id: 'stream', type: FlowDataType.BOOLEAN });
+    }
+    if (isStreaming && !isSchemaConnected) {
+      dynamicInputs.push({ id: 'messageIdToUpdate', type: FlowDataType.NUMBER });
     }
 
     // --- Dynamic Outputs ---

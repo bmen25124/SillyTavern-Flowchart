@@ -39,6 +39,18 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
       }),
     ];
 
+    if (!isSchemaConnected) {
+      config.push(
+        createFieldConfig({
+          id: 'stream',
+          label: 'Stream Response',
+          component: STInput,
+          props: { type: 'checkbox' },
+          getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+        }),
+      );
+    }
+
     // These fields are only relevant (and their handles only exist) when a schema is connected.
     if (isSchemaConnected) {
       config.push(

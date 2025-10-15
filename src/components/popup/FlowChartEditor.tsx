@@ -843,6 +843,9 @@ const FlowManager: FC = () => {
     const viewport = getViewportForBounds(imageBounds, imageWidth, imageHeight, 0.1, 2, {});
     const originalViewport = getViewport();
     setViewport(viewport, { duration: 0 });
+    const pane = document.querySelector('.react-flow__pane') as HTMLElement;
+    const previousBg = pane.style.backgroundColor;
+    pane.style.backgroundColor = '#202124';
 
     setTimeout(async () => {
       try {
@@ -867,6 +870,7 @@ const FlowManager: FC = () => {
         notify('error', 'Failed to take screenshot.', 'ui_action');
       } finally {
         setViewport(originalViewport, { duration: 0 });
+        pane.style.backgroundColor = previousBg;
       }
     }, 100);
   }, [getNodes, setViewport, getViewport, settings.activeFlow, settings.flows]);

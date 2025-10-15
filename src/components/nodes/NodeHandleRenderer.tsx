@@ -15,6 +15,7 @@ interface NodeHandleRendererProps {
   fields?: readonly FieldConfig[];
   data?: Record<string, any>;
   updateNodeData?: (id: string, data: object) => void;
+  exclude?: (string | null)[];
 }
 
 export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
@@ -24,6 +25,7 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
   fields,
   data,
   updateNodeData,
+  exclude = [],
 }) => {
   const { node, allNodes, allEdges, validationIssues } = useFlowStore((state) => ({
     node: state.nodesMap.get(nodeId),
@@ -45,8 +47,10 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
     }
 
     const staticFiltered = staticHandles.filter((sh) => !dynamicHandles.some((dh) => dh.id === sh.id));
-    return [...staticFiltered, ...dynamicHandles].filter((handle) => handle.id);
-  }, [node, allNodes, allEdges, definition, type]);
+    const allHandles = [...staticFiltered, ...dynamicHandles].filter((handle) => handle.id);
+
+    return allHandles.filter((handle) => !exclude.includes(handle.id));
+  }, [node, allNodes, allEdges, definition, type, exclude]);
 
   const position = type === 'input' ? Position.Left : Position.Right;
   const justifyContent = type === 'input' ? 'flex-start' : 'flex-end';
@@ -105,7 +109,7 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
           staticInputComponent = React.createElement(fieldConfig.component, componentProps);
         }
 
-        const labelComponent = fieldConfig ? fieldConfig.label : handle.id;
+        const labelComponent = fieldConfig?.label ?? handle.label ?? handle.id;
 
         const labelAndType = (
           <>

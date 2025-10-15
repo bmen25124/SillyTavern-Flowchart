@@ -282,9 +282,18 @@ export const PickStringToolsOperationNode: FC<NodeProps<Node<PickStringToolsOper
       title="Pick String Operation"
       value={data.operation}
       options={[
-        { value: 'merge', label: 'Merge' },
-        { value: 'split', label: 'Split' },
-        { value: 'join', label: 'Join' },
+        { value: 'merge', label: 'merge' },
+        { value: 'split', label: 'split' },
+        { value: 'join', label: 'join' },
+        { value: 'toUpperCase', label: 'toUpperCase' },
+        { value: 'toLowerCase', label: 'toLowerCase' },
+        { value: 'trim', label: 'trim' },
+        { value: 'replace', label: 'replace' },
+        { value: 'replaceAll', label: 'replaceAll' },
+        { value: 'slice', label: 'slice' },
+        { value: 'length', label: 'length' },
+        { value: 'startsWith', label: 'startsWith' },
+        { value: 'endsWith', label: 'endsWith' },
       ]}
       outputHandle={definition.handles.outputs[0]}
       onUpdate={(value) => updateNodeData(id, { operation: value as any })}

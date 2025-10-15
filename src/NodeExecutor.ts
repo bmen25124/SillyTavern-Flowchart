@@ -10,6 +10,7 @@ export interface FlowRunnerDependencies {
     profileId: string,
     messages: any[],
     maxResponseToken: number,
+    onStream?: (chunk: string) => void,
     signal?: AbortSignal,
   ) => Promise<string>;
   makeStructuredRequest: (
@@ -37,7 +38,7 @@ export interface FlowRunnerDependencies {
   getWorldInfos: (
     include: ('all' | 'global' | 'character' | 'chat' | 'persona')[],
   ) => Promise<Record<string, WIEntry[]>>;
-  sendChatMessage: (message: string, role: 'user' | 'assistant' | 'system', name?: string) => Promise<void>;
+  sendChatMessage: (message: string, role: 'user' | 'assistant' | 'system', name?: string) => Promise<any>;
   deleteMessage: (messageId: number) => Promise<void>;
   hideChatMessageRange: (start: number, end: number, unhide: boolean) => Promise<void>;
   saveChat: () => Promise<void>;
@@ -45,6 +46,8 @@ export interface FlowRunnerDependencies {
   st_runRegexScript: (script: any, content: string) => string;
   executeSlashCommandsWithOptions: (text: string, options?: any) => Promise<any>;
   executeSubFlow: (flowId: string, initialInput: Record<string, any>, depth: number) => Promise<ExecutionReport>;
+  promptUser: (message: string, defaultValue?: string) => Promise<string | null>;
+  confirmUser: (message: string) => Promise<boolean>;
 }
 
 export type NodeExecutorContext = {

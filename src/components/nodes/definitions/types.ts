@@ -14,6 +14,7 @@ export type HandleSpec = {
   id: string | null;
   type: FlowDataType;
   schema?: z.ZodType;
+  label?: string;
 };
 
 export type GetHandleTypeParams = {

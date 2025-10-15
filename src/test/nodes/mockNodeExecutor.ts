@@ -22,6 +22,8 @@ export const mockDependencies = (): jest.Mocked<FlowRunnerDependencies> => ({
   st_runRegexScript: jest.fn(),
   executeSlashCommandsWithOptions: jest.fn(),
   executeSubFlow: jest.fn(),
+  promptUser: jest.fn(),
+  confirmUser: jest.fn(),
 });
 
 export const createMockContext = (
