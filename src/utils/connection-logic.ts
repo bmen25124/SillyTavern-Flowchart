@@ -1,26 +1,6 @@
 import { Connection, Edge, Node } from '@xyflow/react';
 import { FlowDataType } from '../flow-types.js';
-import { registrator } from '../components/nodes/autogen-imports.js';
-
-function getHandleType(
-  node: Node,
-  handleId: string | null,
-  handleDirection: 'input' | 'output',
-  nodes: Node[],
-  edges: Edge[],
-): FlowDataType | undefined {
-  if (!node.type) return undefined;
-  const definition = registrator.nodeDefinitionMap.get(node.type);
-  if (!definition) return undefined;
-
-  if (definition.getHandleType) {
-    const dynamicType = definition.getHandleType({ handleId, handleDirection, node, nodes, edges });
-    if (dynamicType !== undefined) return dynamicType;
-  }
-
-  const staticHandles = handleDirection === 'input' ? definition.handles.inputs : definition.handles.outputs;
-  return staticHandles.find((h) => h.id === handleId)?.type;
-}
+import { getHandleSpec } from './handle-logic.js';
 
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
   // A target handle can only have one connection.
@@ -39,8 +19,11 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     return false;
   }
 
-  const sourceHandleType = getHandleType(sourceNode, connection.sourceHandle ?? null, 'output', nodes, edges);
-  const targetHandleType = getHandleType(targetNode, connection.targetHandle ?? null, 'input', nodes, edges);
+  const sourceHandleSpec = getHandleSpec(sourceNode, connection.sourceHandle ?? null, 'output', nodes, edges);
+  const targetHandleSpec = getHandleSpec(targetNode, connection.targetHandle ?? null, 'input', nodes, edges);
+
+  const sourceHandleType = sourceHandleSpec?.type;
+  const targetHandleType = targetHandleSpec?.type;
 
   if (!sourceHandleType || !targetHandleType) {
     return false;

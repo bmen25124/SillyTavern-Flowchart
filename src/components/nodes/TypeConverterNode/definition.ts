@@ -70,28 +70,30 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
       { id: 'value', type: FlowDataType.ANY },
       { id: 'targetType', type: FlowDataType.STRING },
     ],
-    outputs: [
-      { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.ANY },
-    ],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
-  getHandleType: ({ handleId, handleDirection, node }) => {
-    if (handleDirection === 'output' && handleId === 'result') {
-      const data = node.data as TypeConverterNodeData;
-      switch (data.targetType) {
-        case 'string':
-          return FlowDataType.STRING;
-        case 'number':
-          return FlowDataType.NUMBER;
-        case 'object':
-        case 'array':
-          return FlowDataType.OBJECT;
-        default:
-          return FlowDataType.ANY;
-      }
+  getDynamicHandles: (node) => {
+    const data = node.data as TypeConverterNodeData;
+    let resultType: FlowDataType;
+    switch (data.targetType) {
+      case 'string':
+        resultType = FlowDataType.STRING;
+        break;
+      case 'number':
+        resultType = FlowDataType.NUMBER;
+        break;
+      case 'object':
+      case 'array':
+        resultType = FlowDataType.OBJECT;
+        break;
+      default:
+        resultType = FlowDataType.ANY;
     }
-    return undefined;
+    return {
+      inputs: [],
+      outputs: [{ id: 'result', type: resultType }],
+    };
   },
 };
 

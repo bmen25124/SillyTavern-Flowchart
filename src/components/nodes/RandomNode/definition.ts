@@ -45,14 +45,8 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'mode', type: FlowDataType.STRING },
-      { id: 'min', type: FlowDataType.NUMBER },
-      { id: 'max', type: FlowDataType.NUMBER },
-      { id: 'array', type: FlowDataType.OBJECT },
     ],
-    outputs: [
-      { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.ANY },
-    ],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   validate: (node: Node<RandomNodeData>, edges: Edge[]): ValidationIssue[] => {
     const issues: ValidationIssue[] = [];
@@ -65,6 +59,25 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
     return issues;
   },
   execute,
+  getDynamicHandles: (node) => {
+    const data = node.data as RandomNodeData;
+    const inputs = [];
+    const outputs = [];
+
+    if (data.mode === 'number') {
+      inputs.push({ id: 'min', type: FlowDataType.NUMBER });
+      inputs.push({ id: 'max', type: FlowDataType.NUMBER });
+      outputs.push({ id: 'result', type: FlowDataType.NUMBER }); // Correctly typed output
+    } else if (data.mode === 'array') {
+      inputs.push({ id: 'array', type: FlowDataType.OBJECT });
+      outputs.push({ id: 'result', type: FlowDataType.ANY }); // Type of element is unknown
+    } else {
+      // Fallback case if mode is somehow undefined
+      outputs.push({ id: 'result', type: FlowDataType.ANY });
+    }
+
+    return { inputs, outputs };
+  },
 };
 
 registrator.register(randomNodeDefinition);

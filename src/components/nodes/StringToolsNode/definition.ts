@@ -57,10 +57,7 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
       { id: 'operation', type: FlowDataType.STRING },
       { id: 'delimiter', type: FlowDataType.STRING },
     ],
-    outputs: [
-      { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.ANY },
-    ],
+    outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   validate: (node: Node<StringToolsNodeData>, edges: Edge[]): ValidationIssue[] => {
     const issues: ValidationIssue[] = [];
@@ -84,31 +81,23 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   getDynamicHandles: (node) => {
     const { data } = node;
     const inputs = [];
+    let resultType = FlowDataType.ANY;
+
     if (data.operation === 'merge') {
       for (let i = 0; i < (data.inputCount ?? 2); i++) {
         inputs.push({ id: `${STRING_TOOLS_MERGE_HANDLE_PREFIX}${i}`, type: FlowDataType.STRING });
       }
+      resultType = FlowDataType.STRING;
     } else if (data.operation === 'split') {
       inputs.push({ id: 'string', type: FlowDataType.STRING });
+      resultType = FlowDataType.OBJECT; // An array is a type of object
     } else if (data.operation === 'join') {
       inputs.push({ id: 'array', type: FlowDataType.OBJECT });
+      resultType = FlowDataType.STRING;
     }
-    return { inputs, outputs: [] };
-  },
-  getHandleType: ({ handleId, handleDirection, node }) => {
-    if (handleDirection === 'input') {
-      const data = node.data as StringToolsNodeData;
-      if (data.operation === 'merge' && handleId?.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX))
-        return FlowDataType.STRING;
-      if (data.operation === 'split' && handleId === 'string') return FlowDataType.STRING;
-      if (data.operation === 'join' && handleId === 'array') return FlowDataType.OBJECT;
-    }
-    if (handleDirection === 'output' && handleId === 'result') {
-      const data = node.data as StringToolsNodeData;
-      if (data.operation === 'split') return FlowDataType.OBJECT;
-      return FlowDataType.STRING;
-    }
-    return undefined;
+
+    const outputs = [{ id: 'result', type: resultType }];
+    return { inputs, outputs };
   },
 };
 
