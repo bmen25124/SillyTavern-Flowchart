@@ -1,5 +1,5 @@
-import React, { FC } from 'react';
-import { NodeProps, Node } from '@xyflow/react';
+import React, { FC, useMemo } from 'react';
+import { NodeProps, Node, Handle, Position, useEdges } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { JsonNodeData, JsonNodeItem } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
@@ -10,13 +10,20 @@ import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
 const JsonItemEditor: FC<{
+  nodeId: string;
   item: JsonNodeItem;
   path: number[];
   parentType: 'object' | 'array';
   onUpdate: (path: number[], data: Partial<JsonNodeItem> | { value: any }) => void;
   onRemove: (path: number[]) => void;
   onAddChild: (path: number[]) => void;
-}> = ({ item, path, parentType, onUpdate, onRemove, onAddChild }) => {
+}> = ({ nodeId, item, path, parentType, onUpdate, onRemove, onAddChild }) => {
+  const allEdges = useEdges();
+  const isValueConnected = useMemo(
+    () => allEdges.some((edge) => edge.target === nodeId && edge.targetHandle === item.id),
+    [allEdges, nodeId, item.id],
+  );
+
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as JsonNodeItem['type'];
     let newValue: any;
@@ -39,17 +46,19 @@ const JsonItemEditor: FC<{
   };
 
   const renderValueInput = () => {
+    let inputComponent;
     switch (item.type) {
       case 'string':
-        return (
+        inputComponent = (
           <STInput
             className="nodrag"
             value={item.value as string}
             onChange={(e) => onUpdate(path, { value: e.target.value })}
           />
         );
+        break;
       case 'number':
-        return (
+        inputComponent = (
           <STInput
             className="nodrag"
             type="number"
@@ -57,8 +66,9 @@ const JsonItemEditor: FC<{
             onChange={(e) => onUpdate(path, { value: Number(e.target.value) })}
           />
         );
+        break;
       case 'boolean':
-        return (
+        inputComponent = (
           <STSelect
             className="nodrag"
             value={String(item.value)}
@@ -68,9 +78,26 @@ const JsonItemEditor: FC<{
             <option value="false">false</option>
           </STSelect>
         );
+        break;
       default:
         return null;
     }
+
+    return (
+      <div style={{ position: 'relative' }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id={item.id}
+          style={{ top: '50%', transform: 'translateY(-50%)' }}
+        />
+        {isValueConnected ? (
+          <span style={{ marginLeft: '15px', color: '#888', fontStyle: 'italic' }}>Value from connection</span>
+        ) : (
+          inputComponent
+        )}
+      </div>
+    );
   };
 
   return (
@@ -100,6 +127,7 @@ const JsonItemEditor: FC<{
           {(item.value as JsonNodeItem[]).map((child, i) => (
             <JsonItemEditor
               key={child.id}
+              nodeId={nodeId}
               item={child}
               path={[...path, i]}
               parentType={item.type as 'object' | 'array'}
@@ -184,6 +212,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
       {(data.items || []).map((item, index) => (
         <JsonItemEditor
           key={item.id}
+          nodeId={id}
           item={item}
           path={[index]}
           parentType={data.rootType ?? 'object'}

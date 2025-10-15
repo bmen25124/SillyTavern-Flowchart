@@ -22,7 +22,7 @@ const execute: NodeExecutor = async (node, input) => {
   if (mode === 'number') {
     const min = resolveInput(input, data, 'min') ?? 0;
     const max = resolveInput(input, data, 'max') ?? 100;
-    return { result: Math.random() * (max - min) + min };
+    return { result: Math.floor(Math.random() * (max - min + 1)) + min };
   }
   if (mode === 'array') {
     const arr = input.array;

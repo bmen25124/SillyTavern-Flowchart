@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Node } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition, ValidationIssue, HandleSpec } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { JsonNode } from './JsonNode.js';
 import { registrator } from '../registrator.js';
@@ -30,7 +30,10 @@ export const JsonNodeDataSchema = z.object({
 });
 export type JsonNodeData = z.infer<typeof JsonNodeDataSchema>;
 
-const buildValue = (item: JsonNodeItem): any => {
+const buildValue = (item: JsonNodeItem, input: Record<string, any>): any => {
+  if (Object.prototype.hasOwnProperty.call(input, item.id)) {
+    return input[item.id];
+  }
   switch (item.type) {
     case 'string':
     case 'number':
@@ -39,24 +42,24 @@ const buildValue = (item: JsonNodeItem): any => {
     case 'object':
       const obj: { [key: string]: any } = {};
       for (const child of item.value as JsonNodeItem[]) {
-        obj[child.key] = buildValue(child);
+        obj[child.key] = buildValue(child, input);
       }
       return obj;
     case 'array':
-      return (item.value as JsonNodeItem[]).map(buildValue);
+      return (item.value as JsonNodeItem[]).map((child) => buildValue(child, input));
   }
 };
 
-const execute: NodeExecutor = async (node) => {
+const execute: NodeExecutor = async (node, input) => {
   const data = JsonNodeDataSchema.parse(node.data);
 
   if (data.rootType === 'array') {
-    return { result: data.items.map(buildValue) };
+    return { result: data.items.map((item) => buildValue(item, input)) };
   }
 
   const rootObject: { [key: string]: any } = {};
   for (const item of data.items) {
-    rootObject[item.key] = buildValue(item);
+    rootObject[item.key] = buildValue(item, input);
   }
   return { result: rootObject, ...rootObject };
 };
@@ -121,6 +124,39 @@ const validateItems = (items: JsonNodeItem[]): ValidationIssue[] => {
   return issues;
 };
 
+function getItemHandles(items: JsonNodeItem[]): HandleSpec[] {
+  let handles: HandleSpec[] = [];
+  for (const item of items) {
+    switch (item.type) {
+      case 'string':
+        handles.push({ id: item.id, type: FlowDataType.STRING });
+        break;
+      case 'number':
+        handles.push({ id: item.id, type: FlowDataType.NUMBER });
+        break;
+      case 'boolean':
+        handles.push({ id: item.id, type: FlowDataType.BOOLEAN });
+        break;
+      case 'object':
+      case 'array':
+        handles.push(...getItemHandles(item.value as JsonNodeItem[]));
+        break;
+    }
+  }
+  return handles;
+}
+
+function findItemById(items: JsonNodeItem[], id: string): JsonNodeItem | null {
+  for (const item of items) {
+    if (item.id === id) return item;
+    if (item.type === 'object' || item.type === 'array') {
+      const found = findItemById(item.value as JsonNodeItem[], id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   type: 'jsonNode',
   label: 'JSON',
@@ -143,6 +179,11 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   execute,
   getDynamicHandles: (node) => {
     const data = node.data;
+
+    // Get input handles for primitive values
+    const inputs = getItemHandles(data.items);
+
+    // Get output handles for top-level keys
     const fullSchema = inferSchemaFromJsonNode(data);
     const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: fullSchema }];
 
@@ -158,9 +199,23 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
       }
     }
 
-    return { inputs: [], outputs };
+    return { inputs, outputs };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
+    if (handleDirection === 'input' && handleId) {
+      const item = findItemById((node.data as JsonNodeData).items, handleId);
+      if (item) {
+        switch (item.type) {
+          case 'string':
+            return FlowDataType.STRING;
+          case 'number':
+            return FlowDataType.NUMBER;
+          case 'boolean':
+            return FlowDataType.BOOLEAN;
+        }
+      }
+    }
+
     if (handleDirection === 'output') {
       if (handleId === 'result') return FlowDataType.OBJECT;
 
