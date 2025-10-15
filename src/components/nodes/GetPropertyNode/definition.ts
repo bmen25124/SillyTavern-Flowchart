@@ -66,7 +66,7 @@ function zodTypeFromPath(schema: z.ZodType, path: string): z.ZodType | undefined
 export const getPropertyNodeDefinition: NodeDefinition<GetPropertyNodeData> = {
   type: 'getPropertyNode',
   label: 'Get Property',
-  category: 'Utility',
+  category: 'Variables',
   component: GetPropertyNode,
   dataSchema: GetPropertyNodeDataSchema,
   currentVersion: 1,

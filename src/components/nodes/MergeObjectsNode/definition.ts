@@ -29,7 +29,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = {
   type: 'mergeObjectsNode',
   label: 'Merge Objects',
-  category: 'Utility',
+  category: 'Data Processing',
   component: MergeObjectsNode,
   dataSchema: MergeObjectsNodeDataSchema,
   currentVersion: 1,

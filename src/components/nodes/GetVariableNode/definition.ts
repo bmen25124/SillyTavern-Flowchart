@@ -24,7 +24,7 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
 export const getVariableNodeDefinition: NodeDefinition<GetVariableNodeData> = {
   type: 'getVariableNode',
   label: 'Get Variable',
-  category: 'Utility',
+  category: 'Variables',
   component: GetVariableNode,
   dataSchema: GetVariableNodeDataSchema,
   currentVersion: 1,

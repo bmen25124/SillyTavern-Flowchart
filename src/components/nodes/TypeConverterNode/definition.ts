@@ -59,7 +59,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> = {
   type: 'typeConverterNode',
   label: 'Type Converter',
-  category: 'Utility',
+  category: 'Data Processing',
   component: TypeConverterNode,
   dataSchema: TypeConverterNodeDataSchema,
   currentVersion: 1,

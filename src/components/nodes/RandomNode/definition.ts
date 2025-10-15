@@ -36,7 +36,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
   type: 'randomNode',
   label: 'Random',
-  category: 'Utility',
+  category: 'Math & Logic',
   component: RandomNode,
   dataSchema: RandomNodeDataSchema,
   currentVersion: 1,

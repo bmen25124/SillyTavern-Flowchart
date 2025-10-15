@@ -90,7 +90,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const httpRequestNodeDefinition: NodeDefinition<HttpRequestNodeData> = {
   type: 'httpRequestNode',
   label: 'HTTP Request',
-  category: 'Utility',
+  category: 'System',
   component: HttpRequestNode,
   dataSchema: HttpRequestNodeDataSchema,
   currentVersion: 1,

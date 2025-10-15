@@ -28,7 +28,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 export const confirmUserNodeDefinition: NodeDefinition<ConfirmUserNodeData> = {
   type: 'confirmUserNode',
   label: 'Confirm With User',
-  category: 'Utility',
+  category: 'User Interaction',
   component: ConfirmUserNode,
   dataSchema: ConfirmUserNodeDataSchema,
   currentVersion: 1,

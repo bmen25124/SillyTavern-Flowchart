@@ -64,6 +64,11 @@ export const NodePalette: FC = () => {
       'Character',
       'Lorebook',
       'JSON',
+      'Data Processing',
+      'Math & Logic',
+      'System',
+      'Variables',
+      'User Interaction',
       'Utility',
     ];
 

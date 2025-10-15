@@ -45,7 +45,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
 export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   type: 'executeJsNode',
   label: 'Execute JS Code',
-  category: 'Utility',
+  category: 'System',
   component: ExecuteJsNode,
   dataSchema: ExecuteJsNodeDataSchema,
   currentVersion: 1,

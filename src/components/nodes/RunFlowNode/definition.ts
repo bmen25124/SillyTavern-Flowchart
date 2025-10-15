@@ -39,7 +39,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, depth }) => {
 export const runFlowNodeDefinition: NodeDefinition<RunFlowNodeData> = {
   type: 'runFlowNode',
   label: 'Run Flow',
-  category: 'Utility',
+  category: 'System',
   component: RunFlowNode,
   dataSchema: RunFlowNodeDataSchema,
   currentVersion: 1,

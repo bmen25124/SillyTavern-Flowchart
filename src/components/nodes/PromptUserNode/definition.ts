@@ -30,7 +30,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 export const promptUserNodeDefinition: NodeDefinition<PromptUserNodeData> = {
   type: 'promptUserNode',
   label: 'Prompt User',
-  category: 'Utility',
+  category: 'User Interaction',
   component: PromptUserNode,
   dataSchema: PromptUserNodeDataSchema,
   currentVersion: 1,

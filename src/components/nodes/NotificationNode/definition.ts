@@ -38,7 +38,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = {
   type: 'notificationNode',
   label: 'Notification',
-  category: 'Utility',
+  category: 'User Interaction',
   component: NotificationNode,
   dataSchema: NotificationNodeDataSchema,
   currentVersion: 1,

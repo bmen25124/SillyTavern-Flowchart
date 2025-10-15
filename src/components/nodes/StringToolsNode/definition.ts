@@ -101,7 +101,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   type: 'stringToolsNode',
   label: 'String Tools',
-  category: 'Utility',
+  category: 'Data Processing',
   component: StringToolsNode,
   dataSchema: StringToolsNodeDataSchema,
   currentVersion: 1,

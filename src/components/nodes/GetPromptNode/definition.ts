@@ -30,7 +30,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
   type: 'getPromptNode',
   label: 'Get Prompt',
-  category: 'Utility',
+  category: 'User Interaction',
   component: GetPromptNode,
   dataSchema: GetPromptNodeDataSchema,
   currentVersion: 1,

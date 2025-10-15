@@ -43,7 +43,7 @@ const execute: NodeExecutor = async (node, input) => {
 export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
   type: 'mathNode',
   label: 'Math',
-  category: 'Utility',
+  category: 'Math & Logic',
   component: MathNode,
   dataSchema: MathNodeDataSchema,
   currentVersion: 1,

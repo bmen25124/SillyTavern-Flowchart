@@ -38,7 +38,12 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
     | 'Character'
     | 'Lorebook'
     | 'JSON'
-    | 'Utility';
+    | 'Utility'
+    | 'Data Processing'
+    | 'Math & Logic'
+    | 'System'
+    | 'Variables'
+    | 'User Interaction';
   // @ts-ignore
   component: FC<NodeProps<Node<T>>>;
   dataSchema: z.ZodType<T>;

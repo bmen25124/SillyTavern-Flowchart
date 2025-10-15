@@ -30,7 +30,7 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
 export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
   type: 'setVariableNode',
   label: 'Set Variable',
-  category: 'Utility',
+  category: 'Variables',
   component: SetVariableNode,
   dataSchema: SetVariableNodeDataSchema,
   currentVersion: 1,

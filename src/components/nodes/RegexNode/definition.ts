@@ -60,7 +60,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
   type: 'regexNode',
   label: 'Regex',
-  category: 'Utility',
+  category: 'Data Processing',
   component: RegexNode,
   dataSchema: RegexNodeDataSchema,
   currentVersion: 1,

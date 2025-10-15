@@ -34,7 +34,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeData> = {
   type: 'runSlashCommandNode',
   label: 'Run Slash Command',
-  category: 'Utility',
+  category: 'System',
   component: RunSlashCommandNode,
   dataSchema: RunSlashCommandNodeDataSchema,
   currentVersion: 1,
