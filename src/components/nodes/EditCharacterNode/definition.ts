@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { EditCharacterNode } from './EditCharacterNode.js';
 import { registrator } from '../registrator.js';
@@ -92,9 +91,7 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
-  validate: combineValidators(
-    createRequiredFieldValidator('characterAvatar', 'Character to Edit is required.')
-  ),
+  validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character to Edit is required.')),
   execute,
 };
 

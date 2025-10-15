@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { EditChatMessageNode } from './EditChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const EditChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(), // Optional is correct here as it's a required input connection
@@ -52,19 +52,10 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
       { id: 'message', type: FlowDataType.STRING },
     ],
   },
-  validate: (node: Node<EditChatMessageNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (
-      node.data.messageId === undefined &&
-      !edges.some((e) => e.target === node.id && e.targetHandle === 'messageId')
-    ) {
-      issues.push({ fieldId: 'messageId', message: 'Message ID is required.', severity: 'error' });
-    }
-    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
-      issues.push({ fieldId: 'message', message: 'New Message Content is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(
+    createRequiredFieldValidator('messageId', 'Message ID is required.'),
+    createRequiredFieldValidator('message', 'New Message Content is required.'),
+  ),
   execute,
 };
 

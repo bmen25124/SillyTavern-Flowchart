@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { CreateMessagesNode } from './CreateMessagesNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const CreateMessagesNodeDataSchema = z.object({
   profileId: z.string().optional(),
@@ -63,18 +63,7 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
       { id: 'result', type: FlowDataType.MESSAGES },
     ],
   },
-  validate: (node: Node<CreateMessagesNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'profileId');
-    if (!node.data.profileId && !isConnected) {
-      issues.push({
-        fieldId: 'profileId',
-        message: 'Connection Profile is required.',
-        severity: 'error',
-      });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('profileId', 'Connection Profile is required.')),
   execute,
 };
 

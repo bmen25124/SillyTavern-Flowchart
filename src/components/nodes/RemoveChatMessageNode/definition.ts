@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RemoveChatMessageNode } from './RemoveChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const RemoveChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(),
@@ -37,16 +37,7 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
-  validate: (node: Node<RemoveChatMessageNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (
-      node.data.messageId === undefined &&
-      !edges.some((e) => e.target === node.id && e.targetHandle === 'messageId')
-    ) {
-      issues.push({ fieldId: 'messageId', message: 'Message ID is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
 };
 

@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { HttpRequestNode } from './HttpRequestNode.js';
 
 export const HttpRequestNodeDataSchema = z.object({
@@ -111,13 +111,7 @@ export const httpRequestNodeDefinition: NodeDefinition<HttpRequestNodeData> = {
       { id: 'headers', type: FlowDataType.OBJECT },
     ],
   },
-  validate: (node: Node<HttpRequestNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.url && !edges.some((edge) => edge.target === node.id && edge.targetHandle === 'url')) {
-      issues.push({ fieldId: 'url', message: 'URL is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('url', 'URL is required.')),
   execute,
 };
 

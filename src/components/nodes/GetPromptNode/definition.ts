@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetPromptNode } from './GetPromptNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { settingsManager } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const GetPromptNodeDataSchema = z.object({
   promptName: z.string().optional(),
@@ -45,13 +45,7 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
-  validate: (node: Node<GetPromptNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.promptName && !edges.some((e) => e.target === node.id && e.targetHandle === 'promptName')) {
-      issues.push({ fieldId: 'promptName', message: 'Prompt Name is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('promptName', 'Prompt Name is required.')),
   execute,
 };
 

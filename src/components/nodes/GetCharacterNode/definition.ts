@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetCharacterNode } from './GetCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const GetCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().default(''),
@@ -65,14 +65,7 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
       { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
   },
-  validate: (node: Node<GetCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'characterAvatar');
-    if (!node.data.characterAvatar && !isConnected) {
-      issues.push({ fieldId: 'characterAvatar', message: 'Character is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character is required.')),
   execute,
 };
 

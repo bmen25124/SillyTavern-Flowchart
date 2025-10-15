@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { RunSlashCommandNode } from './RunSlashCommandNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const RunSlashCommandNodeDataSchema = z.object({
   command: z.string().default(''),
@@ -49,18 +49,7 @@ export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeDa
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
-  validate: (node: Node<RunSlashCommandNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'command');
-    if (!node.data.command && !isConnected) {
-      issues.push({
-        fieldId: 'command',
-        message: 'Command is required.',
-        severity: 'error',
-      });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('command', 'Command is required.')),
   execute,
 };
 
