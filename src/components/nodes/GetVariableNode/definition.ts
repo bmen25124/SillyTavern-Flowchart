@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { GetVariableNode } from './GetVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const GetVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
@@ -39,18 +39,7 @@ export const getVariableNodeDefinition: NodeDefinition<GetVariableNodeData> = {
       { id: 'value', type: FlowDataType.ANY },
     ],
   },
-  validate: (node: Node<GetVariableNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'variableName');
-    if (!node.data.variableName && !isConnected) {
-      issues.push({
-        fieldId: 'variableName',
-        message: 'Variable Name is required.',
-        severity: 'error',
-      });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('variableName', 'Variable Name is required.')),
   execute,
 };
 

@@ -5,24 +5,23 @@ import { FlowDataType } from '../../../flow-types.js';
 import { JsonNode } from './JsonNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { inferSchemaFromJsonNode, jsonItemToZod } from '../../../utils/schema-builder.js';
+import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
+// ... (schemas remain the same, so they are omitted for brevity)
 // Recursive types and schema for JsonNode
 const baseJsonNodeItemSchema = z.object({
   id: z.string(),
   key: z.string(), // Key is always present, but ignored for array children.
   type: z.enum(['string', 'number', 'boolean', 'object', 'array']),
 });
-
 type JsonNodeItemPlain = z.infer<typeof baseJsonNodeItemSchema>;
-
 export type JsonNodeItem = JsonNodeItemPlain & {
   value: string | number | boolean | JsonNodeItem[];
 };
-
 export const JsonNodeItemSchema: z.ZodType<JsonNodeItem> = baseJsonNodeItemSchema.extend({
   value: z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.array(JsonNodeItemSchema)])),
 });
-
 export const JsonNodeDataSchema = z.object({
   rootType: z.enum(['object', 'array']).default('object'),
   items: z.array(JsonNodeItemSchema).default([]),
@@ -63,47 +62,6 @@ const execute: NodeExecutor = async (node, input) => {
   }
   return { result: rootObject, ...rootObject };
 };
-
-function jsonItemToZod(item: JsonNodeItem): z.ZodType {
-  switch (item.type) {
-    case 'string':
-      return z.string();
-    case 'number':
-      return z.number();
-    case 'boolean':
-      return z.boolean();
-    case 'array':
-      const firstItem = (item.value as JsonNodeItem[])?.[0];
-      return z.array(firstItem ? jsonItemToZod(firstItem) : z.any());
-    case 'object':
-      const shape: Record<string, z.ZodType> = {};
-      (item.value as JsonNodeItem[]).forEach((child) => {
-        shape[child.key] = jsonItemToZod(child);
-      });
-      return z.object(shape);
-    default:
-      return z.any();
-  }
-}
-
-function inferSchemaFromJsonNode(data: JsonNodeData): z.ZodType {
-  if (data.rootType === 'array') {
-    const firstItem = data.items?.[0];
-    return z.array(firstItem ? jsonItemToZod(firstItem) : z.any());
-  }
-  const shape: Record<string, z.ZodType> = {};
-  data.items.forEach((item) => {
-    shape[item.key] = jsonItemToZod(item);
-  });
-  return z.object(shape);
-}
-
-function zodTypeToFlowType(type: z.ZodType): FlowDataType {
-  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
-  if (type instanceof z.ZodString) return FlowDataType.STRING;
-  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-  return FlowDataType.OBJECT; // Includes arrays, objects, etc.
-}
 
 const validateItems = (items: JsonNodeItem[]): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
@@ -179,11 +137,7 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
   execute,
   getDynamicHandles: (node) => {
     const data = node.data;
-
-    // Get input handles for primitive values
     const inputs = getItemHandles(data.items);
-
-    // Get output handles for top-level keys
     const fullSchema = inferSchemaFromJsonNode(data);
     const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: fullSchema }];
 
@@ -198,7 +152,6 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
         });
       }
     }
-
     return { inputs, outputs };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
@@ -215,10 +168,8 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
         }
       }
     }
-
     if (handleDirection === 'output') {
       if (handleId === 'result') return FlowDataType.OBJECT;
-
       const data = node.data as JsonNodeData;
       if (data.rootType === 'object') {
         const item = data.items.find((item) => item.key === handleId);

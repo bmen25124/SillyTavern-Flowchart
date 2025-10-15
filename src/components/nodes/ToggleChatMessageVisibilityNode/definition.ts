@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { ToggleChatMessageVisibilityNode } from './ToggleChatMessageVisibilityNode.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const ToggleChatMessageVisibilityNodeDataSchema = z.object({
   startId: z.number().optional(),
@@ -49,13 +49,7 @@ export const toggleChatMessageVisibilityNodeDefinition: NodeDefinition<ToggleCha
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
-  validate: (node: Node<ToggleChatMessageVisibilityNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (node.data.startId === undefined && !edges.some((e) => e.target === node.id && e.targetHandle === 'startId')) {
-      issues.push({ fieldId: 'startId', message: 'Start Message ID is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('startId', 'Start Message ID is required.')),
   execute,
 };
 

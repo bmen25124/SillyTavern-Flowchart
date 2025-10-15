@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { CreateCharacterNode } from './CreateCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { FullExportData } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 const CharacterFieldsSchema = {
   name: z.string().optional(),
@@ -75,13 +75,7 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
-  validate: (node: Node<CreateCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.name && !edges.some((e) => e.target === node.id && e.targetHandle === 'name')) {
-      issues.push({ fieldId: 'name', message: 'Name is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('name', 'Name is required.')),
   execute,
 };
 

@@ -5,53 +5,14 @@ import { FlowDataType } from '../../../flow-types.js';
 import { ManualTriggerNode } from './ManualTriggerNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { valueToZodSchema } from '../../../utils/schema-builder.js';
+import { valueToFlowType } from '../../../utils/type-mapping.js';
 
 export const ManualTriggerNodeDataSchema = z.object({
   payload: z.string().default('{}'),
   _version: z.number().optional(),
 });
 export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
-
-function valueToZodSchema(value: any): z.ZodType {
-  if (value === null || value === undefined) return z.any();
-  switch (typeof value) {
-    case 'string':
-      return z.string();
-    case 'number':
-      return z.number();
-    case 'boolean':
-      return z.boolean();
-    case 'object':
-      if (Array.isArray(value)) {
-        return z.array(value.length > 0 ? valueToZodSchema(value[0]) : z.any());
-      }
-      const shape: { [key: string]: z.ZodType } = {};
-      for (const key in value) {
-        if (Object.prototype.hasOwnProperty.call(value, key)) {
-          shape[key] = valueToZodSchema(value[key]);
-        }
-      }
-      return z.object(shape);
-    default:
-      return z.any();
-  }
-}
-
-function valueToFlowType(value: any): FlowDataType {
-  if (value === null || value === undefined) return FlowDataType.ANY;
-  switch (typeof value) {
-    case 'string':
-      return FlowDataType.STRING;
-    case 'number':
-      return FlowDataType.NUMBER;
-    case 'boolean':
-      return FlowDataType.BOOLEAN;
-    case 'object':
-      return FlowDataType.OBJECT; // Includes arrays
-    default:
-      return FlowDataType.ANY;
-  }
-}
 
 const execute: NodeExecutor = async (node) => {
   const data = ManualTriggerNodeDataSchema.parse(node.data);
@@ -95,7 +56,6 @@ export const manualTriggerNodeDefinition: NodeDefinition<ManualTriggerNodeData> 
           }
         }
       }
-
       return { inputs: [], outputs };
     } catch (e) {
       return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.ANY }] };

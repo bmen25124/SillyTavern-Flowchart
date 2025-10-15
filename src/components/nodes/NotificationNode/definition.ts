@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
 import { st_echo } from 'sillytavern-utils-lib/config';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { NotificationNode } from './NotificationNode.js';
 import { notify } from '../../../utils/notify.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 const NotificationTypeSchema = z.enum(['info', 'success', 'error', 'warning']);
 
@@ -51,13 +51,7 @@ export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = 
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
-  validate: (node: Node<NotificationNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
-      issues.push({ fieldId: 'message', message: 'Message is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('message', 'Message is required.')),
   execute,
 };
 

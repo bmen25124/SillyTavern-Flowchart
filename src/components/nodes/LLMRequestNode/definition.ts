@@ -8,6 +8,13 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { FieldDefinition } from '../SchemaNode/definition.js';
+import { buildZodSchema, buildZodSchemaFromFields } from '../../../utils/schema-builder.js';
+import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
+import {
+  combineValidators,
+  createRequiredConnectionValidator,
+  createRequiredFieldValidator,
+} from '../../../utils/validation-helpers.js';
 
 export const LLMRequestNodeDataSchema = z.object({
   profileId: z.string().default(''),
@@ -18,51 +25,6 @@ export const LLMRequestNodeDataSchema = z.object({
   _version: z.number().optional(),
 });
 export type LLMRequestNodeData = z.infer<typeof LLMRequestNodeDataSchema>;
-
-function zodTypeToFlowType(type: z.ZodType): FlowDataType {
-  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
-  if (type instanceof z.ZodString) return FlowDataType.STRING;
-  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-  return FlowDataType.OBJECT;
-}
-
-function buildZodSchema(definition: any): z.ZodTypeAny {
-  let zodType: z.ZodTypeAny;
-  switch (definition.type) {
-    case 'string':
-      zodType = z.string();
-      break;
-    case 'number':
-      zodType = z.number();
-      break;
-    case 'boolean':
-      zodType = z.boolean();
-      break;
-    case 'enum':
-      zodType = z.enum(definition.values as [string, ...string[]]);
-      break;
-    case 'object':
-      zodType = buildZodSchemaFromFields(definition.fields || []);
-      break;
-    case 'array':
-      zodType = z.array(definition.items ? buildZodSchema(definition.items) : z.any());
-      break;
-    default:
-      zodType = z.any();
-  }
-  if (definition.description) {
-    return zodType.describe(definition.description);
-  }
-  return zodType;
-}
-
-function buildZodSchemaFromFields(fields: FieldDefinition[]): z.ZodObject<any> {
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const field of fields) {
-    shape[field.name] = buildZodSchema(field);
-  }
-  return z.object(shape);
-}
 
 const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
   const data = LLMRequestNodeDataSchema.parse(node.data);
@@ -107,7 +69,6 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
 
     const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken, onStream, signal);
 
-    // Final update to ensure the message is saved correctly.
     if (onStream && typeof messageIdToUpdate === 'number') {
       const { chat } = dependencies.getSillyTavernContext();
       const finalMessage = { ...chat[messageIdToUpdate], mes: result };
@@ -147,22 +108,11 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     ],
   },
   validate: (node: Node<LLMRequestNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isProfileIdConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'profileId');
-    if (!node.data.profileId && !isProfileIdConnected) {
-      issues.push({
-        fieldId: 'profileId',
-        message: 'Connection Profile is required.',
-        severity: 'error',
-      });
-    }
-    const isMessagesConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'messages');
-    if (!isMessagesConnected) {
-      issues.push({
-        message: 'A "Messages" input is required.',
-        severity: 'error',
-      });
-    }
+    const issues = combineValidators(
+      createRequiredFieldValidator('profileId', 'Connection Profile is required.'),
+      createRequiredConnectionValidator('messages', 'A "Messages" input is required.'),
+    )(node, edges);
+
     if (node.data.stream && edges.some((edge) => edge.target === node.id && edge.targetHandle === 'schema')) {
       issues.push({
         message: 'Streaming is not supported for structured (schema-based) requests.',
@@ -177,7 +127,6 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     const isSchemaConnected = !!schemaEdge;
     const isStreaming = node.data.stream;
 
-    // --- Dynamic Inputs ---
     const dynamicInputs = [];
     if (isSchemaConnected) {
       dynamicInputs.push({ id: 'schemaName', type: FlowDataType.STRING });
@@ -190,7 +139,6 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       dynamicInputs.push({ id: 'messageIdToUpdate', type: FlowDataType.NUMBER });
     }
 
-    // --- Dynamic Outputs ---
     if (!isSchemaConnected) {
       return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
     }
@@ -200,10 +148,11 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
     }
 
-    const fullSchema = buildZodSchemaFromFields(schemaNode.data.fields as FieldDefinition[]);
+    const fields = schemaNode.data.fields as FieldDefinition[];
+    const fullSchema = buildZodSchemaFromFields(fields);
     const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema: fullSchema };
 
-    const fieldHandles = (schemaNode.data.fields as FieldDefinition[]).map((field) => ({
+    const fieldHandles = fields.map((field) => ({
       id: field.name,
       type: zodTypeToFlowType(buildZodSchema(field)),
       schema: buildZodSchema(field),

@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { CreateLorebookEntryNode } from './CreateLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
@@ -8,6 +7,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const CreateLorebookEntryNodeDataSchema = z.object({
   worldName: z.string().optional(),
@@ -63,16 +63,10 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
       { id: 'result', type: FlowDataType.OBJECT, schema: WIEntrySchema },
     ],
   },
-  validate: (node: Node<CreateLorebookEntryNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.worldName && !edges.some((e) => e.target === node.id && e.targetHandle === 'worldName')) {
-      issues.push({ fieldId: 'worldName', message: 'Lorebook Name is required.', severity: 'error' });
-    }
-    if (!node.data.key && !edges.some((e) => e.target === node.id && e.targetHandle === 'key')) {
-      issues.push({ fieldId: 'key', message: 'Keys are required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(
+    createRequiredFieldValidator('worldName', 'Lorebook Name is required.'),
+    createRequiredFieldValidator('key', 'Keys are required.'),
+  ),
   execute,
 };
 

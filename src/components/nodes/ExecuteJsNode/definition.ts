@@ -6,52 +6,14 @@ import { ExecuteJsNode } from './ExecuteJsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { FieldDefinition } from '../SchemaNode/definition.js';
+import { buildZodSchema, buildZodSchemaFromFields } from '../../../utils/schema-builder.js';
+import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const ExecuteJsNodeDataSchema = z.object({
   code: z.string().default('return input;'),
   _version: z.number().optional(),
 });
 export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
-
-// Helper functions to build a Zod schema from a SchemaNode's data structure.
-// This is necessary to dynamically generate typed outputs.
-function buildZodSchema(definition: any): z.ZodTypeAny {
-  let zodType: z.ZodTypeAny;
-  switch (definition.type) {
-    case 'string':
-      zodType = z.string();
-      break;
-    case 'number':
-      zodType = z.number();
-      break;
-    case 'boolean':
-      zodType = z.boolean();
-      break;
-    case 'enum':
-      zodType = z.enum(definition.values as [string, ...string[]]);
-      break;
-    case 'object':
-      zodType = buildZodSchemaFromFields(definition.fields || []);
-      break;
-    case 'array':
-      zodType = z.array(definition.items ? buildZodSchema(definition.items) : z.any());
-      break;
-    default:
-      zodType = z.any();
-  }
-  if (definition.description) {
-    return zodType.describe(definition.description);
-  }
-  return zodType;
-}
-
-function buildZodSchemaFromFields(fields: FieldDefinition[]): z.ZodObject<any> {
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const field of fields) {
-    shape[field.name] = buildZodSchema(field);
-  }
-  return z.object(shape);
-}
 
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = ExecuteJsNodeDataSchema.parse(node.data);
@@ -74,11 +36,9 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
       console.error('JS Node Output Validation Error:', validation.error);
       throw new Error(`JavaScript execution result failed schema validation: ${validation.error.message}`);
     }
-    // If validation succeeds, return the parsed (and potentially transformed) data.
     return { ...(validation.data as any), result: validation.data };
   }
 
-  // If no schema, return the raw result.
   return result;
 };
 
@@ -117,12 +77,7 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
 
     const fieldHandles = fields.map((field) => ({
       id: field.name,
-      type:
-        field.type === 'string'
-          ? FlowDataType.STRING
-          : field.type === 'number'
-            ? FlowDataType.NUMBER
-            : FlowDataType.OBJECT,
+      type: zodTypeToFlowType(buildZodSchema(field)),
       schema: buildZodSchema(field),
     }));
 

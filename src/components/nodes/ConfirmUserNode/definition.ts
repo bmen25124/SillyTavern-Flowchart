@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { ConfirmUserNode } from './ConfirmUserNode.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const ConfirmUserNodeDataSchema = z.object({
   message: z.string().optional(),
@@ -43,13 +43,7 @@ export const confirmUserNodeDefinition: NodeDefinition<ConfirmUserNodeData> = {
       { id: 'false', type: FlowDataType.ANY },
     ],
   },
-  validate: (node: Node<ConfirmUserNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.message && !edges.some((e) => e.target === node.id && e.targetHandle === 'message')) {
-      issues.push({ fieldId: 'message', message: 'Message is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(createRequiredFieldValidator('message', 'Message is required.')),
   execute,
 };
 

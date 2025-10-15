@@ -7,6 +7,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput, get } from '../../../utils/node-logic.js';
 import { getHandleSpec } from '../../../utils/handle-logic.js';
 import { GetPropertyNode } from './GetPropertyNode.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const GetPropertyNodeDataSchema = z.object({
   path: z.string().optional(),
@@ -81,16 +82,15 @@ export const getPropertyNodeDefinition: NodeDefinition<GetPropertyNodeData> = {
       { id: 'value', type: FlowDataType.ANY },
     ],
   },
-  validate: (node: Node<GetPropertyNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    if (!node.data.path && !edges.some((e) => e.target === node.id && e.targetHandle === 'path')) {
-      issues.push({ fieldId: 'path', message: 'Property Path is required.', severity: 'error' });
-    }
-    if (!edges.some((e) => e.target === node.id && e.targetHandle === 'object')) {
-      issues.push({ message: 'An object must be connected to the "object" input.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(
+    createRequiredFieldValidator('path', 'Property Path is required.'),
+    (node: Node<GetPropertyNodeData>, edges: Edge[]): ValidationIssue | undefined => {
+      if (!edges.some((e) => e.target === node.id && e.targetHandle === 'object')) {
+        return { message: 'An object must be connected to the "object" input.', severity: 'error' };
+      }
+      return undefined;
+    },
+  ),
   execute,
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection === 'output' && handleId === 'value') {

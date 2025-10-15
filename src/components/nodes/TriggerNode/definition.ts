@@ -5,6 +5,7 @@ import { TriggerNode } from './TriggerNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
+import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const TriggerNodeDataSchema = z.object({
   selectedEventType: z.string().refine((val) => Object.values(EventNames).includes(val as any), {
@@ -17,13 +18,6 @@ export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;
 const execute: NodeExecutor = async (_node, input) => {
   return { ...input };
 };
-
-function zodTypeToFlowType(type: z.ZodType): FlowDataType {
-  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
-  if (type instanceof z.ZodString) return FlowDataType.STRING;
-  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-  return FlowDataType.ANY;
-}
 
 export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
   type: 'triggerNode',
@@ -47,7 +41,6 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
         schema: eventParams[paramName],
       }));
     } else {
-      // Fallback for unknown events
       outputs = [
         { id: 'allArgs', type: FlowDataType.OBJECT, schema: z.array(z.any()) },
         { id: 'arg0', type: FlowDataType.ANY },
@@ -69,7 +62,6 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
           return zodTypeToFlowType(eventParams[handleId]);
         }
       } else {
-        // Fallback for unknown events
         if (handleId === 'allArgs') return FlowDataType.OBJECT;
         if (handleId.startsWith('arg')) return FlowDataType.ANY;
       }
