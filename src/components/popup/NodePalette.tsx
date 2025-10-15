@@ -10,7 +10,7 @@ export const NodePalette: FC = () => {
   const addNode = useFlowStore((state) => state.addNode);
   const { screenToFlowPosition } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState('');
-  const [openCategory, setOpenCategory] = useState<string | null>('Trigger');
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set(['Trigger']));
   const debouncedSearchTerm = useDebounce(searchTerm, 200);
 
   const onNodeClick = (event: React.MouseEvent, nodeType: string, data: Record<string, unknown>) => {
@@ -79,15 +79,25 @@ export const NodePalette: FC = () => {
       </div>
       <div className="palette-categories">
         {groupedNodes.map(([category, nodes]) => (
-          <div key={category} className={`palette-category ${openCategory === category ? 'open' : ''}`}>
+          <div key={category} className={`palette-category ${openCategories.has(category) ? 'open' : ''}`}>
             <div
               className="category-label"
-              onClick={() => setOpenCategory(openCategory === category ? null : category)}
+              onClick={() => {
+                setOpenCategories((prev) => {
+                  const newSet = new Set(prev);
+                  if (newSet.has(category)) {
+                    newSet.delete(category);
+                  } else {
+                    newSet.add(category);
+                  }
+                  return newSet;
+                });
+              }}
             >
               {category}
               <span className="fa-solid fa-chevron-right"></span>
             </div>
-            {openCategory === category && (
+            {openCategories.has(category) && (
               <div className="category-nodes">
                 <div className="category-nodes-list">
                   {nodes.map((node) => (

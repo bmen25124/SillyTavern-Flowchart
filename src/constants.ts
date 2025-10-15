@@ -34,3 +34,5 @@ export const DEFAULT_PROMPT_XML = `You are a highly specialized AI assistant. Yo
 {{example_response}}
 </root>
 \`\`\``;
+
+export const FLOW_RUN_COMMAND = 'flow-run';

@@ -131,7 +131,9 @@ describe('Node Executors', () => {
 
     it('should throw an error if input is not an object', async () => {
       const node = createMockNode(getPropertyNodeDefinition, { path: 'some.path' });
-      await expect(execute(node, { object: 'not-an-object' }, context)).rejects.toThrow('Input is not a valid object.');
+      await expect(execute(node, { object: 'not-an-object' }, context)).rejects.toThrow(
+        'Input is not a valid object in getPropertyNode.',
+      );
     });
   });
 

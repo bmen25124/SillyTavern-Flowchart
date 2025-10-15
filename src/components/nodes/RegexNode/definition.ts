@@ -94,14 +94,18 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
         });
       }
     } else if (mode === 'custom') {
-      if (!data.findRegex) {
+      const isFindRegexConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'findRegex');
+      if (!data.findRegex && !isFindRegexConnected) {
         issues.push({ fieldId: 'findRegex', message: 'Find Regex is required in custom mode.', severity: 'error' });
       }
-      try {
-        new RegExp(data.findRegex);
-      } catch (e: unknown) {
-        const error = e as Error;
-        issues.push({ fieldId: 'findRegex', message: `Invalid Regex: ${error.message}`, severity: 'error' });
+      // Only validate the static regex if it's not connected
+      if (data.findRegex && !isFindRegexConnected) {
+        try {
+          new RegExp(data.findRegex);
+        } catch (e: unknown) {
+          const error = e as Error;
+          issues.push({ fieldId: 'findRegex', message: `Invalid Regex: ${error.message}`, severity: 'error' });
+        }
       }
     }
     return issues;

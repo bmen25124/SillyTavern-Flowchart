@@ -16,7 +16,7 @@ export const HttpRequestNodeDataSchema = z.object({
 });
 export type HttpRequestNodeData = z.infer<typeof HttpRequestNodeDataSchema>;
 
-const execute: NodeExecutor = async (node, input) => {
+const execute: NodeExecutor = async (node, input, context) => {
   const data = HttpRequestNodeDataSchema.parse(node.data);
   const url = resolveInput(input, data, 'url');
   if (!url) throw new Error('URL is required.');
@@ -60,7 +60,7 @@ const execute: NodeExecutor = async (node, input) => {
   }
 
   try {
-    const response = await fetch(url, { method, headers, body });
+    const response = await fetch(url, { method, headers, body, signal: context.signal });
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       responseHeaders[key] = value;
@@ -85,6 +85,10 @@ const execute: NodeExecutor = async (node, input) => {
     };
   } catch (e: unknown) {
     const error = e as Error;
+    // Check if the error is due to aborting
+    if (error.name === 'AbortError') {
+      throw new Error(`HTTP request was cancelled: ${error.message}`);
+    }
     throw new Error(`HTTP request failed: ${error.message}`);
   }
 };

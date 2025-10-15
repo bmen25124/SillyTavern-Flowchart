@@ -20,8 +20,8 @@ const execute: NodeExecutor = async (node, input) => {
   const path = resolveInput(input, data, 'path');
   const obj = input.object;
 
-  if (!path) throw new Error('Property path is required.');
-  if (typeof obj !== 'object' || obj === null) throw new Error('Input is not a valid object.');
+  if (!path) throw new Error(`Property path is required in node ${node.type}.`);
+  if (typeof obj !== 'object' || obj === null) throw new Error(`Input is not a valid object in ${node.type}.`);
 
   const value = get(obj, path, undefined);
   return { value: value };

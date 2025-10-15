@@ -61,9 +61,28 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
   validate: (node: Node<SlashCommandNodeData>): ValidationIssue[] => {
     const issues: ValidationIssue[] = [];
     const data = node.data;
+
     if (!data.commandName || data.commandName.trim() === '') {
       issues.push({ message: 'Command Name cannot be empty.', severity: 'error' });
+    } else {
+      // Check for reserved command names
+      const reservedNames = ['run'];
+      if (reservedNames.includes(data.commandName.toLowerCase())) {
+        issues.push({
+          message: `Command name "${data.commandName}" is reserved and cannot be used.`,
+          severity: 'error',
+        });
+      }
+
+      // Check for invalid characters (basic validation)
+      if (!/^[a-zA-Z0-9\-_]+$/.test(data.commandName)) {
+        issues.push({
+          message: 'Command name can only contain letters, numbers, hyphens, and underscores.',
+          severity: 'error',
+        });
+      }
     }
+
     const argNames = new Set<string>();
     for (const arg of data.arguments) {
       if (argNames.has(arg.name)) {

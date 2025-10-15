@@ -12,6 +12,7 @@ import { FlowRunnerDependencies } from './NodeExecutor.js';
 import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
+import { FLOW_RUN_COMMAND } from './constants.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -194,6 +195,22 @@ class FlowRunner {
         } else if (node.type === 'slashCommandNode') {
           const commandData = node.data as SlashCommandNodeData;
           const commandName = `flow-${commandData.commandName}`;
+
+          // Check for reserved command names
+          const reservedNames = ['run'];
+          if (reservedNames.includes(commandData.commandName.toLowerCase())) {
+            console.warn(`[FlowChart] Slash command "${commandName}" uses a reserved name and will not be registered.`);
+            continue;
+          }
+
+          // Check if command already exists in SillyTavern
+          if (SlashCommandParser.commands[commandName]) {
+            console.warn(
+              `[FlowChart] Slash command "${commandName}" already exists in SillyTavern and will not be registered.`,
+            );
+            continue;
+          }
+
           if (this.registeredCommands.includes(commandName)) {
             console.warn(`[FlowChart] Slash command "${commandName}" is already registered. Skipping from ${name}.`);
             continue;
@@ -226,7 +243,7 @@ class FlowRunner {
 
     // Register global /flow-run command
     const globalCommand = SlashCommand.fromProps({
-      name: 'flow-run',
+      name: FLOW_RUN_COMMAND,
       helpString: 'Manually runs a FlowChart flow by its name.',
       unnamedArgumentList: [
         SlashCommandArgument.fromProps({ description: 'The name of the flow to run.', isRequired: true }),
@@ -262,7 +279,7 @@ class FlowRunner {
       },
     });
     SlashCommandParser.addCommandObject(globalCommand);
-    this.registeredCommands.push('flow-run');
+    this.registeredCommands.push(FLOW_RUN_COMMAND);
 
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
