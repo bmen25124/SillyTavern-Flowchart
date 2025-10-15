@@ -96,11 +96,14 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided.
 *   **Merge Messages:** Combines multiple sets of messages into a single list.
 
-#### **Character & Lorebook Nodes**
+#### **Character Nodes**
 
 *   **Get Character:** Retrieves all information about a specific character.
 *   **Create Character:** Creates a new character.
 *   **Edit Character:** Modifies an existing character's details.
+
+#### **Lorebook Nodes**
+
 *   **Get Lorebook:** Retrieves all entries from a specified lorebook.
 *   **Get Lorebook Entry:** Retrieves a single entry from a lorebook.
 *   **Create Lorebook:** Creates a new, empty lorebook.
@@ -129,7 +132,6 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Execute JS Code:** **(Advanced & Dangerous)** Runs arbitrary JavaScript code. A permission toggle on the flow is required to use this node. Only use it if you understand the code you are writing or pasting.
 *   **Merge Objects:** Combines multiple objects into a single one. If keys conflict, the object connected to a higher-numbered input wins.
 *   **Notification:** Displays a toast notification in the SillyTavern UI (info, success, warning, error).
-*   **String To Number:** Converts a string of text into a number. This is a more explicit version of what the `Type Converter` can do.
 
 ### Simple Example: Reacting to a Keyword
 
