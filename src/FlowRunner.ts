@@ -422,15 +422,74 @@ class FlowRunner {
 
   async executeFlowFromSlashCommand(
     flowId: string,
-    _startNodeId: string,
+    startNodeId: string,
     namedArgs: Record<string, any>,
     unnamedArgs: string,
   ) {
-    const initialInput = { ...namedArgs, unnamed: unnamedArgs || '' };
-    // Slash command callbacks expect a return value, so we must await the result.
-    // This bypasses the queue for now. This could be refactored to use a Promise that resolves when the queued item is done.
-    // For now, let's keep it simple and execute it directly.
+    const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
+    if (!flowData) {
+      return `Error: Flow with ID "${flowId}" not found.`;
+    }
+
+    const slashCommandNode = flowData.flow.nodes.find((node) => node.id === startNodeId);
+    if (!slashCommandNode || slashCommandNode.type !== 'slashCommandNode') {
+      return `Error: Could not find the corresponding Slash Command trigger in flow "${flowData.name}".`;
+    }
+    const nodeData = slashCommandNode.data as SlashCommandNodeData;
+
+    const processedArgs: Record<string, any> = {};
+
+    for (const argDef of nodeData.arguments) {
+      const rawValue = namedArgs[argDef.name];
+
+      if (rawValue === undefined || rawValue === null) {
+        if (argDef.isRequired) {
+          return `Error: Missing required argument "${argDef.name}".`;
+        }
+        continue; // Optional argument not provided.
+      }
+
+      try {
+        switch (argDef.type) {
+          case 'number':
+            const num = parseFloat(rawValue);
+            if (isNaN(num)) {
+              throw new Error(`'${rawValue}' is not a valid number.`);
+            }
+            processedArgs[argDef.name] = num;
+            break;
+          case 'boolean':
+            if (typeof rawValue === 'boolean') {
+              processedArgs[argDef.name] = rawValue;
+            } else {
+              const lowerVal = String(rawValue).toLowerCase();
+              if (lowerVal === 'true') {
+                processedArgs[argDef.name] = true;
+              } else if (lowerVal === 'false') {
+                processedArgs[argDef.name] = false;
+              } else {
+                throw new Error(`'${rawValue}' is not a valid boolean (true/false).`);
+              }
+            }
+            break;
+          case 'list':
+            processedArgs[argDef.name] = String(rawValue)
+              .split(',')
+              .map((s) => s.trim());
+            break;
+          case 'string':
+          default:
+            processedArgs[argDef.name] = String(rawValue);
+            break;
+        }
+      } catch (e: any) {
+        return `Error processing argument "${argDef.name}": ${e.message}`;
+      }
+    }
+
+    const initialInput = { ...processedArgs, unnamed: unnamedArgs || '' };
     const report = await this._executeFlowInternal(flowId, initialInput, 0);
+
     if (report?.error) {
       return `Flow Error: ${report.error.message}`;
     }
