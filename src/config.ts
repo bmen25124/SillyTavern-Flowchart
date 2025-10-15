@@ -7,6 +7,7 @@ import { hideChatMessageRange } from '../../../../chats.js';
 import { SpecFlow } from './flow-spec.js';
 import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
 import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
+import { CURRENT_FLOW_VERSION } from './flow-migrations.js';
 
 export enum PromptEngineeringMode {
   NATIVE = 'native',
@@ -21,6 +22,7 @@ export interface FlowData {
   id: string; // The immutable unique ID
   name: string; // The mutable, user-facing name
   flow: SpecFlow;
+  flowVersion?: string; // Version of the flow format
   allowJsExecution?: boolean;
 }
 
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
       id: defaultFlowId,
       name: 'default',
       flow: createDefaultFlow(),
+      flowVersion: CURRENT_FLOW_VERSION,
       allowJsExecution: false,
     },
   ],

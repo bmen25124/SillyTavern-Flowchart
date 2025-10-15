@@ -32,6 +32,7 @@ import { SpecFlow } from '../../flow-spec.js';
 import { getHandleSpec } from '../../utils/handle-logic.js';
 import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
 import { ValidationIssue } from '../nodes/definitions/types.js';
+import { CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 
 const slugify = (text: string) =>
   text
@@ -526,8 +527,10 @@ const FlowManager: FC = () => {
       settingsManager.saveSettings();
       forceUpdate();
     }
-    const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow)?.flow || { nodes: [], edges: [] };
-    loadFlow(structuredClone(activeFlowData));
+    const activeFlowEntry = settings.flows.find((f) => f.id === settings.activeFlow);
+    const activeFlowData = activeFlowEntry?.flow || { nodes: [], edges: [] };
+    const activeFlowVersion = activeFlowEntry?.flowVersion;
+    loadFlow(structuredClone(activeFlowData), activeFlowVersion);
     useFlowStore.temporal.getState().clear();
   }, []);
 
@@ -537,6 +540,7 @@ const FlowManager: FC = () => {
       const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
       if (activeFlow) {
         activeFlow.flow = getSpecFlow();
+        activeFlow.flowVersion = CURRENT_FLOW_VERSION;
         settingsManager.saveSettings();
         flowRunner.reinitialize();
       }
@@ -673,7 +677,13 @@ const FlowManager: FC = () => {
           newFlows.push({ ...existingFlow, name });
           newEnabledFlows[id] = settings.enabledFlows[id] ?? true;
         } else {
-          newFlows.push({ id, name, flow: createDefaultFlow(), allowJsExecution: false });
+          newFlows.push({
+            id,
+            name,
+            flow: createDefaultFlow(),
+            flowVersion: CURRENT_FLOW_VERSION,
+            allowJsExecution: false,
+          });
           newEnabledFlows[id] = true;
         }
       }
@@ -705,7 +715,9 @@ const FlowManager: FC = () => {
     const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
     if (!activeFlow) return;
     try {
-      const jsonString = JSON.stringify(getSpecFlow(), null, 2);
+      // Copy just the flow structure, not the full FlowData object
+      const flowStructure = getSpecFlow();
+      const jsonString = JSON.stringify(flowStructure, null, 2);
       await navigator.clipboard.writeText(jsonString);
       notify('info', `Flow "${activeFlow.name}" copied to clipboard as JSON.`, 'ui_action');
     } catch (err) {
@@ -721,13 +733,40 @@ const FlowManager: FC = () => {
         notify('error', 'Clipboard is empty.', 'ui_action');
         return;
       }
-      const parsedData = JSON.parse(clipboardText);
-      if (!parsedData || !Array.isArray(parsedData.nodes) || !Array.isArray(parsedData.edges)) {
+      const importedFlow = JSON.parse(clipboardText) as SpecFlow;
+
+      if (!importedFlow || !Array.isArray(importedFlow.nodes) || !Array.isArray(importedFlow.edges)) {
         throw new Error('Parsed JSON is not a valid flow structure.');
       }
-      loadFlow(parsedData as SpecFlow);
+
+      // Check if this looks like an exported FlowData object (has version info)
+      let importedFlowVersion: string | undefined = undefined;
+
+      if (importedFlow && typeof importedFlow === 'object' && 'flowVersion' in importedFlow) {
+        // This is likely a full FlowData export
+        const flowData = importedFlow as any;
+        importedFlowVersion = flowData.flowVersion;
+      }
+
+      // For pasted flows, we assume they might be from an older version
+      const needsMigration = !importedFlowVersion; // If no version, assume needs migration
+
+      if (needsMigration) {
+        const { Popup } = SillyTavern.getContext();
+        const confirmation = await Popup.show.confirm(
+          'Flow Paste',
+          `The pasted flow may need to be migrated to work correctly. Do you want to proceed?`,
+        );
+
+        if (!confirmation) {
+          return;
+        }
+      }
+
+      loadFlow(importedFlow, importedFlowVersion);
       useFlowStore.temporal.getState().clear();
-      notify('info', 'Flow pasted from clipboard, replacing current flow.', 'ui_action');
+      const migrationMessage = needsMigration ? ' (may require migration)' : '';
+      notify('info', `Flow pasted from clipboard${migrationMessage}, replacing current flow.`, 'ui_action');
     } catch (error) {
       console.error('Failed to paste flow:', error);
       notify('error', 'Failed to paste from clipboard. Make sure it contains valid flow JSON.', 'ui_action');
@@ -765,10 +804,10 @@ const FlowManager: FC = () => {
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         try {
           const text = event.target?.result as string;
-          const importedFlow = JSON.parse(text) as SpecFlow;
+          let importedFlow = JSON.parse(text) as SpecFlow;
 
           if (!importedFlow || !Array.isArray(importedFlow.nodes) || !Array.isArray(importedFlow.edges)) {
             throw new Error('Invalid flow file structure.');
@@ -789,10 +828,37 @@ const FlowManager: FC = () => {
             newName = `${newName}-${i}`;
           }
 
+          // For imported flows, we assume they might be from an older version
+          // and need migration
+          let importedFlowVersion: string | undefined = undefined;
+
+          // Check if this looks like an exported FlowData object (has version info)
+          if (importedFlow && typeof importedFlow === 'object' && 'flowVersion' in importedFlow) {
+            // This is likely a full FlowData export
+            const flowData = importedFlow as any;
+            importedFlow = flowData.flow || importedFlow;
+            importedFlowVersion = flowData.flowVersion;
+          }
+
+          const needsMigration = !importedFlowVersion; // If no version, assume needs migration
+
+          if (needsMigration) {
+            const { Popup } = SillyTavern.getContext();
+            const confirmation = await Popup.show.confirm(
+              'Flow Import',
+              `The imported flow may need to be migrated to work correctly with your current version. Do you want to proceed with import and migration?`,
+            );
+
+            if (!confirmation) {
+              return;
+            }
+          }
+
           const newFlow: FlowData = {
             id: crypto.randomUUID(),
             name: newName,
             flow: importedFlow,
+            flowVersion: importedFlowVersion || CURRENT_FLOW_VERSION,
             allowJsExecution: false, // Security: never trust imported flows by default
           };
 
@@ -801,11 +867,12 @@ const FlowManager: FC = () => {
           currentSettings.activeFlow = newFlow.id;
 
           settingsManager.saveSettings();
-          loadFlow(importedFlow);
+          loadFlow(importedFlow, importedFlowVersion);
           useFlowStore.temporal.getState().clear();
           forceUpdate();
 
-          notify('info', `Flow "${newName}" imported successfully.`, 'ui_action');
+          const migrationMessage = needsMigration ? ' (may require migration)' : '';
+          notify('info', `Flow "${newName}" imported${migrationMessage} successfully.`, 'ui_action');
         } catch (err: any) {
           console.error('Failed to import flow:', err);
           notify('error', `Failed to import flow: ${err.message}`, 'ui_action');

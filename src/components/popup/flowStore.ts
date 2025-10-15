@@ -14,6 +14,7 @@ import {
 import { temporal } from 'zundo';
 import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 import { runMigrations } from '../../migrations.js';
+import { migrateFlowFormat, CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 import { registrator } from '../nodes/autogen-imports.js';
 
 type Clipboard = {
@@ -31,7 +32,7 @@ export type FlowState = {
   onConnect: (connection: Connection) => void;
   updateNodeData: (nodeId: string, data: object) => void;
   toggleNodeDisabled: (nodeIds: string[]) => void;
-  loadFlow: (flowData: SpecFlow) => void;
+  loadFlow: (flowData: SpecFlow, flowVersion?: string) => void;
   getSpecFlow: () => SpecFlow;
   addNode: (node: Omit<Node, 'id'>) => Node;
   duplicateNode: (nodeId: string) => void;
@@ -185,12 +186,17 @@ export const useFlowStore = create(
           };
         });
       },
-      loadFlow: (flowData) => {
-        const migratedFlow = runMigrations(flowData);
-        const nodes = (migratedFlow.nodes || []).map(fromSpecNode);
+      loadFlow: (flowData, flowVersion?: string) => {
+        // First migrate node data versions
+        const nodeMigratedFlow = runMigrations(flowData);
+
+        // Then migrate flow format if needed
+        const formatMigratedFlow = migrateFlowFormat(nodeMigratedFlow, flowVersion, CURRENT_FLOW_VERSION);
+
+        const nodes = (formatMigratedFlow.nodes || []).map(fromSpecNode);
         set({
           nodes: nodes,
-          edges: (migratedFlow.edges || []).map(fromSpecEdge),
+          edges: (formatMigratedFlow.edges || []).map(fromSpecEdge),
           nodesMap: new Map(nodes.map((n) => [n.id, n])),
         });
       },
