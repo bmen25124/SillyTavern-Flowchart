@@ -52,10 +52,17 @@ export function schemaToText(schema: z.ZodType, indent = 0): string {
 
 // Helper to generate a flat list of dot-notation paths from a Zod schema.
 export function flattenZodSchema(schema: z.ZodType, prefix = ''): string[] {
+  // Check for wrapper types first
   if ('unwrap' in schema && typeof schema.unwrap === 'function') {
     // @ts-ignore
     return flattenZodSchema(schema.unwrap(), prefix);
   }
+  if ('innerType' in schema && typeof schema.innerType === 'function') {
+    // @ts-ignore
+    return flattenZodSchema(schema.innerType(), prefix);
+  }
+
+  // Check for concrete types
   if (schema instanceof z.ZodObject) {
     const shape = schema.shape;
     return Object.entries(shape).flatMap(([key, value]) => flattenZodSchema(value, prefix ? `${prefix}.${key}` : key));

@@ -5,7 +5,8 @@ export function zodTypeToFlowType(type: z.ZodType): FlowDataType {
   if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
   if (type instanceof z.ZodString) return FlowDataType.STRING;
   if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-  if (type instanceof z.ZodObject || type instanceof z.ZodArray) return FlowDataType.OBJECT;
+  if (type instanceof z.ZodObject || type instanceof z.ZodArray || type instanceof z.ZodEnum)
+    return FlowDataType.OBJECT;
   return FlowDataType.ANY;
 }
 

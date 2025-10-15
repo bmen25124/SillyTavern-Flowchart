@@ -23,6 +23,10 @@ function jsonItemToZod(item: JsonNodeItem): z.ZodType {
 }
 
 export function inferSchemaFromJsonNode(data: JsonNodeData): z.ZodType {
+  if (data.rootType === 'array') {
+    const firstItem = data.items?.[0];
+    return z.array(firstItem ? jsonItemToZod(firstItem) : z.any());
+  }
   const shape: Record<string, z.ZodType> = {};
   data.items.forEach((item) => {
     shape[item.key] = jsonItemToZod(item);
