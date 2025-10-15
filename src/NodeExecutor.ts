@@ -39,6 +39,7 @@ export interface FlowRunnerDependencies {
   ) => Promise<Record<string, WIEntry[]>>;
   sendChatMessage: (message: string, role: 'user' | 'assistant' | 'system', name?: string) => Promise<void>;
   deleteMessage: (messageId: number) => Promise<void>;
+  hideChatMessageRange: (start: number, end: number, unhide: boolean) => Promise<void>;
   saveChat: () => Promise<void>;
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
   st_runRegexScript: (script: any, content: string) => string;

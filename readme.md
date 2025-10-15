@@ -88,6 +88,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 *   **Get Chat Message:** Retrieves the details of a specific message from the chat history (e.g., the very last message).
 *   **Edit Chat Message:** Modifies the content of an existing message.
 *   **Remove Chat Message:** Deletes a message from the chat history.
+*   **Hide/Show Message (Context):** Hides or shows a message or range of messages from being included in the LLM's context. This does not affect the message's visibility in the chat UI.
 
 #### **API Request Nodes**
 

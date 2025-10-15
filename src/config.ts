@@ -1,6 +1,9 @@
 // @ts-ignore
 import { updateMessageBlock } from '../../../../../script.js';
 
+// @ts-ignore
+import { hideChatMessageRange } from '../../../../chats.js';
+
 import { SpecFlow } from './flow-spec.js';
 import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
 import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
@@ -73,4 +76,8 @@ export const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(E
 
 export function st_updateMessageBlock(messageId: number, message: object, { rerenderMessage = true } = {}): void {
   updateMessageBlock(messageId, message, { rerenderMessage });
+}
+
+export async function st_hideChatMessageRange(start: number, end: number, unhide: boolean) {
+  await hideChatMessageRange(start, end, unhide);
 }

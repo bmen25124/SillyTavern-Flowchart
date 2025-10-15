@@ -1,8 +1,9 @@
 // A generic mock function that can be chained.
 const mockFn = () => {};
 
-// 1. Mock for ../../../../../script.js
+// 1. Mock for SillyTavern runtime scripts
 export const updateMessageBlock = mockFn;
+export const hideChatMessageRange = mockFn;
 
 // 2. Mocks for sillytavern-utils-lib and its subpaths
 

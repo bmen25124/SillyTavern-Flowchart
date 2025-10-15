@@ -43,6 +43,7 @@ describe('LowLevelFlowRunner', () => {
       st_runRegexScript: jest.fn(),
       makeSimpleRequest: jest.fn(),
       executeSubFlow: jest.fn(),
+      hideChatMessageRange: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });

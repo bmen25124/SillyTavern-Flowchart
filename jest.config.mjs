@@ -6,7 +6,8 @@ export default {
   moduleNameMapper: {
     '\\.(css|scss)$': 'identity-obj-proxy',
 
-    // 1. Mock the deep relative import for script.js
+    // Mock SillyTavern runtime scripts
+    '../../../../chats.js': '<rootDir>/src/test/__mocks__/runtimeMock.mjs',
     '../../../../../script.js': '<rootDir>/src/test/__mocks__/runtimeMock.mjs',
 
     // 2. Mock sillytavern-utils-lib AND any subpaths (like /types, /config)

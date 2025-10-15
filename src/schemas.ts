@@ -14,5 +14,5 @@ export const ChatMessageSchema = z.object({
   name: z.string().describe('The name of the sender.'),
   mes: z.string().describe('The content of the message.'),
   is_user: z.boolean().describe('True if the message is from the user.'),
-  is_system: z.boolean().describe('True if the message is from the system.'),
+  is_system: z.boolean().describe('True if the message is a system message (hidden from LLM context).'),
 });

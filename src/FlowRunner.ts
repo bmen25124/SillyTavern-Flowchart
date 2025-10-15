@@ -5,7 +5,7 @@ import { makeSimpleRequest, getBaseMessagesForProfile, makeStructuredRequest } f
 import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
-import { settingsManager, st_updateMessageBlock } from './config.js';
+import { settingsManager, st_hideChatMessageRange, st_updateMessageBlock } from './config.js';
 import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
@@ -129,6 +129,7 @@ class FlowRunner {
       getWorldInfos,
       sendChatMessage: (message, role, name) => sendChatMessage(message, role, name),
       deleteMessage: (messageId) => SillyTavern.getContext().deleteMessage(messageId),
+      hideChatMessageRange: st_hideChatMessageRange,
       saveChat: () => SillyTavern.getContext().saveChat(),
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),

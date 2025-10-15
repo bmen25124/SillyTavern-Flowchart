@@ -16,6 +16,7 @@ export const mockDependencies = (): jest.Mocked<FlowRunnerDependencies> => ({
   getWorldInfos: jest.fn(),
   sendChatMessage: jest.fn(),
   deleteMessage: jest.fn(),
+  hideChatMessageRange: jest.fn(),
   saveChat: jest.fn(),
   st_updateMessageBlock: jest.fn(),
   st_runRegexScript: jest.fn(),
