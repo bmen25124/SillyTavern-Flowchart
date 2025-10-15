@@ -7,6 +7,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 const CharacterFieldsSchema = {
   name: z.string().optional(),
@@ -91,14 +92,9 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
-  validate: (node: Node<EditCharacterNodeData>, edges: Edge[]): ValidationIssue[] => {
-    const issues: ValidationIssue[] = [];
-    const isConnected = edges.some((edge) => edge.target === node.id && edge.targetHandle === 'characterAvatar');
-    if (!node.data.characterAvatar && !isConnected) {
-      issues.push({ fieldId: 'characterAvatar', message: 'Character to Edit is required.', severity: 'error' });
-    }
-    return issues;
-  },
+  validate: combineValidators(
+    createRequiredFieldValidator('characterAvatar', 'Character to Edit is required.')
+  ),
   execute,
 };
 
