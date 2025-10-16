@@ -461,7 +461,7 @@ const FlowCanvas: FC<{
         onPaneContextMenu={openNodeCreationMenu}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
-        nodeTypes={registrator.nodeTypes}
+        nodeTypes={registrator.nodeTypesWithFallback}
         colorMode="dark"
         fitView
         isValidConnection={isValidConnection}
