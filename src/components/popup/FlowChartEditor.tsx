@@ -548,6 +548,7 @@ const FlowManager: FC = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const { isVisualizationVisible, runId, runStatus, toggleVisualization, clearRun } = useFlowRunStore();
+  const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow);
 
   useEffect(() => {
     if (!settings.flows.find((f) => f.id === settings.activeFlow)) {
@@ -625,8 +626,8 @@ const FlowManager: FC = () => {
   }, [copySelection, paste, getNodes, screenToFlowPosition, undo, redo, fitView]);
 
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
-    () => validateFlow(getSpecFlow()),
-    [nodes, edges, getSpecFlow],
+    () => validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false),
+    [nodes, edges, getSpecFlow, activeFlowData?.allowDangerousExecution],
   );
 
   const flowItems = useMemo(
@@ -710,7 +711,7 @@ const FlowManager: FC = () => {
             name,
             flow: createDefaultFlow(),
             flowVersion: CURRENT_FLOW_VERSION,
-            allowJsExecution: false,
+            allowDangerousExecution: false,
           });
           newEnabledFlows[id] = true;
         }
@@ -887,7 +888,7 @@ const FlowManager: FC = () => {
             name: newName,
             flow: importedFlow,
             flowVersion: importedFlowVersion || CURRENT_FLOW_VERSION,
-            allowJsExecution: false, // Security: never trust imported flows by default
+            allowDangerousExecution: false, // Security: never trust imported flows by default
           };
 
           currentSettings.flows = [...currentSettings.flows, newFlow];
@@ -959,6 +960,7 @@ const FlowManager: FC = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(dataUrl);
         notify('info', 'Screenshot saved.', 'ui_action');
       } catch (err) {
         console.error('Failed to take screenshot:', err);
@@ -1016,7 +1018,7 @@ const FlowManager: FC = () => {
     [settings, forceUpdate],
   );
 
-  const handleToggleJsPermission = useCallback(
+  const handleToggleDangerousPermission = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const allow = e.target.checked;
       const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow);
@@ -1024,13 +1026,13 @@ const FlowManager: FC = () => {
       if (allow) {
         const { Popup } = SillyTavern.getContext();
         const confirmation = await Popup.show.confirm(
-          'Allow JavaScript Execution?',
-          'Enabling this allows the flow to run arbitrary JavaScript code, which can be a security risk if you import a flow from an untrusted source. Do you want to proceed?',
+          'Allow Dangerous Operations?',
+          'Enabling this allows the flow to run nodes that can execute arbitrary code or make external network requests. This can be a security risk if you import a flow from an untrusted source. Do you want to proceed?',
         );
-        if (confirmation) activeFlowData.allowJsExecution = true;
+        if (confirmation) activeFlowData.allowDangerousExecution = true;
         else e.target.checked = false;
       } else {
-        activeFlowData.allowJsExecution = false;
+        activeFlowData.allowDangerousExecution = false;
       }
       settingsManager.saveSettings();
       forceUpdate();
@@ -1043,8 +1045,6 @@ const FlowManager: FC = () => {
     settingsManager.saveSettings();
     forceUpdate();
   }, [settings, forceUpdate]);
-
-  const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow);
 
   return (
     <div className="flowchart-editor-manager">
@@ -1076,12 +1076,12 @@ const FlowManager: FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <STInput
             type="checkbox"
-            id="flow-js-permission-toggle"
-            checked={activeFlowData?.allowJsExecution ?? false}
-            onChange={handleToggleJsPermission}
-            title="Allow this flow to execute custom JavaScript code. This can be a security risk."
+            id="flow-dangerous-permission-toggle"
+            checked={activeFlowData?.allowDangerousExecution ?? false}
+            onChange={handleToggleDangerousPermission}
+            title="Allow this flow to execute dangerous nodes like Execute JS or HTTP Request. This can be a security risk."
           />
-          <label htmlFor="flow-js-permission-toggle">Allow JS</label>
+          <label htmlFor="flow-dangerous-permission-toggle">Allow Dangerous</label>
         </div>
         <div style={{ flex: 1 }}></div>
         {runId && (

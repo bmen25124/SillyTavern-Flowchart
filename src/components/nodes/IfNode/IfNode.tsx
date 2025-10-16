@@ -144,8 +144,8 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected, type }) 
 
   const topLevelInputFields = useMemo(
     () => [
-      createFieldConfig({ id: 'main', label: 'Main (Control Flow)', component: () => null }),
-      createFieldConfig({ id: 'value', label: 'Input Value (to test)', component: () => null }),
+      createFieldConfig({ id: 'main', label: 'Main', component: () => null }),
+      createFieldConfig({ id: 'value', label: 'Input Value', component: () => null }),
     ],
     [],
   );

@@ -239,7 +239,7 @@ export class LowLevelFlowRunner {
       const sourceOutput = nodeOutputs[edge.source];
       const sourceNode = nodesById.get(edge.source);
 
-      if (sourceOutput === undefined || typeof sourceOutput !== 'object' || sourceOutput === null) {
+      if (sourceOutput === undefined) {
         continue;
       }
 

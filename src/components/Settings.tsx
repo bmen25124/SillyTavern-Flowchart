@@ -65,8 +65,6 @@ export const FlowChartSettings: FC = () => {
                   const checked = e.target.checked;
                   updateAndRefresh((s) => (s.enabled = checked));
                   flowRunner.reinitialize();
-                  // @ts-ignore
-                  if (window.updateFlowChartFateToggleUI) window.updateFlowChartFateToggleUI();
                 }}
               />
             </div>

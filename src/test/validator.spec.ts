@@ -15,7 +15,7 @@ describe('validateFlow', () => {
       ],
       edges: [],
     };
-    const { isValid, errors } = validateFlow(flow);
+    const { isValid, errors } = validateFlow(flow, true);
     expect(isValid).toBe(true);
     expect(errors).toHaveLength(0);
   });
@@ -33,7 +33,7 @@ describe('validateFlow', () => {
       ],
       edges: [{ id: 'e1', source: 'other', target: 'start', sourceHandle: null, targetHandle: null }],
     };
-    const { isValid, errors } = validateFlow(flow);
+    const { isValid, errors } = validateFlow(flow, true);
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [triggerNode]: Trigger nodes cannot have incoming connections.');
   });
@@ -51,7 +51,7 @@ describe('validateFlow', () => {
         { id: 'e3', source: 'c', target: 'a', sourceHandle: null, targetHandle: null },
       ],
     };
-    const { isValid, errors } = validateFlow(flow);
+    const { isValid, errors } = validateFlow(flow, true);
     expect(isValid).toBe(false);
     expect(errors).toContain('Flow has a cycle (circular dependency).');
   });
@@ -61,7 +61,7 @@ describe('validateFlow', () => {
       nodes: [{ id: 'a', type: 'stringNode', data: { value: 123 } }], // value should be a string
       edges: [],
     };
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow, true);
     expect(isValid).toBe(false);
     expect(errors[0]).toContain('expected string, received number');
     expect(invalidNodeIds.has('a')).toBe(true);
@@ -72,7 +72,7 @@ describe('validateFlow', () => {
       nodes: [{ id: 'a', type: 'stringNode', data: { value: 'hello' } }],
       edges: [{ id: 'e1', source: 'a', target: 'b', sourceHandle: null, targetHandle: null }],
     };
-    const { isValid, errors, invalidEdgeIds } = validateFlow(flow);
+    const { isValid, errors, invalidEdgeIds } = validateFlow(flow, true);
     expect(isValid).toBe(false);
     expect(errors).toContain('Edge [e1]: Target node "b" not found.');
     expect(invalidEdgeIds.has('e1')).toBe(true);
@@ -83,7 +83,7 @@ describe('validateFlow', () => {
       nodes: [{ id: 'a', type: 'unknownNodeType', data: {} }],
       edges: [],
     };
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow, true);
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [unknownNodeType]: Unknown node type "unknownNodeType".');
     expect(invalidNodeIds.has('a')).toBe(true);

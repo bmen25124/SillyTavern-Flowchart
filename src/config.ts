@@ -23,7 +23,7 @@ export interface FlowData {
   name: string; // The mutable, user-facing name
   flow: SpecFlow;
   flowVersion?: string; // Version of the flow format
-  allowJsExecution?: boolean;
+  allowDangerousExecution: boolean;
 }
 
 export interface ExtensionSettings {
@@ -65,7 +65,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
       name: 'default',
       flow: createDefaultFlow(),
       flowVersion: CURRENT_FLOW_VERSION,
-      allowJsExecution: false,
+      allowDangerousExecution: false,
     },
   ],
   enabledFlows: {

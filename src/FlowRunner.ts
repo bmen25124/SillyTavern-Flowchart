@@ -180,8 +180,8 @@ class FlowRunner {
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
     const enabledFlows = Object.values(settings.flows).filter((flow) => settings.enabledFlows[flow.id] !== false);
 
-    for (const { id: flowId, name, flow } of enabledFlows) {
-      const { isValid, errors } = validateFlow(flow);
+    for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
+      const { isValid, errors } = validateFlow(flow, allowDangerousExecution);
       if (!isValid) {
         console.warn(`Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
         continue;
@@ -353,18 +353,6 @@ class FlowRunner {
       return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
     }
     const flow = flowData.flow;
-
-    const hasDangerousNode = flow.nodes.some((node) => {
-      if (node.data?.disabled) return false;
-      const definition = registrator.nodeDefinitionMap.get(node.type);
-      return definition?.isDangerous;
-    });
-
-    if (hasDangerousNode && !flowData.allowJsExecution) {
-      const errorMsg = `Flow "${flowData.name}" contains nodes that can execute code but it does not have permission. You can grant permission in the Flow Ground.`;
-      notify('error', `FlowChart: ${errorMsg}`, 'execution');
-      return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
-    }
 
     if (depth === 0) {
       this.abortController = new AbortController();

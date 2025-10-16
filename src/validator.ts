@@ -1,6 +1,7 @@
 import { SpecFlow } from './flow-spec.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { ValidationIssue } from './components/nodes/definitions/types.js';
+import { IfNodeData } from './components/nodes/IfNode/definition.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -10,7 +11,7 @@ export interface ValidationResult {
   errorsByNodeId: Map<string, ValidationIssue[]>;
 }
 
-export const validateFlow = (flow: SpecFlow): ValidationResult => {
+export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
@@ -33,7 +34,7 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
 
-  // 1. Validate each node's data schema (Zod) and semantic rules (validate function)
+  // 1. Validate each node's data schema, semantic rules, and dangerous permissions
   for (const node of flow.nodes) {
     if (node.data?.disabled) {
       continue;
@@ -56,6 +57,20 @@ export const validateFlow = (flow: SpecFlow): ValidationResult => {
       if (definition.validate) {
         const issues = definition.validate(node as any, flow.edges as any);
         issues.forEach((issue) => addNodeError(node.id, node.type, issue));
+      }
+
+      // Dangerous node permission validation
+      let isNodeConsideredDangerous = definition.isDangerous;
+      if (node.type === 'ifNode') {
+        // IfNode is only dangerous if a condition is in advanced mode.
+        isNodeConsideredDangerous = (node.data as IfNodeData).conditions.some((c) => c.mode === 'advanced');
+      }
+
+      if (isNodeConsideredDangerous && !allowDangerousExecution) {
+        addNodeError(node.id, node.type, {
+          message: "This dangerous node requires permission. Enable 'Allow Dangerous' in the flow settings.",
+          severity: 'error',
+        });
       }
     } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
       addNodeError(node.id, node.type, { message: `Unknown node type "${node.type}".`, severity: 'error' });

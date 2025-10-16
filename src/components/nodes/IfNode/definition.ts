@@ -162,7 +162,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
 
     // Add the 'false' handle to the dynamic list
     const allOutputs = [
-      { id: 'main', type: passthroughType, schema: passthroughSchema, label: 'Main (Passthrough)' },
+      { id: 'main', type: passthroughType, schema: passthroughSchema, label: 'Main' },
       ...conditionalOutputs,
       { id: 'false', type: passthroughType, schema: passthroughSchema, label: 'Else' },
     ];
