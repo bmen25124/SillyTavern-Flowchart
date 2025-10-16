@@ -446,6 +446,32 @@ const FlowCanvas: FC<{
     resume();
   }, [resume]);
 
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const nodeType = event.dataTransfer.getData('application/reactflow/node-type');
+      if (!nodeType) return;
+
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const nodeDef = registrator.nodeDefinitionMap.get(nodeType);
+
+      if (!nodeDef) return;
+
+      addNode({
+        type: nodeType,
+        position,
+        data: structuredClone(nodeDef.initialData || {}),
+      });
+    },
+    [screenToFlowPosition, addNode],
+  );
+
   return (
     <div className="flowchart-editor-canvas" onContextMenu={(e) => e.preventDefault()}>
       <ReactFlow
@@ -461,6 +487,8 @@ const FlowCanvas: FC<{
         onPaneContextMenu={openNodeCreationMenu}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
         nodeTypes={registrator.nodeTypesWithFallback}
         colorMode="dark"
         fitView

@@ -104,6 +104,11 @@ export const NodePalette: FC = () => {
                     <div
                       key={node.type}
                       className="node-item"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('application/reactflow/node-type', node.type);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
                       onClick={(e) => onNodeClick(e, node.type, structuredClone(node.initialData))}
                       title={node.label}
                     >
