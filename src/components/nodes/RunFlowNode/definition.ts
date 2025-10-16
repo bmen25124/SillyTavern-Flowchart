@@ -14,7 +14,7 @@ export const RunFlowNodeDataSchema = z.object({
 });
 export type RunFlowNodeData = z.infer<typeof RunFlowNodeDataSchema>;
 
-const execute: NodeExecutor = async (node, input, { dependencies, depth }) => {
+const execute: NodeExecutor = async (node, input, { dependencies, depth, executionPath }) => {
   const data = RunFlowNodeDataSchema.parse(node.data);
   const flowId = resolveInput(input, data, 'flowId');
   if (!flowId) throw new Error('Flow ID/Name is required.');
@@ -27,7 +27,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, depth }) => {
     throw new Error(`Invalid JSON in parameters: ${e.message}`);
   }
 
-  const report = await dependencies.executeSubFlow(flowId, params, depth + 1);
+  const report = await dependencies.executeSubFlow(flowId, params, depth + 1, executionPath);
 
   if (report.error) {
     throw new Error(`Sub-flow "${flowId}" failed: ${report.error.message}`);

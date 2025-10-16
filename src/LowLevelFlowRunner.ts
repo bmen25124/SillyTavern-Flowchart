@@ -30,6 +30,7 @@ export class LowLevelFlowRunner {
     depth: number,
     signal?: AbortSignal,
     options: { startNodeId?: string; endNodeId?: string } = {},
+    executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     console.log(`[FlowChart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
 
@@ -123,6 +124,7 @@ export class LowLevelFlowRunner {
             executionVariables,
             depth,
             signal,
+            executionPath,
           });
 
           if (outputFromExecutor === END_NODE_SENTINEL) {

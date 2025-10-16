@@ -136,7 +136,8 @@ class FlowRunner {
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
-      executeSubFlow: (flowId, initialInput, depth) => this.executeFlow(flowId, initialInput, depth),
+      executeSubFlow: (flowId, initialInput, depth, executionPath) =>
+        this.executeFlow(flowId, initialInput, depth, {}, executionPath),
       promptUser: (message, defaultValue) => Popup.show.input('Question', message, defaultValue),
       confirmUser: (message) => Popup.show.confirm('Confirm', message),
     };
@@ -181,7 +182,7 @@ class FlowRunner {
     const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
 
     for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
-      const { isValid, errors } = validateFlow(flow, allowDangerousExecution);
+      const { isValid, errors } = validateFlow(flow, allowDangerousExecution, flowId);
       if (!isValid) {
         console.warn(`Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
         continue;
@@ -316,9 +317,12 @@ class FlowRunner {
     initialInput: Record<string, any>,
     depth = 0,
     options: { startNodeId?: string; endNodeId?: string } = {},
+    executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
-    if (!flowData) throw new Error(`Flow with id ${flowId} not found.`);
+    if (!flowData) {
+      throw new Error(`Flow with id ${flowId} not found.`);
+    }
 
     if (depth > 10) {
       throw new Error('Flow execution depth limit exceeded (10). Possible infinite recursion.');
@@ -337,7 +341,7 @@ class FlowRunner {
     }
 
     // This is a sub-flow execution, run it directly.
-    return this._executeFlowInternal(flowId, initialInput, depth, options);
+    return this._executeFlowInternal(flowId, initialInput, depth, options, executionPath);
   }
 
   private async _executeFlowInternal(
@@ -345,6 +349,7 @@ class FlowRunner {
     initialInput: Record<string, any>,
     depth: number,
     options: { startNodeId?: string; endNodeId?: string } = {},
+    executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
     if (!flowData) {
@@ -352,7 +357,33 @@ class FlowRunner {
       console.error(`[FlowChart] ${errorMsg}`);
       return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
     }
+
+    if (executionPath.includes(flowId)) {
+      const cyclePath = [...executionPath, flowId].map(
+        (id) => settingsManager.getSettings().flows.find((f) => f.id === id)?.name || id,
+      );
+      const errorMsg = `Circular sub-flow execution detected: ${cyclePath.join(' -> ')}`;
+      notify('error', errorMsg, 'execution');
+      return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
+    }
+
+    if (!flowData.enabled && depth > 0) {
+      // Sub-flows can't run if disabled. Top-level flows are already filtered in reinitialize.
+      const errorMsg = `Flow "${flowData.name}" is disabled and cannot be run as a sub-flow.`;
+      notify('error', errorMsg, 'execution');
+      return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
+    }
+
+    const { isValid, errors } = validateFlow(flowData.flow, flowData.allowDangerousExecution, flowId);
+    if (!isValid) {
+      const errorMessage = `Flow "${flowData.name}" is invalid and cannot be run. Errors: ${errors.join(', ')}`;
+      notify('error', errorMessage, 'execution');
+      console.error(`[FlowChart] ${errorMessage}`);
+      return { executedNodes: [], error: { nodeId: 'N/A', message: `Validation failed: ${errors[0]}` } };
+    }
+
     const flow = flowData.flow;
+    const newExecutionPath = [...executionPath, flowId];
 
     if (depth === 0) {
       this.abortController = new AbortController();
@@ -371,6 +402,7 @@ class FlowRunner {
         depth,
         this.abortController?.signal,
         options,
+        newExecutionPath, // Pass the path down
       );
 
       if (depth === 0) {

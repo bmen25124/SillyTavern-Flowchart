@@ -45,7 +45,12 @@ export interface FlowRunnerDependencies {
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
   st_runRegexScript: (script: any, content: string) => string;
   executeSlashCommandsWithOptions: (text: string, options?: any) => Promise<any>;
-  executeSubFlow: (flowId: string, initialInput: Record<string, any>, depth: number) => Promise<ExecutionReport>;
+  executeSubFlow: (
+    flowId: string,
+    initialInput: Record<string, any>,
+    depth: number,
+    executionPath: string[],
+  ) => Promise<ExecutionReport>;
   promptUser: (message: string, defaultValue?: string) => Promise<string | null>;
   confirmUser: (message: string) => Promise<boolean>;
 }
@@ -56,6 +61,7 @@ export type NodeExecutorContext = {
   executionVariables: Map<string, any>;
   depth: number;
   signal?: AbortSignal;
+  executionPath: string[];
 };
 
 export type NodeExecutor = (

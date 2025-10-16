@@ -1,7 +1,9 @@
-import { SpecFlow } from './flow-spec.js';
+import { SpecFlow, SpecNode } from './flow-spec.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { ValidationIssue } from './components/nodes/definitions/types.js';
 import { IfNodeData } from './components/nodes/IfNode/definition.js';
+import { RunFlowNodeData } from './components/nodes/RunFlowNode/definition.js';
+import { settingsManager } from './config.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -11,7 +13,59 @@ export interface ValidationResult {
   errorsByNodeId: Map<string, ValidationIssue[]>;
 }
 
-export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean): ValidationResult => {
+/**
+ * Recursively checks for circular references caused by "Run Flow" nodes.
+ * @param startFlowId - The ID of the flow where the "Run Flow" node resides.
+ * @param node - The "Run Flow" node to check.
+ * @param path - The chain of flow IDs leading to this point.
+ * @param allFlows - All available flows in the system.
+ * @returns An error message if a cycle is detected, otherwise null.
+ */
+function detectCrossFlowCycle(
+  startFlowId: string,
+  node: SpecNode,
+  path: string[],
+  allFlows: { id: string; name: string; flow: SpecFlow }[],
+): string | null {
+  if (node.type !== 'runFlowNode') {
+    return null;
+  }
+
+  const runFlowData = node.data as RunFlowNodeData;
+  const targetFlowId = runFlowData.flowId;
+
+  // We can only validate statically set flow IDs. Dynamic ones are a runtime concern.
+  if (!targetFlowId) {
+    return null;
+  }
+
+  const newPath = [...path, startFlowId];
+
+  // Cycle detected
+  if (newPath.includes(targetFlowId)) {
+    const cyclePath = [...newPath, targetFlowId];
+    const cycleNames = cyclePath.map((id) => allFlows.find((f) => f.id === id)?.name || id).join(' -> ');
+    return `Circular sub-flow reference detected: ${cycleNames}`;
+  }
+
+  const targetFlow = allFlows.find((f) => f.id === targetFlowId);
+  if (!targetFlow) {
+    // This is handled by a different check, but we can stop traversing here.
+    return null;
+  }
+
+  // Recurse into the target flow's nodes
+  for (const nextNode of targetFlow.flow.nodes) {
+    const cycleError = detectCrossFlowCycle(targetFlowId, nextNode, newPath, allFlows);
+    if (cycleError) {
+      return cycleError;
+    }
+  }
+
+  return null;
+}
+
+export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, flowId: string): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
@@ -33,6 +87,7 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean): 
   }
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
+  const allFlows = settingsManager.getSettings().flows;
 
   // 1. Validate each node's data schema, semantic rules, and dangerous permissions
   for (const node of flow.nodes) {
@@ -72,6 +127,40 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean): 
           severity: 'error',
         });
       }
+
+      // Check Run Flow nodes for disabled/non-existent targets and cycles
+      if (node.type === 'runFlowNode') {
+        const runFlowData = node.data as RunFlowNodeData;
+        const targetFlowId = runFlowData.flowId;
+
+        if (targetFlowId) {
+          const targetFlowData = allFlows.find((f) => f.id === targetFlowId);
+
+          if (!targetFlowData) {
+            addNodeError(node.id, node.type, {
+              fieldId: 'flowId',
+              message: `Targets a non-existent flow.`,
+              severity: 'error',
+            });
+          } else if (!targetFlowData.enabled) {
+            addNodeError(node.id, node.type, {
+              fieldId: 'flowId',
+              message: `Targets disabled flow: "${targetFlowData.name}".`,
+              severity: 'error',
+            });
+          } else {
+            // Check for circular references starting from this node.
+            const cycleError = detectCrossFlowCycle(flowId, node, [], allFlows);
+            if (cycleError) {
+              addNodeError(node.id, node.type, {
+                fieldId: 'flowId',
+                message: cycleError,
+                severity: 'error',
+              });
+            }
+          }
+        }
+      }
     } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
       addNodeError(node.id, node.type, { message: `Unknown node type "${node.type}".`, severity: 'error' });
     }
@@ -89,7 +178,7 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean): 
     }
   }
 
-  // 3. Validate flow logic - Cycle Detection
+  // 3. Validate flow logic - Cycle Detection (within a single flow)
   const adj: Record<string, string[]> = {};
   flow.nodes.forEach((node) => (adj[node.id] = []));
   flow.edges.forEach((edge) => {
