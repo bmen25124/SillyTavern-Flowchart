@@ -65,7 +65,7 @@ function detectCrossFlowCycle(
   return null;
 }
 
-export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, flowId: string): ValidationResult => {
+export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, flowId?: string): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
@@ -148,7 +148,7 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
               message: `Targets disabled flow: "${targetFlowData.name}".`,
               severity: 'error',
             });
-          } else {
+          } else if (flowId) {
             // Check for circular references starting from this node.
             const cycleError = detectCrossFlowCycle(flowId, node, [], allFlows);
             if (cycleError) {

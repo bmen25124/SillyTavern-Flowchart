@@ -626,7 +626,7 @@ const FlowManager: FC = () => {
   }, [copySelection, paste, getNodes, screenToFlowPosition, undo, redo, fitView]);
 
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
-    () => validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false),
+    () => validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false, activeFlowData?.id),
     [nodes, edges, getSpecFlow, activeFlowData?.allowDangerousExecution],
   );
 

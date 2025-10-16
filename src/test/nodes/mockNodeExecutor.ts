@@ -34,6 +34,7 @@ export const createMockContext = (
   dependencies,
   executionVariables: new Map<string, any>(),
   depth: 0,
+  executionPath: [],
   ...overrides,
 });
 
