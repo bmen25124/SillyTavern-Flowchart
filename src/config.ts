@@ -19,10 +19,11 @@ export const LLM_REQUEST_JSON_PROMPT_KEY = 'json';
 export const LLM_REQUEST_XML_PROMPT_KEY = 'xml';
 
 export interface FlowData {
-  id: string; // The immutable unique ID
-  name: string; // The mutable, user-facing name
+  id: string;
+  name: string;
   flow: SpecFlow;
-  flowVersion?: string; // Version of the flow format
+  flowVersion: string;
+  enabled: boolean;
   allowDangerousExecution: boolean;
 }
 
@@ -32,8 +33,7 @@ export interface ExtensionSettings {
   enabled: boolean;
   prompts: Record<string, string>;
   flows: FlowData[];
-  enabledFlows: Record<string, boolean>; // Key is immutable flow ID
-  activeFlow: string; // Stores the immutable flow ID
+  activeFlow: string;
   isPaletteCollapsed: boolean;
   showExecutionNotifications: boolean;
 }
@@ -66,11 +66,9 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
       flow: createDefaultFlow(),
       flowVersion: CURRENT_FLOW_VERSION,
       allowDangerousExecution: false,
+      enabled: true,
     },
   ],
-  enabledFlows: {
-    [defaultFlowId]: true,
-  },
   isPaletteCollapsed: false,
   showExecutionNotifications: true,
 };

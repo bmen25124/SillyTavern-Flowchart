@@ -178,7 +178,7 @@ class FlowRunner {
     }
 
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
-    const enabledFlows = Object.values(settings.flows).filter((flow) => settings.enabledFlows[flow.id] !== false);
+    const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
 
     for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
       const { isValid, errors } = validateFlow(flow, allowDangerousExecution);
@@ -518,7 +518,8 @@ class FlowRunner {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
-    if (settings.enabledFlows[flowId] === false) {
+    const flow = settings.flows.find((f) => f.id === flowId);
+    if (!flow?.enabled) {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
@@ -533,7 +534,8 @@ class FlowRunner {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
-    if (settings.enabledFlows[flowId] === false) {
+    const flow = settings.flows.find((f) => f.id === flowId);
+    if (!flow?.enabled) {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
@@ -548,7 +550,8 @@ class FlowRunner {
       notify('error', `Flow with ID "${flowId}" not found for manual run.`, 'execution');
       return;
     }
-    if (settings.enabledFlows[flowId] === false) {
+    const flow = settings.flows.find((f) => f.id === flowId);
+    if (!flow?.enabled) {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }

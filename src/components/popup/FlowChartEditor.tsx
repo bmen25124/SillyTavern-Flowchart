@@ -695,7 +695,6 @@ const FlowManager: FC = () => {
     (newItems: PresetItem[]) => {
       const oldFlows = settings.flows;
       const newFlows: FlowData[] = [];
-      const newEnabledFlows: Record<string, boolean> = {};
 
       for (const item of newItems) {
         const id = item.value;
@@ -704,7 +703,6 @@ const FlowManager: FC = () => {
 
         if (existingFlow) {
           newFlows.push({ ...existingFlow, name });
-          newEnabledFlows[id] = settings.enabledFlows[id] ?? true;
         } else {
           newFlows.push({
             id,
@@ -712,13 +710,12 @@ const FlowManager: FC = () => {
             flow: createDefaultFlow(),
             flowVersion: CURRENT_FLOW_VERSION,
             allowDangerousExecution: false,
+            enabled: true,
           });
-          newEnabledFlows[id] = true;
         }
       }
 
       settings.flows = newFlows;
-      settings.enabledFlows = newEnabledFlows;
 
       if (!settings.flows.some((f) => f.id === settings.activeFlow)) {
         settings.activeFlow = newItems.length > 0 ? newItems[0].value : '';
@@ -889,10 +886,10 @@ const FlowManager: FC = () => {
             flow: importedFlow,
             flowVersion: importedFlowVersion || CURRENT_FLOW_VERSION,
             allowDangerousExecution: false, // Security: never trust imported flows by default
+            enabled: true,
           };
 
           currentSettings.flows = [...currentSettings.flows, newFlow];
-          currentSettings.enabledFlows[newFlow.id] = true;
           currentSettings.activeFlow = newFlow.id;
 
           settingsManager.saveSettings();
@@ -1010,7 +1007,9 @@ const FlowManager: FC = () => {
 
   const handleToggleFlow = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      settings.enabledFlows[settings.activeFlow] = e.target.checked;
+      const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow);
+      if (!activeFlowData) return;
+      activeFlowData.enabled = e.target.checked;
       settingsManager.saveSettings();
       flowRunner.reinitialize();
       forceUpdate();
@@ -1067,7 +1066,7 @@ const FlowManager: FC = () => {
           <STInput
             type="checkbox"
             id="flow-enabled-toggle"
-            checked={settings.enabledFlows[settings.activeFlow] !== false}
+            checked={settings.flows.find((f) => f.id === settings.activeFlow)?.enabled ?? false}
             onChange={handleToggleFlow}
             title="Enable or disable this flow from running automatically."
           />
