@@ -55,10 +55,10 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
 
       switch (condition.operator) {
         case 'equals':
-          result = propertyValue == comparisonValue;
+          result = propertyValue === comparisonValue;
           break;
         case 'not_equals':
-          result = propertyValue != comparisonValue;
+          result = propertyValue !== comparisonValue;
           break;
         case 'greater_than':
           result = propertyValue > comparisonValue;
