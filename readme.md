@@ -51,7 +51,7 @@ Here is a list of all available nodes and what they do.
 
 #### **Trigger Nodes**
 
-*   **Event Trigger:** Starts a flow when a specific SillyTavern event occurs (e.g., a user message is sent, a chat is changed). This is the primary way to automate things.
+*   **Event Trigger:** Starts a flow when a specific SillyTavern event occurs (e.g., a user message is sent, a chat is changed). This is the primary way to automate things. For a full list of available events and their descriptions, see the [Event Documentation](EVENT_DOCUMENTATION.md).
 *   **Manual Trigger:** Starts a flow only when you click the main "Run" button in the editor. Useful for testing.
 *   **Slash Command:** Creates a new `/flow-` slash command that, when used in chat, will trigger this flow and pass arguments to it.
 
@@ -84,8 +84,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 
 #### **Chat Nodes**
 
-*   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system.
-*   **Create Empty Message:** Creates a new, empty chat message and outputs its ID. Useful for streaming responses with the `LLM Request` node.
+*   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system. This can be used to create a placeholder message (e.g., with `...` as content) to get a `messageId` for real-time streaming with the `LLM Request` node.
 *   **Get Chat Message:** Retrieves the details of a specific message from the chat history (e.g., the very last message).
 *   **Edit Chat Message:** Modifies the content of an existing message.
 *   **Remove Chat Message:** Deletes a message from the chat history.
@@ -149,11 +148,11 @@ Let's create a simple flow where the character says "Ouch!" whenever the user's 
 
 1.  **Drag an "Event Trigger" node.** Set its "Event" dropdown to `user_message_rendered`. This node will start the flow every time you send a message. It outputs the `messageId` of your new message.
 2.  **Drag a "Get Chat Message" node.** Connect the `messageId` output from the trigger to the `messageId` input of this node. This will fetch the content of the message you just sent.
-3.  **Drag an "If" node.** Connect the `mes` (message content) output from "Get Chat Message" to the main input (the handle without a label) of the "If" node.
+3.  **Drag an "If" node.** Connect the `mes` (message content) output from "Get Chat Message" to the **"Input Value"** input handle of the "If" node.
 4.  **Configure the "If" node.**
     *   Set the operator dropdown to `contains`.
     *   In the value box, type `poke`.
 5.  **Drag a "Send Chat Message" node.** In its "Message Content" box, type `Ouch!`.
-6.  **Connect the flow.** Drag a wire from the "True" output of the "If" node to the input of the "Send Chat Message" node.
+6.  **Connect the flow.** Drag a wire from the "True" output of the "If" node to the `main` input of the "Send Chat Message" node.
 
 That's it! Now, any time you send a message containing "poke", the character will automatically respond with "Ouch!".

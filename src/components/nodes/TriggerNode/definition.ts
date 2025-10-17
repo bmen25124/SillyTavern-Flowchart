@@ -4,13 +4,10 @@ import { EventNameParameters, FlowDataType } from '../../../flow-types.js';
 import { TriggerNode } from './TriggerNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { EventNames } from 'sillytavern-utils-lib/types';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const TriggerNodeDataSchema = z.object({
-  selectedEventType: z.string().refine((val) => Object.values(EventNames).includes(val as any), {
-    message: 'Invalid event type',
-  }),
+  selectedEventType: z.string(), // Allow any string, not just from a predefined list.
   _version: z.number().optional(),
 });
 export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;

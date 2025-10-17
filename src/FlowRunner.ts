@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { EventNameParameters } from './flow-types.js';
 import { sendChatMessage, st_createNewWorldInfo, st_runRegexScript } from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
@@ -435,23 +436,33 @@ class FlowRunner {
   }
 
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
-    const flow = settingsManager.getSettings().flows.find((f) => f.id === flowId)?.flow;
-    if (!flow) {
+    const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
+    if (!flowData || !flowData.flow) {
       console.error(`[FlowChart] Flow with id ${flowId} not found for event trigger.`);
       return;
     }
-    const startNode = flow?.nodes.find((n) => n.id === startNodeId);
+    const startNode = flowData.flow.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
 
     const eventType = startNode.data.selectedEventType as string;
     const eventParams = EventNameParameters[eventType];
     let initialInput: Record<string, any>;
 
-    if (eventParams) {
-      const paramNames = Object.keys(eventParams);
-      initialInput = Object.fromEntries(paramNames.map((name, index) => [name, eventArgs[index]]));
+    if (eventParams && Object.keys(eventParams).length > 0) {
+      const rawInput = Object.fromEntries(Object.keys(eventParams).map((name, index) => [name, eventArgs[index]]));
+
+      const combinedSchema = z.object(eventParams);
+      const parsed = combinedSchema.safeParse(rawInput);
+
+      if (!parsed.success) {
+        console.error(`[FlowChart] Event arguments for "${eventType}" failed validation/coercion:`, parsed.error);
+        notify('error', `Flow "${flowData.name}" could not start due to invalid event data.`, 'execution');
+        return; // Stop execution
+      }
+
+      initialInput = parsed.data;
     } else {
-      // Fallback for unknown events
+      // Fallback for events with no defined params or unknown events
       initialInput = { allArgs: eventArgs };
       eventArgs.forEach((arg, index) => {
         initialInput[`arg${index}`] = arg;
