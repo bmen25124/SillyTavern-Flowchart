@@ -24,6 +24,8 @@ export const mockDependencies = (): jest.Mocked<FlowRunnerDependencies> => ({
   executeSubFlow: jest.fn(),
   promptUser: jest.fn(),
   confirmUser: jest.fn(),
+  getChatInputValue: jest.fn(),
+  updateChatInputValue: jest.fn(),
 });
 
 export const createMockContext = (

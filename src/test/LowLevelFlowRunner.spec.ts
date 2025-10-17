@@ -46,6 +46,8 @@ describe('LowLevelFlowRunner', () => {
       hideChatMessageRange: jest.fn(),
       confirmUser: jest.fn(),
       promptUser: jest.fn(),
+      getChatInputValue: jest.fn(),
+      updateChatInputValue: jest.fn(),
     };
     dependencies.getBaseMessagesForProfile.mockResolvedValue([{ role: 'user', content: 'message' }]);
     dependencies.makeStructuredRequest.mockResolvedValue({ structured: 'data' });

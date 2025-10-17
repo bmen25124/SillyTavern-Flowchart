@@ -139,6 +139,18 @@ class FlowRunner {
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
       executeSubFlow: (flowId, initialInput, depth, executionPath) =>
         this.executeFlow(flowId, initialInput, depth, {}, executionPath),
+      getChatInputValue: () => {
+        const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+        return textarea ? textarea.value : '';
+      },
+      updateChatInputValue: (value: string) => {
+        const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+        if (textarea) {
+          textarea.value = value;
+          // Dispatch an input event to make sure any listeners (like auto-resize) are triggered.
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      },
       promptUser: (message, defaultValue) => Popup.show.input('Question', message, defaultValue),
       confirmUser: (message) => Popup.show.confirm('Confirm', message),
     };

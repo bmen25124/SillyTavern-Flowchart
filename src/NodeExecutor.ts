@@ -51,6 +51,8 @@ export interface FlowRunnerDependencies {
     depth: number,
     executionPath: string[],
   ) => Promise<ExecutionReport>;
+  getChatInputValue: () => string;
+  updateChatInputValue: (value: string) => void;
   promptUser: (message: string, defaultValue?: string) => Promise<string | null>;
   confirmUser: (message: string) => Promise<boolean>;
 }

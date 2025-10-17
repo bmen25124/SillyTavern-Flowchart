@@ -34,8 +34,6 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected, type }) => {
   };
 
   const selectedEventDescription = EventDescriptions[data.selectedEventType];
-  const displayName =
-    Object.keys(EventNames).find((key) => EventNames[key] === data.selectedEventType) ?? data.selectedEventType;
 
   return (
     <BaseNode id={id} title="Trigger via:" selected={selected}>
