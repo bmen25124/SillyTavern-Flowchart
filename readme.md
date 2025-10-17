@@ -54,6 +54,7 @@ Here is a list of all available nodes and what they do.
 *   **Event Trigger:** Starts a flow when a specific SillyTavern event occurs (e.g., a user message is sent, a chat is changed). This is the primary way to automate things. For a full list of available events and their descriptions, see the [Event Documentation](EVENT_DOCUMENTATION.md).
 *   **Manual Trigger:** Starts a flow only when you click the main "Run" button in the editor. Useful for testing.
 *   **Slash Command:** Creates a new `/flow-` slash command that, when used in chat, will trigger this flow and pass arguments to it.
+*   **On Stream Trigger:** A special trigger used for "handler" flows. It starts a flow that is called repeatedly for each piece of data received from an `LLM Request` node's stream. It provides `chunk` (the newest text) and `fullText` (all text received so far) as outputs.
 
 #### **Logic Nodes**
 
@@ -96,7 +97,7 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 
 *   **Create Messages:** Gathers the current chat context (system prompt, character definitions, chat history) to prepare it for an LLM request.
 *   **Custom Message:** Lets you build a list of messages from scratch, ignoring the current chat context.
-*   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text to update a message in real-time.
+*   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text, which can call another flow for each token received (see `On Stream Trigger`).
 *   **Merge Messages:** Combines multiple sets of messages into a single list.
 *   **HTTP Request:** (Advanced) Make requests to any external API. Allows you to connect your flows to other web services.
 
@@ -158,3 +159,41 @@ Let's create a simple flow where the character says "Ouch!" whenever the user's 
 6.  **Connect the flow.** Drag a wire from the "True" output of the "If" node to the `main` input of the "Send Chat Message" node.
 
 That's it! Now, any time you send a message containing "poke", the character will automatically respond with "Ouch!".
+
+### Advanced Example: Real-time Streaming to a Chat Message
+
+This example shows how to use the `LLM Request` node's streaming feature to update a chat message in real-time. This requires two flows: a "Main" flow that initiates the request, and a "Handler" flow that processes each token.
+
+#### Part 1: The Handler Flow (e.g., "Stream Updater")
+
+This flow is responsible for updating the chat message.
+
+1.  Create a new, empty flow and name it `stream-updater`.
+2.  Add an **`On Stream Trigger`** node. This is the entry point for our handler. Notice it has `chunk` and `fullText` outputs.
+3.  Add a **`Get Variable`** node and set its "Variable Name" to `messageIdToUpdate`.
+4.  Add an **`Edit Chat Message`** node.
+5.  Connect the `fullText` output of the `On Stream Trigger` to the `message` input of the `Edit Chat Message` node.
+6.  Connect the `value` output of the `Get Variable` node to the `messageId` input of the `Edit Chat Message` node.
+
+This handler flow is now complete. It's a reusable piece of logic that says: "When a stream sends data, get a variable named `messageIdToUpdate` and use it to edit a chat message with the `fullText` of the stream."
+
+#### Part 2: The Main Flow
+
+This is the flow that the user will trigger.
+
+1.  Start with any trigger (e.g., `Slash Command` with the command `/stream-test`).
+2.  Add a **`Send Chat Message`** node. Set its content to something like `...` (a placeholder). This node will create a new message and output its ID.
+3.  Add a **`Set Variable`** node.
+    *   Set its "Variable Name" to `messageIdToUpdate` (the same name we used in the handler).
+    *   Connect the `messageId` output from the `Send Chat Message` node to the `value` input of this `Set Variable` node. This stores the ID of our placeholder message so the handler can find it.
+4.  Add a **`Create Messages`** node to gather your context for the LLM.
+5.  Add an **`LLM Request`** node.
+    *   Enable the **"Stream Response"** checkbox.
+    *   Connect your `Create Messages` output to the `messages` input.
+    *   Connect your `Profile ID` node.
+6.  Add a **`Picker`** node.
+    *   Set its type to "Flow".
+    *   Select your `stream-updater` flow from the dropdown.
+7.  Connect the output of the `Picker` node to the `onStreamFlowId` input of the `LLM Request` node.
+
+Now, when you run `/flow-stream-test`, it will create a placeholder message, save its ID, and then start an LLM request. For every token the LLM sends, it will trigger your `stream-updater` flow, which will find the placeholder message and update its content in real-time.

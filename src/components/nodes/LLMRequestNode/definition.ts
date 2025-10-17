@@ -22,16 +22,17 @@ export const LLMRequestNodeDataSchema = z.object({
   promptEngineeringMode: z.enum(PromptEngineeringMode).default(PromptEngineeringMode.NATIVE),
   maxResponseToken: z.number().default(1000),
   stream: z.boolean().default(false),
+  onStreamFlowId: z.string().optional(),
   _version: z.number().optional(),
 });
 export type LLMRequestNodeData = z.infer<typeof LLMRequestNodeDataSchema>;
 
-const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
+const execute: NodeExecutor = async (node, input, { dependencies, signal, depth, executionPath }) => {
   const data = LLMRequestNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
   const stream = resolveInput(input, data, 'stream');
-  const messageIdToUpdate = input.messageIdToUpdate;
+  const onStreamFlowId = resolveInput(input, data, 'onStreamFlowId');
   const { messages, schema } = input;
 
   if (!profileId || !messages || maxResponseToken === undefined) {
@@ -53,29 +54,17 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal }) => {
     );
     return { ...result, result };
   } else {
-    let onStream: ((chunk: string) => void) | undefined;
-    if (stream && typeof messageIdToUpdate === 'number') {
-      const { chat } = dependencies.getSillyTavernContext();
-      const messageToUpdate = chat[messageIdToUpdate];
-      if (!messageToUpdate) {
-        throw new Error(`Message with ID ${messageIdToUpdate} not found for streaming.`);
-      }
-
-      onStream = (fullText: string) => {
-        const updatedMessage = { ...messageToUpdate, mes: fullText };
-        dependencies.st_updateMessageBlock(messageIdToUpdate, updatedMessage, { rerenderMessage: true });
+    let onStream: ((streamData: { chunk: string; fullText: string }) => void) | undefined;
+    if (stream && onStreamFlowId) {
+      onStream = (streamData: { chunk: string; fullText: string }) => {
+        // Fire and forget: don't await the sub-flow execution
+        dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath).catch((err) => {
+          console.error(`[FlowChart] Error in streaming sub-flow "${onStreamFlowId}":`, err);
+        });
       };
     }
 
     const result = await dependencies.makeSimpleRequest(profileId, messages, maxResponseToken, onStream, signal);
-
-    if (onStream && typeof messageIdToUpdate === 'number') {
-      const { chat } = dependencies.getSillyTavernContext();
-      const finalMessage = { ...chat[messageIdToUpdate], mes: result };
-      dependencies.st_updateMessageBlock(messageIdToUpdate, finalMessage, { rerenderMessage: true });
-      await dependencies.saveChat();
-    }
-
     return { result };
   }
 };
@@ -119,6 +108,19 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
         severity: 'error',
       });
     }
+
+    if (
+      node.data.stream &&
+      !node.data.onStreamFlowId &&
+      !edges.some((edge) => edge.target === node.id && edge.targetHandle === 'onStreamFlowId')
+    ) {
+      issues.push({
+        fieldId: 'onStreamFlowId',
+        message: 'An "On Stream" flow must be selected when streaming is enabled.',
+        severity: 'error',
+      });
+    }
+
     return issues;
   },
   execute,
@@ -134,9 +136,9 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     }
     if (!isSchemaConnected) {
       dynamicInputs.push({ id: 'stream', type: FlowDataType.BOOLEAN });
-    }
-    if (isStreaming && !isSchemaConnected) {
-      dynamicInputs.push({ id: 'messageIdToUpdate', type: FlowDataType.NUMBER });
+      if (isStreaming) {
+        dynamicInputs.push({ id: 'onStreamFlowId', type: FlowDataType.STRING });
+      }
     }
 
     if (!isSchemaConnected) {

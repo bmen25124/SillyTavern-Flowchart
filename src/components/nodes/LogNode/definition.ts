@@ -6,7 +6,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 
 export const LogNodeDataSchema = z.object({
-  prefix: z.string().default('Log:'),
+  prefix: z.string().default(''),
   _version: z.number().optional(),
 });
 export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
@@ -24,7 +24,7 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   component: LogNode,
   dataSchema: LogNodeDataSchema,
   currentVersion: 1,
-  initialData: { prefix: 'Log:' },
+  initialData: { prefix: '' },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },

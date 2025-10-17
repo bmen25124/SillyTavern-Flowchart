@@ -126,7 +126,7 @@ describe('LowLevelFlowRunner', () => {
       nodes: [
         { id: 'start', type: 'manualTriggerNode', data: { payload: '{}' } },
         { id: 'disabled', type: 'stringNode', data: { value: 'skipped', disabled: true } },
-        { id: 'final', type: 'logNode', data: { prefix: 'Log:' } },
+        { id: 'final', type: 'logNode', data: { prefix: '' } },
       ],
       edges: [
         { id: 'e1', source: 'start', target: 'disabled', sourceHandle: null, targetHandle: 'value' },
