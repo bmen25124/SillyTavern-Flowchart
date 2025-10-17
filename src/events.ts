@@ -1,7 +1,7 @@
 import { NodeReport } from './components/popup/flowRunStore.js';
 
 type EventMap = {
-  openFlowChartDataPopup: [];
+  openFlowchartDataPopup: [];
   'flow:reset-all-settings': [];
   'flow:run:start': [{ runId: string }];
   'node:run:start': [{ runId: string; nodeId: string }];

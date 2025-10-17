@@ -1,17 +1,17 @@
 import { FC, useState, useEffect } from 'react';
 import { STButton } from 'sillytavern-utils-lib/components';
 import { PromptsSettings } from './PromptsSettings.js';
-import { FlowChartEditor } from './FlowChartEditor.js';
+import { FlowchartEditor } from './FlowchartEditor.js';
 import { FlowHistory } from './FlowHistory.js';
 import { eventEmitter } from '../../events.js';
 
 type Tab = 'editor' | 'prompts' | 'history';
 
-interface FlowChartDataPopupProps {
+interface FlowchartDataPopupProps {
   onSave: () => void;
 }
 
-export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
+export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave }) => {
   const [activeTab, setActiveTab] = useState<Tab>('editor');
   const [importKey, setImportKey] = useState(0);
 
@@ -39,7 +39,7 @@ export const FlowChartDataPopup: FC<FlowChartDataPopupProps> = ({ onSave }) => {
         </div>
       </div>
       <div className="flowchart-popup-content">
-        {activeTab === 'editor' && <FlowChartEditor key={`editor-${importKey}`} />}
+        {activeTab === 'editor' && <FlowchartEditor key={`editor-${importKey}`} />}
         {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'history' && <FlowHistory />}
       </div>

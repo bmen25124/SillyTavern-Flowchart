@@ -24,7 +24,7 @@ module.exports = {
             }
             // Externalize deep relative paths that are NOT targeting node_modules.
             // This correctly identifies SillyTavern's runtime scripts.
-            if (request.startsWith('../../..') && (context.includes('node_modules\\sillytavern-utils-lib') || context.includes('SillyTavern-FlowChart\\src'))) {
+            if (request.startsWith('../../..') && (context.includes('node_modules\\sillytavern-utils-lib') || context.includes('SillyTavern-Flowchart\\src'))) {
                 const isFromMySrc = context && !context.includes('node_modules');
                 const isFromUtilsLib = context && context.includes('sillytavern-utils-lib');
                 try {

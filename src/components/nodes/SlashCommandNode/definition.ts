@@ -21,7 +21,7 @@ export type ArgumentDefinition = z.infer<typeof ArgumentDefinitionSchema>;
 
 export const SlashCommandNodeDataSchema = z.object({
   commandName: z.string().min(1, 'Command name cannot be empty.').default('my-command'),
-  helpText: z.string().default('Executes a FlowChart flow.'),
+  helpText: z.string().default('Executes a Flowchart flow.'),
   arguments: z.array(ArgumentDefinitionSchema).default([]),
   _version: z.number().optional(),
 });
@@ -54,7 +54,7 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
   currentVersion: 1,
   initialData: {
     commandName: 'my-command',
-    helpText: 'Executes a FlowChart flow.',
+    helpText: 'Executes a Flowchart flow.',
     arguments: [],
   },
   handles: { inputs: [], outputs: [] },

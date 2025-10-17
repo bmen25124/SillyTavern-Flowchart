@@ -1126,7 +1126,7 @@ const FlowManager: FC = () => {
   );
 };
 
-export const FlowChartEditor: FC = () => {
+export const FlowchartEditor: FC = () => {
   return (
     <ReactFlowProvider>
       <FlowManager />

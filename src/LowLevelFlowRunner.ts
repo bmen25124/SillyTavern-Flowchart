@@ -32,7 +32,7 @@ export class LowLevelFlowRunner {
     options: { startNodeId?: string; endNodeId?: string } = {},
     executionPath: string[] = [],
   ): Promise<ExecutionReport> {
-    console.log(`[FlowChart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
+    console.log(`[Flowchart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
 
     const nodeOutputs: Record<string, any> = {};
     const executionVariables = new Map<string, any>();
@@ -128,7 +128,7 @@ export class LowLevelFlowRunner {
           });
 
           if (outputFromExecutor === END_NODE_SENTINEL) {
-            console.log(`[FlowChart] Flow terminated gracefully by EndNode ${node.id}.`);
+            console.log(`[Flowchart] Flow terminated gracefully by EndNode ${node.id}.`);
             nodeReport.output = {};
             lastOutput = {};
             report.executedNodes.push({ nodeId: node.id, type: node.type, input: inputs, output: '[TERMINATED]' });
@@ -174,7 +174,7 @@ export class LowLevelFlowRunner {
         }
 
         if (nodeId === options.endNodeId) {
-          console.log(`[FlowChart] Flow execution stopped at designated node ${nodeId}.`);
+          console.log(`[Flowchart] Flow execution stopped at designated node ${nodeId}.`);
           break;
         }
 
@@ -198,7 +198,7 @@ export class LowLevelFlowRunner {
     } catch (error: any) {
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
       if (!isAbort) {
-        console.error('[FlowChart] Flow execution aborted due to an error.', error);
+        console.error('[Flowchart] Flow execution aborted due to an error.', error);
       }
       report.error = {
         nodeId: (error as any).nodeId || 'unknown',
@@ -207,7 +207,7 @@ export class LowLevelFlowRunner {
     }
 
     report.lastOutput = lastOutput;
-    console.log('[FlowChart] Flow execution finished.');
+    console.log('[Flowchart] Flow execution finished.');
     return report;
   }
 

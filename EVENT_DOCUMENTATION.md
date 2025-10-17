@@ -1,4 +1,4 @@
-# FlowChart Event Documentation
+# Flowchart Event Documentation
 
 This document lists all the events available in SillyTavern that can be used to trigger a flow.
 

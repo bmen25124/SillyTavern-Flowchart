@@ -38,7 +38,7 @@ export interface ExtensionSettings {
   showExecutionNotifications: boolean;
 }
 
-export const EXTENSION_NAME = 'SillyTavern-FlowChart';
+export const EXTENSION_NAME = 'SillyTavern-Flowchart';
 export const EXTENSION_KEY = 'flowchart';
 
 const VERSION = '0.3.0';

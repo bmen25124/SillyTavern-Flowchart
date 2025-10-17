@@ -20,7 +20,7 @@ export async function getBaseMessagesForProfile(
   const { extensionSettings, CONNECT_API_MAP } = SillyTavern.getContext();
   const profile = extensionSettings.connectionManager?.profiles?.find((p) => p.id === profileId);
   if (!profile) {
-    throw new Error(`Connection profile with ID ${profileId} not found. Please configure it in FlowChart settings.`);
+    throw new Error(`Connection profile with ID ${profileId} not found. Please configure it in Flowchart settings.`);
   }
   const apiMap = profile?.api ? CONNECT_API_MAP[profile.api] : null;
   const promptResult = await buildPrompt(apiMap?.selected!, {

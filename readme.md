@@ -1,8 +1,8 @@
-## FlowChart
+## Flowchart
 
-### What is FlowChart?
+### What is Flowchart?
 
-FlowChart is a powerful extension for [SillyTavern](https://docs.sillytavern.app/) that allows you to automate actions, create custom commands, and build complex logic using a visual, node-based editor. Instead of writing STScript, you connect blocks (nodes) together to create a "flow" that runs when certain events happen.
+Flowchart is a powerful extension for [SillyTavern](https://docs.sillytavern.app/) that allows you to automate actions, create custom commands, and build complex logic using a visual, node-based editor. Instead of writing STScript, you connect blocks (nodes) together to create a "flow" that runs when certain events happen.
 
 You can use it to:
 
@@ -62,7 +62,7 @@ You can use it to:
 Install via the SillyTavern extension installer:
 
 ```txt
-https://github.com/bmen25124/SillyTavern-FlowChart
+https://github.com/bmen25124/SillyTavern-Flowchart
 ```
 
 ### Core Concepts

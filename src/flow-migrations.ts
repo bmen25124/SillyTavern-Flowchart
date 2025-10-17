@@ -78,7 +78,7 @@ export function migrateFlowFormat(flow: SpecFlow, currentVersion: string | undef
 
   if (!migrationPath) {
     console.warn(
-      `[FlowChart] No migration path found from ${fromVersion} to ${targetVersion}. Flow may not work correctly.`,
+      `[Flowchart] No migration path found from ${fromVersion} to ${targetVersion}. Flow may not work correctly.`,
     );
     return flow;
   }
@@ -94,13 +94,13 @@ export function migrateFlowFormat(flow: SpecFlow, currentVersion: string | undef
     if (migration) {
       try {
         migratedFlow = migration(migratedFlow);
-        console.log(`[FlowChart] Migrated flow from ${currentVersion} to ${nextVersion}`);
+        console.log(`[Flowchart] Migrated flow from ${currentVersion} to ${nextVersion}`);
       } catch (error) {
-        console.error(`[FlowChart] Failed to migrate flow from ${currentVersion} to ${nextVersion}:`, error);
+        console.error(`[Flowchart] Failed to migrate flow from ${currentVersion} to ${nextVersion}:`, error);
         break;
       }
     } else {
-      console.warn(`[FlowChart] No migration function found for ${currentVersion} -> ${nextVersion}`);
+      console.warn(`[Flowchart] No migration function found for ${currentVersion} -> ${nextVersion}`);
       break;
     }
   }

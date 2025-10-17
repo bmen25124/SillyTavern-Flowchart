@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { FlowChartSettings } from './components/Settings.js';
+import { FlowchartSettings } from './components/Settings.js';
 import { settingsManager } from './config.js';
 
 import { st_echo } from 'sillytavern-utils-lib/config';
@@ -13,7 +13,7 @@ import '@xyflow/react/dist/style.css';
 function renderReactSettings() {
   const settingsContainer = document.getElementById('extensions_settings');
   if (!settingsContainer) {
-    console.error('FlowChart: Extension settings container not found.');
+    console.error('Flowchart: Extension settings container not found.');
     return;
   }
 
@@ -27,7 +27,7 @@ function renderReactSettings() {
   const root = createRoot(reactRootEl);
   root.render(
     <React.StrictMode>
-      <FlowChartSettings />
+      <FlowchartSettings />
     </React.StrictMode>,
   );
 }
@@ -42,5 +42,5 @@ settingsManager
   .then(main)
   .catch((error) => {
     console.error(error);
-    st_echo('error', 'FlowChart data migration failed. Check console for details.');
+    st_echo('error', 'Flowchart data migration failed. Check console for details.');
   });

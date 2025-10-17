@@ -59,7 +59,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal, depth,
       onStream = (streamData: { chunk: string; fullText: string }) => {
         // Fire and forget: don't await the sub-flow execution
         dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath).catch((err) => {
-          console.error(`[FlowChart] Error in streaming sub-flow "${onStreamFlowId}":`, err);
+          console.error(`[Flowchart] Error in streaming sub-flow "${onStreamFlowId}":`, err);
         });
       };
     }

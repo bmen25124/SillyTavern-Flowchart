@@ -7,7 +7,7 @@ import { flowRunner } from '../FlowRunner.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { eventEmitter } from '../events.js';
 
-export const FlowChartSettings: FC = () => {
+export const FlowchartSettings: FC = () => {
   const forceUpdate = useForceUpdate();
   const settings = settingsManager.getSettings();
 
@@ -24,7 +24,7 @@ export const FlowChartSettings: FC = () => {
   const handleResetEverything = async () => {
     const { Popup } = SillyTavern.getContext();
     const confirmation = await Popup.show.confirm(
-      'Reset All FlowChart Settings',
+      'Reset All Flowchart Settings',
       'Are you sure you want to reset EVERYTHING, including all flows, prompts, and settings, to their original defaults? This action cannot be undone.',
     );
 
@@ -39,7 +39,7 @@ export const FlowChartSettings: FC = () => {
 
       settingsManager.saveSettings();
       flowRunner.reinitialize();
-      st_echo('info', 'FlowChart has been reset to default settings.');
+      st_echo('info', 'Flowchart has been reset to default settings.');
       forceUpdate();
 
       // Force-refresh the popup's content if it's open during the reset.
@@ -51,7 +51,7 @@ export const FlowChartSettings: FC = () => {
     <div className="flowchart-settings">
       <div className="inline-drawer">
         <div className="inline-drawer-toggle inline-drawer-header">
-          <b>FlowChart</b>
+          <b>Flowchart</b>
           <div className="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div className="inline-drawer-content">
@@ -84,7 +84,7 @@ export const FlowChartSettings: FC = () => {
             </div>
 
             <div className="setting-row">
-              <STButton onClick={() => eventEmitter.emit('openFlowChartDataPopup')}>Customize Prompts & Data</STButton>
+              <STButton onClick={() => eventEmitter.emit('openFlowchartDataPopup')}>Customize Prompts & Data</STButton>
             </div>
 
             <div className="setting-row">

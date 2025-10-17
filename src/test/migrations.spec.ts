@@ -50,7 +50,7 @@ describe('migrations', () => {
 
       expect(migratedFlow).toEqual(flow);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[FlowChart] No migration path found from 1.0 to 2.0. Flow may not work correctly.',
+        '[Flowchart] No migration path found from 1.0 to 2.0. Flow may not work correctly.',
       );
 
       consoleWarnSpy.mockRestore();

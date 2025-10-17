@@ -29,7 +29,7 @@ function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[
     const parsed: StoredExecutionReport[] = JSON.parse(saved);
     return parsed.map((item) => ({ ...item, timestamp: new Date(item.timestamp) }));
   } catch (e) {
-    console.error('[FlowChart] Failed to load execution history:', e);
+    console.error('[Flowchart] Failed to load execution history:', e);
     return [];
   }
 }
@@ -83,9 +83,9 @@ function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Da
     }));
     localStorage.setItem(HISTORY_STORAGE_KEY, safeJsonStringify(storable, 0));
   } catch (e: any) {
-    console.error('[FlowChart] Failed to save execution history:', e);
+    console.error('[Flowchart] Failed to save execution history:', e);
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      notify('error', 'FlowChart: Could not save execution history. Storage quota exceeded.', 'execution');
+      notify('error', 'Flowchart: Could not save execution history. Storage quota exceeded.', 'execution');
     }
   }
 }
@@ -213,20 +213,20 @@ class FlowRunner {
           // Check for reserved command names
           const reservedNames = ['run'];
           if (reservedNames.includes(commandData.commandName.toLowerCase())) {
-            console.warn(`[FlowChart] Slash command "${commandName}" uses a reserved name and will not be registered.`);
+            console.warn(`[Flowchart] Slash command "${commandName}" uses a reserved name and will not be registered.`);
             continue;
           }
 
           // Check if command already exists in SillyTavern
           if (SlashCommandParser.commands[commandName]) {
             console.warn(
-              `[FlowChart] Slash command "${commandName}" already exists in SillyTavern and will not be registered.`,
+              `[Flowchart] Slash command "${commandName}" already exists in SillyTavern and will not be registered.`,
             );
             continue;
           }
 
           if (this.registeredCommands.includes(commandName)) {
-            console.warn(`[FlowChart] Slash command "${commandName}" is already registered. Skipping from ${name}.`);
+            console.warn(`[Flowchart] Slash command "${commandName}" is already registered. Skipping from ${name}.`);
             continue;
           }
 
@@ -258,7 +258,7 @@ class FlowRunner {
     // Register global /flow-run command
     const globalCommand = SlashCommand.fromProps({
       name: FLOW_RUN_COMMAND,
-      helpString: 'Manually runs a FlowChart flow by its name.',
+      helpString: 'Manually runs a Flowchart flow by its name.',
       unnamedArgumentList: [
         SlashCommandArgument.fromProps({ description: 'The name of the flow to run.', isRequired: true }),
         SlashCommandArgument.fromProps({ description: 'An optional JSON string for initial parameters.' }),
@@ -317,7 +317,7 @@ class FlowRunner {
     try {
       await this._executeFlowInternal(flowId, initialInput, 0, options);
     } catch (error) {
-      console.error(`[FlowChart] Critical error during queued flow execution:`, error);
+      console.error(`[Flowchart] Critical error during queued flow execution:`, error);
     } finally {
       this.isExecuting = false;
       // After finishing, immediately check if there's more work to do.
@@ -347,7 +347,7 @@ class FlowRunner {
       if (!this.isExecuting) {
         this._processQueue();
       } else {
-        notify('info', `FlowChart: Another flow is running. "${flowData.name}" has been queued.`, 'execution');
+        notify('info', `Flowchart: Another flow is running. "${flowData.name}" has been queued.`, 'execution');
       }
       // Top-level calls are fire-and-forget; results are handled by events.
       return { executedNodes: [], lastOutput: undefined };
@@ -367,7 +367,7 @@ class FlowRunner {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
     if (!flowData) {
       const errorMsg = `Flow with id ${flowId} not found.`;
-      console.error(`[FlowChart] ${errorMsg}`);
+      console.error(`[Flowchart] ${errorMsg}`);
       return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
     }
 
@@ -391,7 +391,7 @@ class FlowRunner {
     if (!isValid) {
       const errorMessage = `Flow "${flowData.name}" is invalid and cannot be run. Errors: ${errors.join(', ')}`;
       notify('error', errorMessage, 'execution');
-      console.error(`[FlowChart] ${errorMessage}`);
+      console.error(`[Flowchart] ${errorMessage}`);
       return { executedNodes: [], error: { nodeId: 'N/A', message: `Validation failed: ${errors[0]}` } };
     }
 
@@ -437,7 +437,7 @@ class FlowRunner {
         saveHistory(executionHistory);
       }
     } catch (error: any) {
-      console.error(`[FlowChart] Critical error during flow execution: ${error.message}`);
+      console.error(`[Flowchart] Critical error during flow execution: ${error.message}`);
       report = { executedNodes: [], error: { nodeId: 'CRITICAL', message: error.message } };
     } finally {
       if (depth === 0) {
@@ -450,7 +450,7 @@ class FlowRunner {
   async executeFlowFromEvent(flowId: string, startNodeId: string, eventArgs: any[]) {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
     if (!flowData || !flowData.flow) {
-      console.error(`[FlowChart] Flow with id ${flowId} not found for event trigger.`);
+      console.error(`[Flowchart] Flow with id ${flowId} not found for event trigger.`);
       return;
     }
     const startNode = flowData.flow.nodes.find((n) => n.id === startNodeId);
@@ -467,7 +467,7 @@ class FlowRunner {
       const parsed = combinedSchema.safeParse(rawInput);
 
       if (!parsed.success) {
-        console.error(`[FlowChart] Event arguments for "${eventType}" failed validation/coercion:`, parsed.error);
+        console.error(`[Flowchart] Event arguments for "${eventType}" failed validation/coercion:`, parsed.error);
         notify('error', `Flow "${flowData.name}" could not start due to invalid event data.`, 'execution');
         return; // Stop execution
       }
@@ -594,7 +594,7 @@ class FlowRunner {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    notify('info', `FlowChart: Running flow "${flowData.name}" from node ${startNodeId}.`, 'execution');
+    notify('info', `Flowchart: Running flow "${flowData.name}" from node ${startNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { startNodeId });
   }
 
@@ -610,7 +610,7 @@ class FlowRunner {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    notify('info', `FlowChart: Running flow "${flowData.name}" to node ${endNodeId}.`, 'execution');
+    notify('info', `Flowchart: Running flow "${flowData.name}" to node ${endNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { endNodeId });
   }
 
