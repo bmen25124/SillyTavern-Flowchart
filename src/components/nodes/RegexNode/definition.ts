@@ -71,13 +71,29 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
       { id: 'main', type: FlowDataType.ANY },
       { id: 'string', type: FlowDataType.STRING },
       { id: 'mode', type: FlowDataType.STRING },
-      { id: 'scriptId', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
       { id: 'matches', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
+  },
+  getDynamicHandles: (node) => {
+    const data = node.data;
+    const mode = data?.mode ?? 'sillytavern';
+    const inputs = [];
+
+    if (mode === 'sillytavern') {
+      inputs.push({ id: 'scriptId', type: FlowDataType.STRING });
+    } else {
+      inputs.push({ id: 'findRegex', type: FlowDataType.STRING });
+      inputs.push({ id: 'replaceString', type: FlowDataType.STRING });
+    }
+
+    return {
+      inputs,
+      outputs: [],
+    };
   },
   validate: (node: Node<RegexNodeData>, edges: Edge[]): ValidationIssue[] => {
     const issues: ValidationIssue[] = [];

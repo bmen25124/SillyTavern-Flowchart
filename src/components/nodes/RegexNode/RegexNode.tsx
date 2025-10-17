@@ -26,7 +26,13 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
   const mode = data?.mode ?? 'sillytavern';
 
   const fields = useMemo(() => {
-    const baseFields = [
+    const commonFields = [
+      createFieldConfig({
+        id: 'string',
+        label: 'Input String',
+        component: STTextarea,
+        props: { rows: 3 },
+      }),
       createFieldConfig({
         id: 'mode',
         label: 'Mode',
@@ -42,41 +48,41 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
       }),
     ];
 
-    if (mode === 'sillytavern') {
-      baseFields.push(
-        createFieldConfig({
-          id: 'scriptId',
-          label: 'Regex Script',
-          component: STFancyDropdown,
-          props: {
-            items: regexOptions,
-            multiple: false,
-            inputClasses: 'nodrag',
-            containerClasses: 'nodrag',
-            closeOnSelect: true,
-            enableSearch: true,
-          },
-          getValueFromEvent: (e: string[]) => e[0],
-          formatValue: (value) => [value ?? ''],
-        }),
-      );
-    } else if (mode === 'custom') {
-      baseFields.push(
-        createFieldConfig({
-          id: 'findRegex',
-          label: 'Find (Regex)',
-          component: STTextarea,
-          props: { rows: 2 },
-        }),
-        createFieldConfig({
-          id: 'replaceString',
-          label: 'Replace',
-          component: STTextarea,
-          props: { rows: 2 },
-        }),
-      );
-    }
-    return baseFields;
+    const modeSpecificFields =
+      mode === 'sillytavern'
+        ? [
+            createFieldConfig({
+              id: 'scriptId',
+              label: 'Regex Script',
+              component: STFancyDropdown,
+              props: {
+                items: regexOptions,
+                multiple: false,
+                inputClasses: 'nodrag',
+                containerClasses: 'nodrag',
+                closeOnSelect: true,
+                enableSearch: true,
+              },
+              getValueFromEvent: (e: string[]) => e[0],
+              formatValue: (value) => [value ?? ''],
+            }),
+          ]
+        : [
+            createFieldConfig({
+              id: 'findRegex',
+              label: 'Find (Regex)',
+              component: STTextarea,
+              props: { rows: 2 },
+            }),
+            createFieldConfig({
+              id: 'replaceString',
+              label: 'Replace',
+              component: STTextarea,
+              props: { rows: 2 },
+            }),
+          ];
+
+    return [...commonFields, ...modeSpecificFields];
   }, [mode, regexOptions]);
 
   if (!data || !definition) return null;
