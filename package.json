@@ -50,7 +50,7 @@
         "fast-xml-parser": "^5.2.5",
         "handlebars": "^4.7.8",
         "html-to-image": "1.11.11",
-        "sillytavern-utils-lib": "^1.0.58",
+        "sillytavern-utils-lib": "^1.0.59",
         "zod": "^4.1.11",
         "zustand": "^4.5.4",
         "zundo": "^2.0.3"
