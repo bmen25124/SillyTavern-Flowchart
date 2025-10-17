@@ -13,6 +13,50 @@ You can use it to:
 *   Automate character and lorebook management.
 *   Replace your STScript usage with a visual interface.
 
+### Showcase
+
+<details>
+  <summary>Overview</summary>
+
+  ![overview](images/overview.png)
+
+</details>
+
+<details>
+  <summary>Roll Command</summary>
+
+  ![roll-command](images/example-slash-roll.png)
+
+</details>
+
+<details>
+  <summary>Summarize Command</summary>
+
+  ![summarize-command](images/example-slash-summarize.png)
+
+</details>
+
+<details>
+  <summary>Remember Command</summary>
+
+  ![remember-command](images/example-slash-remember.png)
+
+</details>
+
+<details>
+  <summary>Ask And Confirm Command</summary>
+
+  ![ask-and-confirm-command](images/example-slash-ask-and-confirm.png)
+
+</details>
+
+<details>
+  <summary>Bonus</summary>
+
+  ![bonus](images/bonus.png)
+
+</details>
+
 ### Installation
 
 Install via the SillyTavern extension installer:
@@ -37,13 +81,6 @@ A key concept is the difference between *Control Flow* and *Data Flow*.
 *   **Control Flow:** Sometimes, you just need to define the order of operations without passing specific data. This is done using the special `main` handle. Most nodes have a `main` input and a `main` output. Connecting `main` handles creates a sequence. The `main` channel also "passes through" whatever value it receives, allowing you to carry a result through a series of utility nodes.
 
 Think of it this way: named handles are for *what* a node does, and the `main` handle is for *when* it does it.
-
-### The Editor Interface
-
-1.  **Flow Selector (Top Bar):** Manage your flows. You can create new flows, rename existing ones, or delete them.
-2.  **Run Button:** Manually starts the current flow. This is great for testing. It will start from any "Manual Trigger" nodes you have.
-3.  **Node Palette (Left Sidebar):** A list of all available nodes, grouped by category. Drag nodes from here onto the canvas. You can also use the search bar to find a specific node.
-4.  **The Canvas (Main Area):** This is where you build your flow. You can drag nodes around, connect them, and right-click to bring up a context menu for duplicating, deleting, or adding new nodes.
 
 ### Node Reference
 
