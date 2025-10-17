@@ -11,7 +11,7 @@ type EventInfoStructure = {
   };
 };
 
-// Central source of truth for all event definitions, derived from EVENTS.md
+// Central source of truth for all event definitions
 const EventInfo: EventInfoStructure = {
   'Core Messaging Events': {
     MESSAGE_RECEIVED: {
@@ -94,11 +94,15 @@ const EventInfo: EventInfoStructure = {
     GROUP_UPDATED: { description: 'Emitted when group information is updated.' },
     GROUP_MEMBER_DRAFTED: {
       description: 'Emitted when a group member is drafted.',
-      params: { chId: z.string().describe('The character ID of the drafted member.') },
+      params: { chId: z.coerce.number().describe('The ID of the drafted character.') },
     },
     GROUP_WRAPPER_STARTED: {
       description: 'Emitted when a group message generation process starts.',
-      params: { data: z.any().describe('Data related to the group wrapper start.') },
+      params: {
+        data: z
+          .object({ selected_group: z.string(), type: z.string() })
+          .describe('Data related to the group wrapper start.'),
+      },
     },
     GROUP_WRAPPER_FINISHED: {
       description: 'Emitted when a group message generation process finishes.',
@@ -131,7 +135,7 @@ const EventInfo: EventInfoStructure = {
     },
     WORLD_INFO_ACTIVATED: {
       description: 'Emitted when world info entries are activated for context.',
-      params: { entry: z.any().describe('The world info entry that was activated.') },
+      params: { entries: z.array(z.any()).describe('A list of activated world info entries.') },
     },
     WORLDINFO_FORCE_ACTIVATE: { description: 'Emitted to force world info activation.' },
     WORLDINFO_ENTRIES_LOADED: { description: 'Emitted when world info entries are loaded.' },
