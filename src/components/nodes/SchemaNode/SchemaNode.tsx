@@ -18,7 +18,7 @@ type FieldEditorProps = {
   onAddChild?: (path: (string | number)[]) => void;
 };
 
-const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemove, onAddChild }) => {
+export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemove, onAddChild }) => {
   const { name } = definition as FieldDefinition;
   const { type, description, values, fields, items } = definition;
 

@@ -21,7 +21,7 @@ export type SchemaTypeDefinition = {
   values?: string[]; // For 'enum'
 };
 
-const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.lazy(() =>
+export const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.lazy(() =>
   z.object({
     type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
     description: z.string().optional(),
@@ -31,7 +31,7 @@ const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.lazy(() =>
   }),
 );
 
-const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
+export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
   z.object({
     id: z.string(),
     name: z.string(),

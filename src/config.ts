@@ -4,6 +4,9 @@ import { updateMessageBlock } from '../../../../../script.js';
 // @ts-ignore
 import { hideChatMessageRange } from '../../../../chats.js';
 
+// @ts-ignore
+import { setLocalVariable, getLocalVariable, setGlobalVariable, getGlobalVariable } from '../../../../variables.js';
+
 import { SpecFlow } from './flow-spec.js';
 import { DEFAULT_PROMPT_JSON, DEFAULT_PROMPT_XML } from './constants.js';
 import { ExtensionSettingsManager } from 'sillytavern-utils-lib';
@@ -81,4 +84,20 @@ export function st_updateMessageBlock(messageId: number, message: object, { rere
 
 export async function st_hideChatMessageRange(start: number, end: number, unhide: boolean) {
   await hideChatMessageRange(start, end, unhide);
+}
+
+export function st_setLocalVariable(name: string, value: unknown, args?: object) {
+  setLocalVariable(name, value, args);
+}
+
+export function st_getLocalVariable(name: string, args?: object): unknown {
+  return getLocalVariable(name, args);
+}
+
+export function st_setGlobalVariable(name: string, value: unknown) {
+  setGlobalVariable(name, value);
+}
+
+export function st_getGlobalVariable(name: string): unknown {
+  return getGlobalVariable(name);
 }

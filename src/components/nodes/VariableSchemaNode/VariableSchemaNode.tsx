@@ -1,0 +1,110 @@
+import { FC } from 'react';
+import { NodeProps, Node } from '@xyflow/react';
+import { useFlowStore } from '../../popup/flowStore.js';
+import { VariableSchemaNodeData } from './definition.js';
+import { BaseNode } from '../BaseNode.js';
+import { STButton } from 'sillytavern-utils-lib/components';
+import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { registrator } from '../autogen-imports.js';
+import { FieldEditor } from '../SchemaNode/SchemaNode.js';
+import { generateUUID } from '../../../utils/uuid.js';
+import { SchemaTypeDefinition } from '../SchemaNode/definition.js';
+
+export type VariableSchemaNodeProps = NodeProps<Node<VariableSchemaNodeData>>;
+
+export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, type }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as VariableSchemaNodeData;
+  const updateNodeData = useFlowStore((state) => state.updateNodeData);
+  const definition = registrator.nodeDefinitionMap.get(type);
+
+  if (!data || !definition) return null;
+
+  const rootDefinition = data.definition;
+
+  const updateNested = (obj: SchemaTypeDefinition, path: (string | number)[], updater: (item: any) => any) => {
+    const cloned = structuredClone(obj);
+    if (path.length === 0) {
+      return updater(cloned);
+    }
+
+    let cursor: any = cloned;
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      if (cursor[key] === undefined) {
+        cursor[key] = typeof path[i + 1] === 'number' ? [] : {};
+      }
+      cursor = cursor[key];
+    }
+    const finalKey = path[path.length - 1];
+    cursor[finalKey] = updater(cursor[finalKey]);
+    return cloned;
+  };
+
+  const handleUpdate = (path: (string | number)[], partial: Record<string, any>) => {
+    let updatedDefinition: SchemaTypeDefinition;
+    if (path.length === 0) {
+      updatedDefinition = { ...rootDefinition, ...partial };
+    } else {
+      updatedDefinition = updateNested(rootDefinition, path, (item: SchemaTypeDefinition) => ({
+        ...item,
+        ...partial,
+      }));
+    }
+    updateNodeData(id, { definition: updatedDefinition });
+  };
+
+  const handleRemove = (path: (string | number)[]) => {
+    const parentPath = path.slice(0, -2);
+    const containerKey = path[path.length - 2] as string;
+    const indexToRemove = path[path.length - 1] as number;
+
+    if (parentPath.length === 0 && containerKey === 'fields') {
+      const newFields = (rootDefinition.fields || []).filter((_, i) => i !== indexToRemove);
+      updateNodeData(id, { definition: { ...rootDefinition, fields: newFields } });
+      return;
+    }
+
+    const updatedDefinition = updateNested(rootDefinition, [...parentPath, containerKey], (items: any[]) =>
+      (items || []).filter((_: unknown, i: number) => i !== indexToRemove),
+    );
+    updateNodeData(id, { definition: updatedDefinition });
+  };
+
+  const handleRemoveWithGuard = (path: (string | number)[]) => {
+    if (path.length === 0) return;
+    handleRemove(path);
+  };
+
+  const handleAddChild = (path: (string | number)[]) => {
+    const newField = { id: generateUUID(), name: 'field', type: 'string' as const };
+    const updatedDefinition = updateNested(rootDefinition, [...path, 'fields'], (items: any[]) => [
+      ...(items || []),
+      newField,
+    ]);
+    updateNodeData(id, { definition: updatedDefinition });
+  };
+
+  const ensureObjectRoot = () => {
+    if (rootDefinition.type !== 'object') {
+      updateNodeData(id, { definition: { type: 'object', fields: [] } });
+    }
+  };
+
+  return (
+    <BaseNode id={id} title="Variable Schema" selected={selected}>
+      <FieldEditor
+        definition={rootDefinition}
+        path={[]}
+        onUpdate={handleUpdate}
+        onRemove={handleRemoveWithGuard}
+        onAddChild={handleAddChild}
+      />
+      <STButton className="nodrag" onClick={ensureObjectRoot} style={{ marginTop: '10px' }}>
+        Set To Object Root
+      </STButton>
+      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
+      </div>
+    </BaseNode>
+  );
+};

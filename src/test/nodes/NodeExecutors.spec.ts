@@ -8,7 +8,12 @@ import { stringNodeDefinition } from '../../components/nodes/StringNode/definiti
 import { numberNodeDefinition } from '../../components/nodes/NumberNode/definition.js';
 import { mathNodeDefinition } from '../../components/nodes/MathNode/definition.js';
 import { setVariableNodeDefinition } from '../../components/nodes/SetVariableNode/definition.js';
-import { getVariableNodeDefinition } from '../../components/nodes/GetVariableNode/definition.js';
+import { getFlowVariableNodeDefinition } from '../../components/nodes/GetFlowVariableNode/definition.js';
+import { setLocalVariableNodeDefinition } from '../../components/nodes/SetLocalVariableNode/definition.js';
+import { getLocalVariableNodeDefinition } from '../../components/nodes/GetLocalVariableNode/definition.js';
+import { setGlobalVariableNodeDefinition } from '../../components/nodes/SetGlobalVariableNode/definition.js';
+import { getGlobalVariableNodeDefinition } from '../../components/nodes/GetGlobalVariableNode/definition.js';
+import { variableSchemaNodeDefinition } from '../../components/nodes/VariableSchemaNode/definition.js';
 import { ifNodeDefinition } from '../../components/nodes/IfNode/definition.js';
 import { executeJsNodeDefinition } from '../../components/nodes/ExecuteJsNode/definition.js';
 import { createLorebookNodeDefinition } from '../../components/nodes/CreateLorebookNode/definition.js';
@@ -163,9 +168,9 @@ describe('Node Executors', () => {
   });
 
   // --- Context-Aware Nodes ---
-  describe('SetVariableNode & GetVariableNode', () => {
+  describe('SetVariableNode & GetFlowVariableNode', () => {
     const { execute: setExecute } = setVariableNodeDefinition;
-    const { execute: getExecute } = getVariableNodeDefinition;
+    const { execute: getExecute } = getFlowVariableNodeDefinition;
 
     it('should set a variable in the execution context and then retrieve it', async () => {
       // Set the variable
@@ -177,16 +182,136 @@ describe('Node Executors', () => {
       expect(context.executionVariables.get('myVar')).toBe(setValue);
 
       // Get the variable
-      const getNode = createMockNode(getVariableNodeDefinition, { variableName: 'myVar' });
+      const getNode = createMockNode(getFlowVariableNodeDefinition, { variableName: 'myVar' });
       const getResult = await getExecute(getNode, {}, context);
 
       // Verify retrieval
       expect(getResult).toEqual({ value: setValue });
     });
 
-    it('GetVariableNode should throw if variable does not exist', async () => {
-      const getNode = createMockNode(getVariableNodeDefinition, { variableName: 'nonExistentVar' });
+    it('GetFlowVariableNode should throw if variable does not exist', async () => {
+      const getNode = createMockNode(getFlowVariableNodeDefinition, { variableName: 'nonExistentVar' });
       await expect(getExecute(getNode, {}, context)).rejects.toThrow('Execution variable "nonExistentVar" not found.');
+    });
+
+    it('should validate variables against an optional schema', async () => {
+      const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'typedVar' });
+      await setExecute(setNode, { value: { id: 7 } }, context);
+
+      const getNode = createMockNode(getFlowVariableNodeDefinition, { variableName: 'typedVar' });
+      const schema = z.object({ id: z.number() });
+
+      const success = await getExecute(getNode, { schema }, context);
+      expect(success).toEqual({ value: { id: 7 } });
+
+      await setExecute(setNode, { value: { id: 'oops' } }, context);
+      await expect(getExecute(getNode, { schema }, context)).rejects.toThrow(/failed schema validation/i);
+    });
+  });
+
+  describe('SetLocalVariableNode & GetLocalVariableNode', () => {
+    const { execute: setLocalExecute } = setLocalVariableNodeDefinition;
+    const { execute: getLocalExecute } = getLocalVariableNodeDefinition;
+
+    it('should set and retrieve a local variable with args passthrough', async () => {
+      const storedValue = { stored: 'value' };
+      dependencies.st_getLocalVariable.mockReturnValue(storedValue);
+      const setNode = createMockNode(setLocalVariableNodeDefinition, { variableName: 'chatVar' });
+      const args = { messageId: 123 };
+      await setLocalExecute(setNode, { value: 42, args }, context);
+
+      expect(dependencies.st_setLocalVariable).toHaveBeenCalledWith('chatVar', 42, args);
+
+      const getNode = createMockNode(getLocalVariableNodeDefinition, { variableName: 'chatVar' });
+      const result = await getLocalExecute(getNode, { args }, context);
+
+      expect(dependencies.st_getLocalVariable).toHaveBeenCalledWith('chatVar', args);
+      expect(result).toEqual({ value: storedValue });
+    });
+
+    it('GetLocalVariableNode should throw if args input is not an object', async () => {
+      const getNode = createMockNode(getLocalVariableNodeDefinition, { variableName: 'chatVar' });
+      await expect(getLocalExecute(getNode, { args: 'not-an-object' }, context)).rejects.toThrow(
+        'Args input for Get Local Variable must be an object if provided.',
+      );
+    });
+
+    it('SetLocalVariableNode should pass through object inputs without modification', async () => {
+      const payload = { foo: 'bar' };
+      const setNode = createMockNode(setLocalVariableNodeDefinition, { variableName: 'chatVar' });
+      await setLocalExecute(setNode, { value: payload }, context);
+
+      expect(dependencies.st_setLocalVariable).toHaveBeenCalledWith('chatVar', payload, undefined);
+    });
+
+    it('should validate local variable results against schema when provided', async () => {
+      const schema = z.object({ foo: z.string() });
+      dependencies.st_getLocalVariable.mockReturnValue({ foo: 'bar' });
+      const getNode = createMockNode(getLocalVariableNodeDefinition, { variableName: 'chatVar' });
+
+      const success = await getLocalExecute(getNode, { schema }, context);
+      expect(success).toEqual({ value: { foo: 'bar' } });
+
+      dependencies.st_getLocalVariable.mockReturnValue({ foo: 123 });
+      await expect(getLocalExecute(getNode, { schema }, context)).rejects.toThrow(/schema validation/i);
+    });
+  });
+
+  describe('SetGlobalVariableNode & GetGlobalVariableNode', () => {
+    const { execute: setGlobalExecute } = setGlobalVariableNodeDefinition;
+    const { execute: getGlobalExecute } = getGlobalVariableNodeDefinition;
+
+    it('should set and retrieve a global variable', async () => {
+      const storedValue = { nested: 'value' };
+      dependencies.st_getGlobalVariable.mockReturnValue(storedValue);
+      const setNode = createMockNode(setGlobalVariableNodeDefinition, { variableName: 'globalVar' });
+      await setGlobalExecute(setNode, { value: { nested: 'data' } }, context);
+
+      expect(dependencies.st_setGlobalVariable).toHaveBeenCalledWith('globalVar', { nested: 'data' });
+
+      const getNode = createMockNode(getGlobalVariableNodeDefinition, { variableName: 'globalVar' });
+      const result = await getGlobalExecute(getNode, {}, context);
+
+      expect(dependencies.st_getGlobalVariable).toHaveBeenCalledWith('globalVar');
+      expect(result).toEqual({ value: storedValue });
+    });
+
+    it('should validate global variables when schema input is supplied', async () => {
+      const schema = z.array(z.number());
+      dependencies.st_getGlobalVariable.mockReturnValue([1, 2, 3]);
+      const getNode = createMockNode(getGlobalVariableNodeDefinition, { variableName: 'globalVar' });
+
+      const success = await getGlobalExecute(getNode, { schema }, context);
+      expect(success).toEqual({ value: [1, 2, 3] });
+
+      dependencies.st_getGlobalVariable.mockReturnValue(['bad']);
+      await expect(getGlobalExecute(getNode, { schema }, context)).rejects.toThrow(/schema validation/i);
+    });
+  });
+
+  describe('VariableSchemaNode', () => {
+    const { execute } = variableSchemaNodeDefinition;
+
+    it('should build a schema for a variable definition', async () => {
+      const node = createMockNode(variableSchemaNodeDefinition, {
+        definition: {
+          type: 'object',
+          fields: [
+            { id: 'field-1', name: 'id', type: 'number' },
+            {
+              id: 'field-2',
+              name: 'meta',
+              type: 'object',
+              fields: [{ id: 'field-3', name: 'flag', type: 'boolean' }],
+            },
+          ],
+        },
+      });
+
+      const { schema } = await execute(node, {}, context);
+
+      expect(schema.parse({ id: 42, meta: { flag: true } })).toEqual({ id: 42, meta: { flag: true } });
+      expect(() => schema.parse({ id: 'bad', meta: { flag: true } })).toThrow();
     });
   });
 

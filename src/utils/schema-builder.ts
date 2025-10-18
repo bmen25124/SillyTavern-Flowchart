@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Node, Edge } from '@xyflow/react';
 import { FieldDefinition, SchemaTypeDefinition } from '../components/nodes/SchemaNode/definition.js';
 import { JsonNodeData, JsonNodeItem } from '../components/nodes/JsonNode/definition.js';
 
@@ -107,4 +108,30 @@ export function valueToZodSchema(value: any): z.ZodType {
     default:
       return z.any();
   }
+}
+
+export function resolveSchemaFromHandle(
+  node: Node,
+  allNodes: Node[],
+  allEdges: Edge[],
+  targetHandle: string,
+): z.ZodTypeAny | undefined {
+  const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === targetHandle);
+  if (!schemaEdge) return undefined;
+
+  const schemaSource = allNodes.find((n) => n.id === schemaEdge.source);
+  if (!schemaSource) return undefined;
+
+  if (schemaSource.type === 'schemaNode') {
+    const fields = schemaSource.data?.fields as FieldDefinition[] | undefined;
+    if (!Array.isArray(fields)) return undefined;
+    return buildZodSchemaFromFields(fields);
+  }
+
+  if (schemaSource.type === 'variableSchemaNode') {
+    const definition = schemaSource.data?.definition as SchemaTypeDefinition | undefined;
+    return definition ? buildZodSchema(definition) : undefined;
+  }
+
+  return undefined;
 }

@@ -6,7 +6,15 @@ import { makeSimpleRequest, getBaseMessagesForProfile, makeStructuredRequest } f
 import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
-import { settingsManager, st_hideChatMessageRange, st_updateMessageBlock } from './config.js';
+import {
+  settingsManager,
+  st_hideChatMessageRange,
+  st_updateMessageBlock,
+  st_setLocalVariable,
+  st_getLocalVariable,
+  st_setGlobalVariable,
+  st_getGlobalVariable,
+} from './config.js';
 import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
@@ -137,6 +145,10 @@ class FlowRunner {
       saveChat: () => SillyTavern.getContext().saveChat(),
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
+      st_setLocalVariable: (name, value, args) => st_setLocalVariable(name, value, args),
+      st_getLocalVariable: (name, args) => st_getLocalVariable(name, args),
+      st_setGlobalVariable: (name, value) => st_setGlobalVariable(name, value),
+      st_getGlobalVariable: (name) => st_getGlobalVariable(name),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
       executeSubFlow: (flowId, initialInput, depth, executionPath) =>
         this.executeFlow(flowId, initialInput, depth, {}, executionPath),

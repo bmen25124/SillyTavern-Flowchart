@@ -44,6 +44,10 @@ export interface FlowRunnerDependencies {
   saveChat: () => Promise<void>;
   st_updateMessageBlock: (messageId: number, message: any, options?: { rerenderMessage?: boolean }) => void;
   st_runRegexScript: (script: any, content: string) => string;
+  st_setLocalVariable: (name: string, value: unknown, args?: Record<string, any>) => Promise<void> | void;
+  st_getLocalVariable: (name: string, args?: Record<string, any>) => Promise<unknown> | unknown;
+  st_setGlobalVariable: (name: string, value: unknown) => Promise<void> | void;
+  st_getGlobalVariable: (name: string) => Promise<unknown> | unknown;
   executeSlashCommandsWithOptions: (text: string, options?: any) => Promise<any>;
   executeSubFlow: (
     flowId: string,
