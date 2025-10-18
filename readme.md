@@ -82,6 +82,15 @@ A key concept is the difference between *Control Flow* and *Data Flow*.
 
 Think of it this way: named handles are for *what* a node does, and the `main` handle is for *when* it does it.
 
+### Keyboard Shortcuts
+
+*   **Copy:** `Ctrl/Cmd + C` - Copies the selected node(s).
+*   **Paste:** `Ctrl/Cmd + V` - Pastes the copied node(s) into the center of the view.
+*   **Undo:** `Ctrl/Cmd + Z` - Undoes the last action.
+*   **Redo:** `Ctrl/Cmd + Y` - Redoes the last undone action.
+*   **Delete:** `Delete` or `Backspace` - Deletes the selected node(s) or edge(s).
+*   **Toggle Disable:** `Space` - Disables or enables the selected node(s). A disabled node is skipped during execution.
+
 ### Node Reference
 
 Here is a list of all available nodes and what they do.
