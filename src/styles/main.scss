@@ -26,6 +26,18 @@
   width: 100%;
 }
 
+.popup:has(.flowchart-data-popup.fullscreen) {
+  max-width: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.popup:has(.flowchart-data-popup.fullscreen) .popup-body {
+  max-height: 100% !important;
+  height: 100% !important;
+}
+
 // Utility classes for popups
 .flowchart-errors {
   color: var(--warning);
@@ -74,6 +86,9 @@
     border-bottom: 1px solid var(--SmartThemeBorderColor);
     padding-bottom: 5px;
     flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
     h2 {
       margin: 0;
@@ -81,6 +96,12 @@
   }
 
   .flowchart-popup-tabs {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .flowchart-popup-controls {
     display: flex;
     gap: 5px;
     margin-top: 5px;
@@ -129,6 +150,16 @@
     justify-content: flex-end;
     gap: 10px;
     flex-shrink: 0;
+  }
+
+  &.fullscreen {
+    height: 100%;
+
+    .flowchart-popup-content {
+      // In fullscreen mode, allow more space for content
+      flex-grow: 1;
+      height: 100%;
+    }
   }
 }
 

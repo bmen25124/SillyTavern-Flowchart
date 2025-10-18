@@ -6,9 +6,15 @@ import { eventEmitter } from '../../events.js';
 
 export const PopupManager = () => {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const openPopup = () => setIsPopupVisible(true);
-  const closePopup = () => setIsPopupVisible(false);
+  const closePopup = () => {
+    setIsPopupVisible(false);
+    setIsFullscreen(false); // Reset to normal mode when closing
+  };
+
+  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
   useEffect(() => {
     eventEmitter.on('openFlowchartDataPopup', openPopup);
@@ -20,7 +26,9 @@ export const PopupManager = () => {
   if (isPopupVisible) {
     return (
       <Popup
-        content={<FlowchartDataPopup onSave={closePopup} />}
+        content={
+          <FlowchartDataPopup onSave={closePopup} isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+        }
         type={POPUP_TYPE.DISPLAY}
         onComplete={closePopup}
         preventEscape={true}

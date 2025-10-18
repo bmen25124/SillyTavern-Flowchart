@@ -9,9 +9,11 @@ type Tab = 'editor' | 'prompts' | 'history';
 
 interface FlowchartDataPopupProps {
   onSave: () => void;
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
 }
 
-export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave }) => {
+export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave, isFullscreen, toggleFullscreen }) => {
   const [activeTab, setActiveTab] = useState<Tab>('editor');
   const [importKey, setImportKey] = useState(0);
 
@@ -30,12 +32,17 @@ export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave }) => {
   };
 
   return (
-    <div className="flowchart-data-popup">
+    <div className={`flowchart-data-popup ${isFullscreen ? 'fullscreen' : ''}`}>
       <div className="flowchart-popup-header">
         <div className="flowchart-popup-tabs">
           <STButton onClick={() => setActiveTab('editor')}>Editor</STButton>
           <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('history')}>History</STButton>
+        </div>
+        <div className="flowchart-popup-controls">
+          <STButton onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
+            <i className={`fa-solid fa-${isFullscreen ? 'compress' : 'expand'}`}></i>
+          </STButton>
         </div>
       </div>
       <div className="flowchart-popup-content">
