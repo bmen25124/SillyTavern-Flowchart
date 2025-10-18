@@ -203,10 +203,16 @@ const compareConnectionSuggestionItems = (a: ConnectionSuggestionItem, b: Connec
 };
 
 const mergeNodeDataWithOverrides = (initialData: any, overrides?: Record<string, unknown>) => {
-  const base = structuredClone(initialData);
+  const base = structuredClone(initialData || {});
   if (!overrides) return base;
   const overrideClone = structuredClone(overrides);
   return Object.assign(base, overrideClone);
+};
+
+const createNodeInitialData = (definition: NodeDefinition, overrides?: Record<string, unknown>) => {
+  const data = mergeNodeDataWithOverrides(definition.initialData, overrides);
+  data._version = definition.currentVersion;
+  return data;
 };
 
 const getBlueprintCandidates = (
@@ -436,7 +442,7 @@ const FlowCanvas: FC<{
           kind: 'action',
           label: def.label,
           action: () => {
-            createNode(def.type, structuredClone(def.initialData));
+            createNode(def.type, createNodeInitialData(def));
             closeContextMenu();
           },
         })),
@@ -615,8 +621,8 @@ const FlowCanvas: FC<{
         closeContextMenu();
 
         const nodeXOffset = handleKind === 'source' ? 50 : -250;
-        const nodeData = mergeNodeDataWithOverrides(
-          nodeDef.initialData,
+        const nodeData = createNodeInitialData(
+          nodeDef,
           suggestion.dataOverrides as Record<string, unknown> | undefined,
         );
         const newNode = addNode({
@@ -767,7 +773,7 @@ const FlowCanvas: FC<{
       addNode({
         type: nodeType,
         position,
-        data: structuredClone(nodeDef.initialData || {}),
+        data: createNodeInitialData(nodeDef),
       });
     },
     [screenToFlowPosition, addNode],

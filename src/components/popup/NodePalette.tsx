@@ -109,7 +109,11 @@ export const NodePalette: FC = () => {
                         e.dataTransfer.setData('application/reactflow/node-type', node.type);
                         e.dataTransfer.effectAllowed = 'move';
                       }}
-                      onClick={(e) => onNodeClick(e, node.type, structuredClone(node.initialData))}
+                      onClick={(e) => {
+                        const data = structuredClone(node.initialData || {});
+                        data._version = node.currentVersion;
+                        onNodeClick(e, node.type, data);
+                      }}
                       title={node.label}
                     >
                       {node.label}
