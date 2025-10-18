@@ -162,6 +162,18 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
 
     return { inputs: dynamicInputs, outputs: [resultHandle, ...fieldHandles] };
   },
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction === 'inputs') {
+      return [
+        {
+          id: 'streaming',
+          labelSuffix: '(Streaming)',
+          dataOverrides: { stream: true },
+        },
+      ];
+    }
+    return [];
+  },
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection !== 'output') return undefined;
 

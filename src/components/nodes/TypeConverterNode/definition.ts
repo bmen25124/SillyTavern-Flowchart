@@ -96,6 +96,14 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
       outputs: [{ id: 'result', type: resultType }],
     };
   },
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction !== 'outputs') return [];
+    return [
+      { id: 'target-number', labelSuffix: '(Number)', dataOverrides: { targetType: 'number' } },
+      { id: 'target-object', labelSuffix: '(Object)', dataOverrides: { targetType: 'object' } },
+      { id: 'target-array', labelSuffix: '(Array)', dataOverrides: { targetType: 'array' } },
+    ];
+  },
 };
 
 registrator.register(typeConverterNodeDefinition);

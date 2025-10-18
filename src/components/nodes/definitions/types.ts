@@ -17,6 +17,12 @@ export type HandleSpec = {
   label?: string;
 };
 
+export type NodeSuggestionBlueprint<TData = Record<string, unknown>> = {
+  id?: string;
+  labelSuffix?: string;
+  dataOverrides: Partial<TData>;
+};
+
 export type GetHandleTypeParams = {
   handleId: string | null;
   handleDirection: 'input' | 'output';
@@ -82,6 +88,12 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
     allNodes: Node[],
     allEdges: Edge[],
   ) => { inputs: HandleSpec[]; outputs: HandleSpec[] };
+  /**
+   * Provides alternative data snapshots to consider when building connection suggestions.
+   * Each blueprint should describe the node's data overrides to apply before evaluating handles.
+   * When a suggestion is accepted, the blueprint overrides are merged into the newly created node.
+   */
+  getSuggestionBlueprints?: (params: { direction: 'inputs' | 'outputs' }) => NodeSuggestionBlueprint<T>[];
   /**
    * Generates a unique ID for a dynamic handle based on an index.
    */

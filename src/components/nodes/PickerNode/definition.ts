@@ -87,6 +87,8 @@ const pickerConfigs: Record<
 
 const validateValue = createRequiredFieldValidator('value', 'A selection is required.');
 
+const DEFAULT_PICKER_TYPE: PickerType = 'character';
+
 export const pickerNodeDefinition: NodeDefinition<PickerNodeData> = {
   type: 'pickerNode',
   label: 'Picker',
@@ -94,7 +96,7 @@ export const pickerNodeDefinition: NodeDefinition<PickerNodeData> = {
   component: PickerNode,
   dataSchema: PickerNodeDataSchema,
   currentVersion: 1,
-  initialData: { pickerType: 'character', value: '' },
+  initialData: { pickerType: DEFAULT_PICKER_TYPE, value: '' },
   handles: {
     inputs: [{ id: 'main', type: FlowDataType.ANY }],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
@@ -120,6 +122,20 @@ export const pickerNodeDefinition: NodeDefinition<PickerNodeData> = {
     }
 
     return { inputs: [], outputs };
+  },
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction !== 'outputs') return [];
+    return Object.entries(pickerConfigs)
+      .filter(([pickerType]) => pickerType !== DEFAULT_PICKER_TYPE)
+      .map(([pickerType, config]) => {
+        const typedPickerType = pickerType as PickerType;
+        const suffix = config.label.replace(/^Pick\s+/i, '');
+        return {
+          id: `picker-${pickerType}`,
+          labelSuffix: `(${suffix})`,
+          dataOverrides: { pickerType: typedPickerType, value: '' },
+        };
+      });
   },
 };
 

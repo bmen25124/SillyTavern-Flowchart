@@ -78,6 +78,10 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
 
     return { inputs, outputs };
   },
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction !== 'inputs' && direction !== 'outputs') return [];
+    return [{ id: 'mode-array', labelSuffix: '(Array Mode)', dataOverrides: { mode: 'array' } }];
+  },
 };
 
 registrator.register(randomNodeDefinition);

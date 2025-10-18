@@ -36,7 +36,7 @@ import {
   areFlowDataTypesCompatible,
   shareFlowDataTypeFamily,
 } from '../../flow-types.js';
-import { ValidationIssue, NodeDefinition, HandleSpec } from '../nodes/definitions/types.js';
+import { ValidationIssue, NodeDefinition, HandleSpec, NodeSuggestionBlueprint } from '../nodes/definitions/types.js';
 import { CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 import { generateUUID } from '../../utils/uuid.js';
 
@@ -69,6 +69,7 @@ type ConnectionSuggestionMeta = {
   matchQuality: MatchQuality;
   familyMatch: boolean;
   connectingDataType?: FlowDataType;
+  blueprintId?: string;
 };
 
 type ConnectionSuggestionItem = ContextMenuItemBase & {
@@ -111,6 +112,8 @@ type ConnectionSuggestionDescriptor = {
   matchQuality: MatchQuality;
   familyMatch: boolean;
   connectingDataType?: FlowDataType;
+  dataOverrides?: Record<string, unknown>;
+  blueprintId?: string;
 };
 
 const toDirectionKey = (kind: HandleKind): 'inputs' | 'outputs' => (kind === 'source' ? 'outputs' : 'inputs');
@@ -197,6 +200,22 @@ const compareConnectionSuggestionItems = (a: ConnectionSuggestionItem, b: Connec
   }
 
   return a.label.localeCompare(b.label);
+};
+
+const mergeNodeDataWithOverrides = (initialData: any, overrides?: Record<string, unknown>) => {
+  const base = structuredClone(initialData);
+  if (!overrides) return base;
+  const overrideClone = structuredClone(overrides);
+  return Object.assign(base, overrideClone);
+};
+
+const getBlueprintCandidates = (
+  definition: NodeDefinition,
+  direction: 'inputs' | 'outputs',
+): Array<NodeSuggestionBlueprint | undefined> => {
+  const blueprints = definition.getSuggestionBlueprints?.({ direction }) ?? [];
+  if (blueprints.length === 0) return [undefined];
+  return [undefined, ...blueprints.map((bp) => bp || undefined)];
 };
 
 const FlowCanvas: FC<{
@@ -458,89 +477,115 @@ const FlowCanvas: FC<{
 
       if (handleKind === 'source') {
         for (const targetDef of registrator.allNodeDefinitions) {
-          const tempTargetNode = {
-            id: 'temp-target',
-            type: targetDef.type,
-            data: structuredClone(targetDef.initialData),
-            position: { x: 0, y: 0 },
-          } as Node;
-          const nodesWithTemp = [...allCurrentNodes, tempTargetNode];
-          const targetHandles = collectHandlesForDirection(
-            targetDef,
-            tempTargetNode,
-            'inputs',
-            nodesWithTemp,
-            allCurrentEdges,
-          );
+          const blueprintCandidates = getBlueprintCandidates(targetDef, 'inputs');
+          for (const blueprint of blueprintCandidates) {
+            const tempTargetNode = {
+              id: 'temp-target',
+              type: targetDef.type,
+              data: mergeNodeDataWithOverrides(
+                targetDef.initialData,
+                (blueprint?.dataOverrides as Record<string, unknown> | undefined) ?? undefined,
+              ),
+              position: { x: 0, y: 0 },
+            } as Node;
+            const nodesWithTemp = [...allCurrentNodes, tempTargetNode];
+            const targetHandles = collectHandlesForDirection(
+              targetDef,
+              tempTargetNode,
+              'inputs',
+              nodesWithTemp,
+              allCurrentEdges,
+            );
 
-          for (const { spec } of targetHandles) {
-            if (
-              checkConnectionValidity(
-                {
-                  source: startNode.id,
+            for (const { spec } of targetHandles) {
+              if (
+                checkConnectionValidity(
+                  {
+                    source: startNode.id,
+                    sourceHandle: startHandleId,
+                    target: tempTargetNode.id,
+                    targetHandle: spec.id ?? null,
+                  },
+                  nodesWithTemp,
+                  allCurrentEdges,
+                )
+              ) {
+                const nodeLabel = blueprint?.labelSuffix
+                  ? `${targetDef.label} ${blueprint.labelSuffix}`
+                  : targetDef.label;
+                suggestions.push({
+                  nodeType: targetDef.type,
+                  label: formatConnectionLabel(nodeLabel, spec),
                   sourceHandle: startHandleId,
-                  target: tempTargetNode.id,
                   targetHandle: spec.id ?? null,
-                },
-                nodesWithTemp,
-                allCurrentEdges,
-              )
-            ) {
-              suggestions.push({
-                nodeType: targetDef.type,
-                label: formatConnectionLabel(targetDef.label, spec),
-                sourceHandle: startHandleId,
-                targetHandle: spec.id ?? null,
-                handleDataType: spec.type,
-                matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
-                familyMatch:
-                  !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
-                connectingDataType: connectingHandleType,
-              });
+                  handleDataType: spec.type,
+                  matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
+                  familyMatch:
+                    !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
+                  connectingDataType: connectingHandleType,
+                  dataOverrides: blueprint?.dataOverrides
+                    ? (structuredClone(blueprint.dataOverrides) as Record<string, unknown>)
+                    : undefined,
+                  blueprintId: blueprint?.id,
+                });
+              }
             }
           }
         }
       } else {
         for (const sourceDef of registrator.allNodeDefinitions) {
-          const tempSourceNode = {
-            id: 'temp-source',
-            type: sourceDef.type,
-            data: structuredClone(sourceDef.initialData),
-            position: { x: 0, y: 0 },
-          } as Node;
-          const nodesWithTemp = [...allCurrentNodes, tempSourceNode];
-          const sourceHandles = collectHandlesForDirection(
-            sourceDef,
-            tempSourceNode,
-            'outputs',
-            nodesWithTemp,
-            allCurrentEdges,
-          );
+          const blueprintCandidates = getBlueprintCandidates(sourceDef, 'outputs');
+          for (const blueprint of blueprintCandidates) {
+            const tempSourceNode = {
+              id: 'temp-source',
+              type: sourceDef.type,
+              data: mergeNodeDataWithOverrides(
+                sourceDef.initialData,
+                (blueprint?.dataOverrides as Record<string, unknown> | undefined) ?? undefined,
+              ),
+              position: { x: 0, y: 0 },
+            } as Node;
+            const nodesWithTemp = [...allCurrentNodes, tempSourceNode];
+            const sourceHandles = collectHandlesForDirection(
+              sourceDef,
+              tempSourceNode,
+              'outputs',
+              nodesWithTemp,
+              allCurrentEdges,
+            );
 
-          for (const { spec } of sourceHandles) {
-            if (
-              checkConnectionValidity(
-                {
-                  source: tempSourceNode.id,
+            for (const { spec } of sourceHandles) {
+              if (
+                checkConnectionValidity(
+                  {
+                    source: tempSourceNode.id,
+                    sourceHandle: spec.id ?? null,
+                    target: startNode.id,
+                    targetHandle: startHandleId,
+                  },
+                  nodesWithTemp,
+                  allCurrentEdges,
+                )
+              ) {
+                const nodeLabel = blueprint?.labelSuffix
+                  ? `${sourceDef.label} ${blueprint.labelSuffix}`
+                  : sourceDef.label;
+                suggestions.push({
+                  nodeType: sourceDef.type,
+                  label: formatConnectionLabel(nodeLabel, spec),
                   sourceHandle: spec.id ?? null,
-                  target: startNode.id,
                   targetHandle: startHandleId,
-                },
-                nodesWithTemp,
-                allCurrentEdges,
-              )
-            ) {
-              suggestions.push({
-                nodeType: sourceDef.type,
-                label: formatConnectionLabel(sourceDef.label, spec),
-                sourceHandle: spec.id ?? null,
-                targetHandle: startHandleId,
-                handleDataType: spec.type,
-                matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
-                familyMatch:
-                  !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
-                connectingDataType: connectingHandleType,
-              });
+                  handleDataType: spec.type,
+                  matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
+                  familyMatch:
+                    !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
+                  connectingDataType: connectingHandleType,
+                  dataOverrides: blueprint?.dataOverrides
+                    ? (structuredClone(blueprint.dataOverrides) as Record<string, unknown>)
+                    : undefined,
+                  blueprintId: blueprint?.id,
+                });
+              }
             }
           }
         }
@@ -570,10 +615,14 @@ const FlowCanvas: FC<{
         closeContextMenu();
 
         const nodeXOffset = handleKind === 'source' ? 50 : -250;
+        const nodeData = mergeNodeDataWithOverrides(
+          nodeDef.initialData,
+          suggestion.dataOverrides as Record<string, unknown> | undefined,
+        );
         const newNode = addNode({
           type: suggestion.nodeType,
           position: { x: position.x + nodeXOffset, y: position.y },
-          data: structuredClone(nodeDef.initialData),
+          data: nodeData,
         });
         const connection =
           handleKind === 'source'
@@ -620,6 +669,7 @@ const FlowCanvas: FC<{
             matchQuality: suggestion.matchQuality,
             familyMatch: suggestion.familyMatch,
             connectingDataType: suggestion.connectingDataType,
+            blueprintId: suggestion.blueprintId,
           },
         })),
         filter: { showSearch: true, searchTerm: '' },

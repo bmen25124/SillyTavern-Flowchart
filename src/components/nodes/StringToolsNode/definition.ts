@@ -35,6 +35,25 @@ export const StringToolsNodeDataSchema = z.object({
 export type StringToolsNodeData = z.infer<typeof StringToolsNodeDataSchema>;
 
 const STRING_TOOLS_MERGE_HANDLE_PREFIX = 'string_';
+const STRING_TOOLS_BLUEPRINT_OPERATIONS: Exclude<StringToolsNodeData['operation'], undefined>[] = [
+  'split',
+  'join',
+  'toUpperCase',
+  'toLowerCase',
+  'trim',
+  'replace',
+  'replaceAll',
+  'slice',
+  'length',
+  'startsWith',
+  'endsWith',
+];
+
+const formatOperationLabel = (operation: string) =>
+  operation
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (char) => char.toUpperCase())
+    .trim();
 
 const execute: NodeExecutor = async (node, input) => {
   const data = StringToolsNodeDataSchema.parse(node.data);
@@ -229,6 +248,14 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
 
     const outputs = [{ id: 'result', type: resultType }];
     return { inputs, outputs };
+  },
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction !== 'inputs' && direction !== 'outputs') return [];
+    return STRING_TOOLS_BLUEPRINT_OPERATIONS.map((operation) => ({
+      id: `operation-${operation}`,
+      labelSuffix: `(${formatOperationLabel(operation)})`,
+      dataOverrides: { operation },
+    }));
   },
 };
 

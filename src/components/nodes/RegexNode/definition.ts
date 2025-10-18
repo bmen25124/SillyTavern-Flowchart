@@ -127,6 +127,10 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
     return issues;
   },
   execute,
+  getSuggestionBlueprints: ({ direction }) => {
+    if (direction !== 'inputs') return [];
+    return [{ id: 'mode-custom', labelSuffix: '(Custom Mode)', dataOverrides: { mode: 'custom' } }];
+  },
 };
 
 registrator.register(regexNodeDefinition);
