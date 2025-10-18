@@ -259,6 +259,39 @@ const FlowCanvas: FC<{
 
       const compatibleNodes: CompatibilityInfo[] = [];
 
+      // Get the data type of the connecting handle
+      let connectingHandleType: FlowDataType | undefined;
+      const startNodeDefinition = registrator.nodeDefinitionMap.get(startNode.type);
+      if (startNodeDefinition) {
+        if (handleType === 'source') {
+          // Find the output handle type
+          const staticHandles = startNodeDefinition.handles.outputs;
+          const staticHandle = staticHandles.find((h) => h.id === startHandleId);
+          if (staticHandle) {
+            connectingHandleType = staticHandle.type;
+          } else if (startNodeDefinition.getDynamicHandles) {
+            const dynamicHandles = startNodeDefinition.getDynamicHandles(startNode, allCurrentNodes, allCurrentEdges);
+            const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === startHandleId);
+            if (dynamicHandle) {
+              connectingHandleType = dynamicHandle.type;
+            }
+          }
+        } else {
+          // Find the input handle type
+          const staticHandles = startNodeDefinition.handles.inputs;
+          const staticHandle = staticHandles.find((h) => h.id === startHandleId);
+          if (staticHandle) {
+            connectingHandleType = staticHandle.type;
+          } else if (startNodeDefinition.getDynamicHandles) {
+            const dynamicHandles = startNodeDefinition.getDynamicHandles(startNode, allCurrentNodes, allCurrentEdges);
+            const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === startHandleId);
+            if (dynamicHandle) {
+              connectingHandleType = dynamicHandle.type;
+            }
+          }
+        }
+      }
+
       if (handleType === 'source') {
         for (const targetDef of registrator.allNodeDefinitions) {
           const tempTargetNode = {
@@ -332,6 +365,115 @@ const FlowCanvas: FC<{
       if (compatibleNodes.length === 0) {
         connectingNode.current = null;
         return;
+      }
+
+      // Sort compatible nodes by data type match
+      if (connectingHandleType) {
+        compatibleNodes.sort((a, b) => {
+          // Get node definitions
+          const aDef = registrator.nodeDefinitionMap.get(a.nodeType);
+          const bDef = registrator.nodeDefinitionMap.get(b.nodeType);
+
+          if (!aDef || !bDef) return 0;
+
+          // Get handle specs for both nodes
+          let aHandleType: FlowDataType | undefined;
+          let bHandleType: FlowDataType | undefined;
+
+          if (handleType === 'source') {
+            // For source connections, we're looking at target inputs
+            const aStaticHandle = aDef.handles.inputs.find((h) => h.id === a.targetHandle);
+            const bStaticHandle = bDef.handles.inputs.find((h) => h.id === b.targetHandle);
+
+            if (aStaticHandle) aHandleType = aStaticHandle.type;
+            else if (aDef.getDynamicHandles) {
+              const tempTargetNode = {
+                id: 'temp-target',
+                type: aDef.type,
+                data: aDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = aDef.getDynamicHandles(tempTargetNode, [], []);
+              const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === a.targetHandle);
+              if (dynamicHandle) aHandleType = dynamicHandle.type;
+            }
+
+            if (bStaticHandle) bHandleType = bStaticHandle.type;
+            else if (bDef.getDynamicHandles) {
+              const tempTargetNode = {
+                id: 'temp-target',
+                type: bDef.type,
+                data: bDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = bDef.getDynamicHandles(tempTargetNode, [], []);
+              const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === b.targetHandle);
+              if (dynamicHandle) bHandleType = dynamicHandle.type;
+            }
+
+            if (bStaticHandle) bHandleType = bStaticHandle.type;
+            else if (bDef.getDynamicHandles) {
+              const tempTargetNode = {
+                id: 'temp-target',
+                type: bDef.type,
+                data: bDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = bDef.getDynamicHandles(tempTargetNode, [], []);
+              const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === b.targetHandle);
+              if (dynamicHandle) bHandleType = dynamicHandle.type;
+            }
+          } else {
+            // For target connections, we're looking at source outputs
+            const aStaticHandle = aDef.handles.outputs.find((h) => h.id === a.sourceHandle);
+            const bStaticHandle = bDef.handles.outputs.find((h) => h.id === b.sourceHandle);
+
+            if (aStaticHandle) aHandleType = aStaticHandle.type;
+            else if (aDef.getDynamicHandles) {
+              const tempSourceNode = {
+                id: 'temp-source',
+                type: aDef.type,
+                data: aDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = aDef.getDynamicHandles(tempSourceNode, [], []);
+              const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === a.sourceHandle);
+              if (dynamicHandle) aHandleType = dynamicHandle.type;
+            }
+
+            if (bStaticHandle) bHandleType = bStaticHandle.type;
+            else if (bDef.getDynamicHandles) {
+              const tempSourceNode = {
+                id: 'temp-source',
+                type: bDef.type,
+                data: bDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = bDef.getDynamicHandles(tempSourceNode, [], []);
+              const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === b.sourceHandle);
+              if (dynamicHandle) bHandleType = dynamicHandle.type;
+            }
+
+            if (bStaticHandle) bHandleType = bStaticHandle.type;
+            else if (bDef.getDynamicHandles) {
+              const tempSourceNode = {
+                id: 'temp-source',
+                type: bDef.type,
+                data: bDef.initialData,
+                position: { x: 0, y: 0 },
+              } as Node;
+              const dynamicHandles = bDef.getDynamicHandles(tempSourceNode, [], []);
+              const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === b.sourceHandle);
+              if (dynamicHandle) bHandleType = dynamicHandle.type;
+            }
+          }
+
+          // Prioritize matching data types
+          const aMatches = aHandleType === connectingHandleType ? 0 : 1;
+          const bMatches = bHandleType === connectingHandleType ? 0 : 1;
+
+          return aMatches - bMatches;
+        });
       }
 
       resume();
@@ -421,10 +563,148 @@ const FlowCanvas: FC<{
 
   const filteredMenuOptions = useMemo(() => {
     if (!contextMenu) return [];
-    if (!contextMenu.showSearch || !debouncedSearchTerm) return contextMenu.items;
+
+    let items = contextMenu.items;
+
+    // If this is a connection context menu (has connectingNode), sort by data type compatibility
+    if (connectingNode.current && connectingNode.current.nodeId) {
+      const { nodeId: startNodeId, handleId: startHandleId, handleType } = connectingNode.current;
+      const allCurrentNodes = getNodes();
+      const startNode = allCurrentNodes.find((n) => n.id === startNodeId);
+
+      if (startNode && startNode.type) {
+        const startNodeDefinition = registrator.nodeDefinitionMap.get(startNode.type);
+        if (startNodeDefinition) {
+          // Get the data type of the connecting handle
+          let connectingHandleType: FlowDataType | undefined;
+
+          if (handleType === 'source') {
+            // Find the output handle type
+            const staticHandles = startNodeDefinition.handles.outputs;
+            const staticHandle = staticHandles.find((h) => h.id === startHandleId);
+            if (staticHandle) {
+              connectingHandleType = staticHandle.type;
+            } else if (startNodeDefinition.getDynamicHandles) {
+              const dynamicHandles = startNodeDefinition.getDynamicHandles(startNode, allCurrentNodes, edges);
+              const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === startHandleId);
+              if (dynamicHandle) {
+                connectingHandleType = dynamicHandle.type;
+              }
+            }
+          } else {
+            // Find the input handle type
+            const staticHandles = startNodeDefinition.handles.inputs;
+            const staticHandle = staticHandles.find((h) => h.id === startHandleId);
+            if (staticHandle) {
+              connectingHandleType = staticHandle.type;
+            } else if (startNodeDefinition.getDynamicHandles) {
+              const dynamicHandles = startNodeDefinition.getDynamicHandles(startNode, allCurrentNodes, edges);
+              const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === startHandleId);
+              if (dynamicHandle) {
+                connectingHandleType = dynamicHandle.type;
+              }
+            }
+          }
+
+          // Sort items by data type compatibility
+          if (connectingHandleType) {
+            items = [...items].sort((a, b) => {
+              // Extract node type from the compatibility info stored in the item
+              // For connection menus, items are compatibility objects with nodeType property
+              const aNodeType = (a as any).nodeType || '';
+              const bNodeType = (b as any).nodeType || '';
+
+              if (!aNodeType || !bNodeType) return 0;
+
+              const aDef = registrator.nodeDefinitionMap.get(aNodeType);
+              const bDef = registrator.nodeDefinitionMap.get(bNodeType);
+
+              if (!aDef || !bDef) return 0;
+
+              // Get handle specs for both nodes
+              let aHandleType: FlowDataType | undefined;
+              let bHandleType: FlowDataType | undefined;
+
+              if (handleType === 'source') {
+                // For source connections, we're looking at target inputs
+                const targetHandleId = (a as any).targetHandle;
+                const aStaticHandle = aDef.handles.inputs.find((h) => h.id === targetHandleId);
+                const bStaticHandle = bDef.handles.inputs.find((h) => h.id === (b as any).targetHandle);
+
+                if (aStaticHandle) aHandleType = aStaticHandle.type;
+                else if (aDef.getDynamicHandles) {
+                  const tempTargetNode = {
+                    id: 'temp-target',
+                    type: aDef.type,
+                    data: aDef.initialData,
+                    position: { x: 0, y: 0 },
+                  } as Node;
+                  const dynamicHandles = aDef.getDynamicHandles(tempTargetNode, [], []);
+                  const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === targetHandleId);
+                  if (dynamicHandle) aHandleType = dynamicHandle.type;
+                }
+
+                if (bStaticHandle) bHandleType = bStaticHandle.type;
+                else if (bDef.getDynamicHandles) {
+                  const tempTargetNode = {
+                    id: 'temp-target',
+                    type: bDef.type,
+                    data: bDef.initialData,
+                    position: { x: 0, y: 0 },
+                  } as Node;
+                  const dynamicHandles = bDef.getDynamicHandles(tempTargetNode, [], []);
+                  const dynamicHandle = dynamicHandles.inputs.find((h) => h.id === (b as any).targetHandle);
+                  if (dynamicHandle) bHandleType = dynamicHandle.type;
+                }
+              } else {
+                // For target connections, we're looking at source outputs
+                const sourceHandleId = (a as any).sourceHandle;
+                const aStaticHandle = aDef.handles.outputs.find((h) => h.id === sourceHandleId);
+                const bStaticHandle = bDef.handles.outputs.find((h) => h.id === (b as any).sourceHandle);
+
+                if (aStaticHandle) aHandleType = aStaticHandle.type;
+                else if (aDef.getDynamicHandles) {
+                  const tempSourceNode = {
+                    id: 'temp-source',
+                    type: aDef.type,
+                    data: aDef.initialData,
+                    position: { x: 0, y: 0 },
+                  } as Node;
+                  const dynamicHandles = aDef.getDynamicHandles(tempSourceNode, [], []);
+                  const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === sourceHandleId);
+                  if (dynamicHandle) aHandleType = dynamicHandle.type;
+                }
+
+                if (bStaticHandle) bHandleType = bStaticHandle.type;
+                else if (bDef.getDynamicHandles) {
+                  const tempSourceNode = {
+                    id: 'temp-source',
+                    type: bDef.type,
+                    data: bDef.initialData,
+                    position: { x: 0, y: 0 },
+                  } as Node;
+                  const dynamicHandles = bDef.getDynamicHandles(tempSourceNode, [], []);
+                  const dynamicHandle = dynamicHandles.outputs.find((h) => h.id === (b as any).sourceHandle);
+                  if (dynamicHandle) bHandleType = dynamicHandle.type;
+                }
+              }
+
+              // Prioritize matching data types
+              const aMatches = aHandleType === connectingHandleType ? 0 : 1;
+              const bMatches = bHandleType === connectingHandleType ? 0 : 1;
+
+              return aMatches - bMatches;
+            });
+          }
+        }
+      }
+    }
+
+    // Apply search filter if needed
+    if (!contextMenu.showSearch || !debouncedSearchTerm) return items;
     const lowerSearch = debouncedSearchTerm.toLowerCase();
-    return contextMenu.items.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
-  }, [contextMenu, debouncedSearchTerm]);
+    return items.filter((opt) => opt.label.toLowerCase().includes(lowerSearch));
+  }, [contextMenu, debouncedSearchTerm, edges, getNodes]);
 
   const styledEdges = useMemo(() => {
     const allNodes = getNodes();
