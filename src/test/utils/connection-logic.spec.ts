@@ -1,5 +1,6 @@
 import { Node, Edge } from '@xyflow/react';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';
+import { FlowDataType, areFlowDataTypesCompatible } from '../../flow-types.js';
 
 describe('checkConnectionValidity', () => {
   const nodes: Node[] = [
@@ -53,5 +54,17 @@ describe('checkConnectionValidity', () => {
     };
     const isValid = checkConnectionValidity(connection, [...nodes, specialStringNode], edges);
     expect(isValid).toBe(true);
+  });
+
+  it('should treat specialized string identifiers as compatible with STRING', () => {
+    expect(areFlowDataTypesCompatible(FlowDataType.CHARACTER_AVATAR, FlowDataType.STRING)).toBe(true);
+    expect(areFlowDataTypesCompatible(FlowDataType.STRING, FlowDataType.REGEX_SCRIPT_ID)).toBe(true);
+    expect(areFlowDataTypesCompatible(FlowDataType.LOREBOOK_NAME, FlowDataType.STRING)).toBe(true);
+    expect(areFlowDataTypesCompatible(FlowDataType.FLOW_ID, FlowDataType.STRING)).toBe(true);
+  });
+
+  it('should treat specialized string identifiers as compatible with each other', () => {
+    expect(areFlowDataTypesCompatible(FlowDataType.CHARACTER_AVATAR, FlowDataType.REGEX_SCRIPT_ID)).toBe(true);
+    expect(areFlowDataTypesCompatible(FlowDataType.LOREBOOK_NAME, FlowDataType.FLOW_ID)).toBe(true);
   });
 });

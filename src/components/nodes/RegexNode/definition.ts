@@ -84,7 +84,7 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
     const inputs = [];
 
     if (mode === 'sillytavern') {
-      inputs.push({ id: 'scriptId', type: FlowDataType.STRING });
+      inputs.push({ id: 'scriptId', type: FlowDataType.REGEX_SCRIPT_ID });
     } else {
       inputs.push({ id: 'findRegex', type: FlowDataType.STRING });
       inputs.push({ id: 'replaceString', type: FlowDataType.STRING });

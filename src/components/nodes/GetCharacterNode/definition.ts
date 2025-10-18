@@ -51,7 +51,7 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'characterAvatar', type: FlowDataType.STRING },
+      { id: 'characterAvatar', type: FlowDataType.CHARACTER_AVATAR },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },

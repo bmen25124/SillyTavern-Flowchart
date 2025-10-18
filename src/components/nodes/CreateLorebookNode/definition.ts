@@ -38,7 +38,7 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.STRING },
+      { id: 'result', type: FlowDataType.LOREBOOK_NAME },
     ],
   },
   validate: combineValidators(createRequiredFieldValidator('worldName', 'Lorebook Name is required.')),

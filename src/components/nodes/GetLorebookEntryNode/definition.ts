@@ -43,7 +43,7 @@ export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNode
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'worldName', type: FlowDataType.LOREBOOK_NAME },
       { id: 'entryUid', type: FlowDataType.NUMBER },
     ],
     outputs: [

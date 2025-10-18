@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { useConnectedHandles } from '../../hooks/useConnectedHandles.js';
 import { FieldConfig } from './fieldConfig.js';
 import { registrator } from './autogen-imports.js';
-import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
+import { FlowDataType, FlowDataTypeColors, getConvertibleFlowDataTypes } from '../../flow-types.js';
 
 interface NodeFieldRendererProps {
   nodeId: string;
@@ -26,12 +26,9 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
           const handleType = handleSpec?.type ?? FlowDataType.ANY;
 
           let handleTitle = `Type: ${handleType}`;
-          if (handleType === FlowDataType.STRING) {
-            handleTitle += ` (or Profile ID)`;
-          } else if (handleType === FlowDataType.PROFILE_ID) {
-            handleTitle += ` (or String)`;
-          } else if (handleType === FlowDataType.OBJECT) {
-            handleTitle += ` (or Structured Result)`;
+          const convertibleTypes = getConvertibleFlowDataTypes(handleType);
+          if (convertibleTypes.length > 0) {
+            handleTitle += ` (compatible: ${convertibleTypes.join(', ')})`;
           }
 
           const handleChange = (event: any) => {

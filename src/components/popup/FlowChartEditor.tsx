@@ -30,7 +30,12 @@ import { useDebounce } from '../../hooks/useDebounce.js';
 import { registrator } from '../nodes/autogen-imports.js';
 import { SpecFlow } from '../../flow-spec.js';
 import { getHandleSpec } from '../../utils/handle-logic.js';
-import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
+import {
+  FlowDataType,
+  FlowDataTypeColors,
+  areFlowDataTypesCompatible,
+  shareFlowDataTypeFamily,
+} from '../../flow-types.js';
 import { ValidationIssue, NodeDefinition, HandleSpec } from '../nodes/definitions/types.js';
 import { CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 import { generateUUID } from '../../utils/uuid.js';
@@ -62,6 +67,8 @@ type ConnectionSuggestionMeta = {
   handleKind: HandleKind;
   targetDataType?: FlowDataType;
   matchQuality: MatchQuality;
+  familyMatch: boolean;
+  connectingDataType?: FlowDataType;
 };
 
 type ConnectionSuggestionItem = ContextMenuItemBase & {
@@ -102,12 +109,8 @@ type ConnectionSuggestionDescriptor = {
   targetHandle: string | null;
   handleDataType?: FlowDataType;
   matchQuality: MatchQuality;
-};
-
-const HANDLE_SORT_PRIORITY: Record<MatchQuality, number> = {
-  exact: 0,
-  convertible: 1,
-  fallback: 2,
+  familyMatch: boolean;
+  connectingDataType?: FlowDataType;
 };
 
 const toDirectionKey = (kind: HandleKind): 'inputs' | 'outputs' => (kind === 'source' ? 'outputs' : 'inputs');
@@ -168,7 +171,7 @@ const resolveHandleSpec = (
 const deriveMatchQuality = (connectingType?: FlowDataType, candidateType?: FlowDataType): MatchQuality => {
   if (!connectingType || !candidateType) return 'fallback';
   if (connectingType === candidateType) return 'exact';
-  if (connectingType === FlowDataType.ANY || candidateType === FlowDataType.ANY) return 'convertible';
+  if (areFlowDataTypesCompatible(connectingType, candidateType)) return 'convertible';
   return 'fallback';
 };
 
@@ -177,7 +180,16 @@ const formatConnectionLabel = (baseLabel: string, handle: HandleSpec): string =>
 };
 
 const compareConnectionSuggestionItems = (a: ConnectionSuggestionItem, b: ConnectionSuggestionItem): number => {
-  const priorityDiff = HANDLE_SORT_PRIORITY[a.meta.matchQuality] - HANDLE_SORT_PRIORITY[b.meta.matchQuality];
+  const getPriority = (item: ConnectionSuggestionItem) => {
+    const { matchQuality, familyMatch, connectingDataType, targetDataType } = item.meta;
+    if (matchQuality === 'exact') return 0;
+    if (connectingDataType && targetDataType && connectingDataType === targetDataType) return 0;
+    if (familyMatch && matchQuality === 'convertible') return 1;
+    if (matchQuality === 'convertible') return 2;
+    return 3;
+  };
+
+  const priorityDiff = getPriority(a) - getPriority(b);
   if (priorityDiff !== 0) return priorityDiff;
 
   if (a.meta.targetDataType && b.meta.targetDataType && a.meta.targetDataType !== b.meta.targetDataType) {
@@ -481,6 +493,9 @@ const FlowCanvas: FC<{
                 targetHandle: spec.id ?? null,
                 handleDataType: spec.type,
                 matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
+                familyMatch:
+                  !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
+                connectingDataType: connectingHandleType,
               });
             }
           }
@@ -522,6 +537,9 @@ const FlowCanvas: FC<{
                 targetHandle: startHandleId,
                 handleDataType: spec.type,
                 matchQuality: deriveMatchQuality(connectingHandleType, spec.type),
+                familyMatch:
+                  !!connectingHandleType && !!spec.type && shareFlowDataTypeFamily(connectingHandleType, spec.type),
+                connectingDataType: connectingHandleType,
               });
             }
           }
@@ -600,6 +618,8 @@ const FlowCanvas: FC<{
             handleKind,
             targetDataType: suggestion.handleDataType,
             matchQuality: suggestion.matchQuality,
+            familyMatch: suggestion.familyMatch,
+            connectingDataType: suggestion.connectingDataType,
           },
         })),
         filter: { showSearch: true, searchTerm: '' },

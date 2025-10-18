@@ -77,7 +77,7 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'characterAvatar', type: FlowDataType.STRING },
+      { id: 'characterAvatar', type: FlowDataType.CHARACTER_AVATAR },
       { id: 'name', type: FlowDataType.STRING },
       { id: 'description', type: FlowDataType.STRING },
       { id: 'first_mes', type: FlowDataType.STRING },

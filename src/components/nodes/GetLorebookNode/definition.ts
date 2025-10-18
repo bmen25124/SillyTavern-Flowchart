@@ -36,7 +36,7 @@ export const getLorebookNodeDefinition: NodeDefinition<GetLorebookNodeData> = {
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'worldName', type: FlowDataType.LOREBOOK_NAME },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },

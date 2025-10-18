@@ -137,7 +137,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     if (!isSchemaConnected) {
       dynamicInputs.push({ id: 'stream', type: FlowDataType.BOOLEAN });
       if (isStreaming) {
-        dynamicInputs.push({ id: 'onStreamFlowId', type: FlowDataType.STRING });
+        dynamicInputs.push({ id: 'onStreamFlowId', type: FlowDataType.FLOW_ID });
       }
     }
 

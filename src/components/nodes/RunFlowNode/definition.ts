@@ -47,7 +47,7 @@ export const runFlowNodeDefinition: NodeDefinition<RunFlowNodeData> = {
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'flowId', type: FlowDataType.STRING },
+      { id: 'flowId', type: FlowDataType.FLOW_ID },
       { id: 'parameters', type: FlowDataType.OBJECT },
     ],
     outputs: [

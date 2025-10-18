@@ -53,7 +53,7 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'worldName', type: FlowDataType.LOREBOOK_NAME },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },

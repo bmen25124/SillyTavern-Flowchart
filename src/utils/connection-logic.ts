@@ -1,5 +1,5 @@
 import { Connection, Edge, Node } from '@xyflow/react';
-import { FlowDataType } from '../flow-types.js';
+import { areFlowDataTypesCompatible } from '../flow-types.js';
 import { getHandleSpec } from './handle-logic.js';
 
 export function checkConnectionValidity(connection: Edge | Connection, nodes: Node[], edges: Edge[]): boolean {
@@ -29,20 +29,5 @@ export function checkConnectionValidity(connection: Edge | Connection, nodes: No
     return false;
   }
 
-  if (sourceHandleType === FlowDataType.ANY || targetHandleType === FlowDataType.ANY) {
-    return true;
-  }
-
-  if (
-    (targetHandleType === FlowDataType.PROFILE_ID && sourceHandleType === FlowDataType.STRING) ||
-    (targetHandleType === FlowDataType.STRING && sourceHandleType === FlowDataType.PROFILE_ID)
-  ) {
-    return true;
-  }
-
-  if (targetHandleType === FlowDataType.OBJECT && sourceHandleType === FlowDataType.STRUCTURED_RESULT) {
-    return true;
-  }
-
-  return sourceHandleType === targetHandleType;
+  return areFlowDataTypesCompatible(sourceHandleType, targetHandleType);
 }

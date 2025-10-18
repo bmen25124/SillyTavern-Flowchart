@@ -317,6 +317,10 @@ export enum FlowDataType {
   MESSAGES = 'messages',
   SCHEMA = 'schema',
   STRUCTURED_RESULT = 'structuredResult',
+  CHARACTER_AVATAR = 'characterAvatar',
+  LOREBOOK_NAME = 'lorebookName',
+  REGEX_SCRIPT_ID = 'regexScriptId',
+  FLOW_ID = 'flowId',
   ANY = 'any',
 }
 
@@ -329,5 +333,65 @@ export const FlowDataTypeColors: Record<FlowDataType, string> = {
   [FlowDataType.SCHEMA]: '#f4a94d',
   [FlowDataType.PROFILE_ID]: '#4df4e0',
   [FlowDataType.STRUCTURED_RESULT]: '#4d8cf4',
+  [FlowDataType.CHARACTER_AVATAR]: '#f47d4d',
+  [FlowDataType.LOREBOOK_NAME]: '#f44dd9',
+  [FlowDataType.REGEX_SCRIPT_ID]: '#4dd4f4',
+  [FlowDataType.FLOW_ID]: '#8ff44d',
   [FlowDataType.ANY]: '#ffffff',
 };
+
+const compatibilityGroups: ReadonlyArray<ReadonlySet<FlowDataType>> = [
+  new Set([
+    FlowDataType.STRING,
+    FlowDataType.PROFILE_ID,
+    FlowDataType.CHARACTER_AVATAR,
+    FlowDataType.LOREBOOK_NAME,
+    FlowDataType.REGEX_SCRIPT_ID,
+    FlowDataType.FLOW_ID,
+  ]),
+  new Set([FlowDataType.OBJECT, FlowDataType.STRUCTURED_RESULT]),
+];
+
+const compatibilityMap: ReadonlyMap<FlowDataType, ReadonlySet<FlowDataType>> = (() => {
+  const map = new Map<FlowDataType, ReadonlySet<FlowDataType>>();
+
+  const ensureEntry = (type: FlowDataType) => {
+    if (!map.has(type)) {
+      map.set(type, new Set());
+    }
+    return map.get(type) as Set<FlowDataType>;
+  };
+
+  for (const group of compatibilityGroups) {
+    for (const type of group) {
+      const entry = ensureEntry(type);
+      for (const other of group) {
+        if (other !== type) {
+          entry.add(other);
+        }
+      }
+    }
+  }
+
+  return map;
+})();
+
+export function areFlowDataTypesCompatible(source: FlowDataType, target: FlowDataType): boolean {
+  if (source === target) return true;
+  if (source === FlowDataType.ANY || target === FlowDataType.ANY) return true;
+  const compatibleTargets = compatibilityMap.get(source);
+  return compatibleTargets !== undefined && compatibleTargets.has(target);
+}
+
+export function getConvertibleFlowDataTypes(type: FlowDataType): FlowDataType[] {
+  const compatible = compatibilityMap.get(type);
+  if (!compatible) return [];
+  return Array.from(compatible).sort();
+}
+
+export function shareFlowDataTypeFamily(a: FlowDataType, b: FlowDataType): boolean {
+  if (a === b) return true;
+  if (a === FlowDataType.ANY || b === FlowDataType.ANY) return false;
+  const compatible = compatibilityMap.get(a);
+  return !!compatible && compatible.has(b);
+}

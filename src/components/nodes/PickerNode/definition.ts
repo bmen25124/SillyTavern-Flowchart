@@ -60,17 +60,29 @@ const pickerConfigs: Record<
   PickerType,
   { label: string; outputHandle: Omit<HandleSpec, 'type'> & { type?: FlowDataType } }
 > = {
-  character: { label: 'Pick Character', outputHandle: { id: 'value', label: 'Avatar' } },
-  lorebook: { label: 'Pick Lorebook', outputHandle: { id: 'value', label: 'Name' } },
+  character: {
+    label: 'Pick Character',
+    outputHandle: { id: 'value', label: 'Avatar', type: FlowDataType.CHARACTER_AVATAR },
+  },
+  lorebook: {
+    label: 'Pick Lorebook',
+    outputHandle: { id: 'value', label: 'Name', type: FlowDataType.LOREBOOK_NAME },
+  },
   prompt: { label: 'Pick Prompt', outputHandle: { id: 'value', label: 'Name' } },
-  regexScript: { label: 'Pick Regex Script', outputHandle: { id: 'value', label: 'ID' } },
+  regexScript: {
+    label: 'Pick Regex Script',
+    outputHandle: { id: 'value', label: 'ID', type: FlowDataType.REGEX_SCRIPT_ID },
+  },
   mathOperation: { label: 'Pick Math Operation', outputHandle: { id: 'value', label: 'Operation' } },
   stringOperation: { label: 'Pick String Operation', outputHandle: { id: 'value', label: 'Operation' } },
   promptMode: { label: 'Pick Prompt Mode', outputHandle: { id: 'value', label: 'Mode' } },
   randomMode: { label: 'Pick Random Mode', outputHandle: { id: 'value', label: 'Mode' } },
   regexMode: { label: 'Pick Regex Mode', outputHandle: { id: 'value', label: 'Mode' } },
   converterTarget: { label: 'Pick Conversion Type', outputHandle: { id: 'value', label: 'Type' } },
-  flow: { label: 'Pick Flow', outputHandle: { id: 'value', label: 'Flow ID' } },
+  flow: {
+    label: 'Pick Flow',
+    outputHandle: { id: 'value', label: 'Flow ID', type: FlowDataType.FLOW_ID },
+  },
 };
 
 const validateValue = createRequiredFieldValidator('value', 'A selection is required.');
@@ -104,7 +116,7 @@ export const pickerNodeDefinition: NodeDefinition<PickerNodeData> = {
     });
 
     if (pickerType === 'character') {
-      outputs.push({ id: 'activeAvatar', type: FlowDataType.STRING, label: 'Active Avatar' });
+      outputs.push({ id: 'activeAvatar', type: FlowDataType.CHARACTER_AVATAR, label: 'Active Avatar' });
     }
 
     return { inputs: [], outputs };

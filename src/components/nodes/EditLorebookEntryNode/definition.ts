@@ -66,7 +66,7 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'worldName', type: FlowDataType.STRING },
+      { id: 'worldName', type: FlowDataType.LOREBOOK_NAME },
       { id: 'entryUid', type: FlowDataType.NUMBER },
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
