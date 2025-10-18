@@ -18,12 +18,21 @@ export const NoteNode: FC<NoteNodeProps> = ({ id, selected }) => {
   };
 
   return (
-    <BaseNode id={id} title="Note" selected={selected}>
+    <BaseNode id={id} title="Note" selected={selected} contentGrows minWidth={60}>
       <STTextarea
+        className="nodrag"
         value={data.text}
         onChange={handleTextChange}
-        rows={2}
-        style={{ width: '100%', border: 'none', background: 'transparent', resize: 'none' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          background: 'transparent',
+          resize: 'none',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+        }}
       />
     </BaseNode>
   );
