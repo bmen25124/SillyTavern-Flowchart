@@ -20,7 +20,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
   const variables = { ...Object.fromEntries(executionVariables) };
   const providedSchema = input.schema;
 
-  const scriptInput = input.scriptInput ?? input;
+  const scriptInput = input.scriptInput;
 
   let result;
   try {

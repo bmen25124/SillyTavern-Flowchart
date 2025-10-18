@@ -116,6 +116,17 @@ describe('schema-builder', () => {
       const schema = jsonItemToZod(item);
       expect(schema).toBeInstanceOf(z.ZodObject);
     });
+
+    it('should handle empty array item', () => {
+      const item: JsonNodeItem = {
+        id: '1',
+        type: 'array',
+        key: 'test',
+        value: [],
+      };
+      const schema = jsonItemToZod(item);
+      expect(schema).toBeInstanceOf(z.ZodArray);
+    });
   });
 
   describe('inferSchemaFromJsonNode', () => {
@@ -140,6 +151,15 @@ describe('schema-builder', () => {
       };
       const schema = inferSchemaFromJsonNode(data);
       expect(schema).toBeInstanceOf(z.ZodArray);
+    });
+
+    it('should handle empty object data', () => {
+      const data: JsonNodeData = {
+        rootType: 'object',
+        items: [],
+      };
+      const schema = inferSchemaFromJsonNode(data);
+      expect(schema).toBeInstanceOf(z.ZodObject);
     });
   });
 
