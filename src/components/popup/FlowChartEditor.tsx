@@ -72,6 +72,7 @@ const FlowCanvas: FC<{
     toggleNodeDisabled,
     copySelection,
     setNodes,
+    setEdges,
   } = useFlowStore();
   const { screenToFlowPosition, getNodes, deleteElements } = useReactFlow();
   const connectingNode = useRef<OnConnectStartParams | null>(null);
@@ -764,6 +765,10 @@ const FlowCanvas: FC<{
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeClick={(_, edge) => {
+          // This will allow edges to be selected
+          setEdges(edges.map((e) => ({ ...e, selected: e.id === edge.id })));
+        }}
         onPaneClick={onPaneClick}
         onPaneContextMenu={openNodeCreationMenu}
         onNodeDragStart={onNodeDragStart}

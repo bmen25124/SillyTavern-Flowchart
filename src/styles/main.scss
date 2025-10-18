@@ -387,6 +387,17 @@
   animation: dash-animation 1s linear infinite;
 }
 
+// Styles for selected edges
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--primary-color, #007bff) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 4px var(--primary-color, #007bff));
+}
+
+.react-flow__edge.selected .react-flow__edgelabel-renderer {
+  background: var(--primary-color, #007bff);
+}
+
 @keyframes dash-animation {
   to {
     stroke-dashoffset: -16;
