@@ -7,7 +7,7 @@ import { generateUUID } from '../../utils/uuid.js';
 import { stringNodeDefinition } from '../../components/nodes/StringNode/definition.js';
 import { numberNodeDefinition } from '../../components/nodes/NumberNode/definition.js';
 import { mathNodeDefinition } from '../../components/nodes/MathNode/definition.js';
-import { setVariableNodeDefinition } from '../../components/nodes/SetVariableNode/definition.js';
+import { setFlowVariableNodeDefinition } from '../../components/nodes/SetFlowVariableNode/definition.js';
 import { getFlowVariableNodeDefinition } from '../../components/nodes/GetFlowVariableNode/definition.js';
 import { setLocalVariableNodeDefinition } from '../../components/nodes/SetLocalVariableNode/definition.js';
 import { getLocalVariableNodeDefinition } from '../../components/nodes/GetLocalVariableNode/definition.js';
@@ -168,13 +168,13 @@ describe('Node Executors', () => {
   });
 
   // --- Context-Aware Nodes ---
-  describe('SetVariableNode & GetFlowVariableNode', () => {
-    const { execute: setExecute } = setVariableNodeDefinition;
+  describe('SetFlowVariableNode & GetFlowVariableNode', () => {
+    const { execute: setExecute } = setFlowVariableNodeDefinition;
     const { execute: getExecute } = getFlowVariableNodeDefinition;
 
     it('should set a variable in the execution context and then retrieve it', async () => {
       // Set the variable
-      const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'myVar' });
+      const setNode = createMockNode(setFlowVariableNodeDefinition, { variableName: 'myVar' });
       const setValue = { data: 'test-data' };
       await setExecute(setNode, { value: setValue }, context);
 
@@ -195,7 +195,7 @@ describe('Node Executors', () => {
     });
 
     it('should validate variables against an optional schema', async () => {
-      const setNode = createMockNode(setVariableNodeDefinition, { variableName: 'typedVar' });
+      const setNode = createMockNode(setFlowVariableNodeDefinition, { variableName: 'typedVar' });
       await setExecute(setNode, { value: { id: 7 } }, context);
 
       const getNode = createMockNode(getFlowVariableNodeDefinition, { variableName: 'typedVar' });

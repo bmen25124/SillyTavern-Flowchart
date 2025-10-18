@@ -38,7 +38,7 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
 };
 
 export const getFlowVariableNodeDefinition: NodeDefinition<GetFlowVariableNodeData> = {
-  type: 'getVariableNode',
+  type: 'getFlowVariableNode',
   label: 'Get Flow Variable',
   category: 'Variables',
   component: GetFlowVariableNode,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { SetVariableNode } from './SetVariableNode.js';
+import { SetFlowVariableNode } from './SetFlowVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
@@ -11,14 +11,14 @@ import {
   createRequiredConnectionValidator,
 } from '../../../utils/validation-helpers.js';
 
-export const SetVariableNodeDataSchema = z.object({
+export const SetFlowVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
   _version: z.number().optional(),
 });
-export type SetVariableNodeData = z.infer<typeof SetVariableNodeDataSchema>;
+export type SetFlowVariableNodeData = z.infer<typeof SetFlowVariableNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input, { executionVariables }) => {
-  const data = SetVariableNodeDataSchema.parse(node.data);
+  const data = SetFlowVariableNodeDataSchema.parse(node.data);
   const variableName = resolveInput(input, data, 'variableName');
   const value = input.value;
   if (!variableName) throw new Error('Variable name is required.');
@@ -27,12 +27,12 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
   // Returns void. The runner handles the passthrough automatically.
 };
 
-export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
-  type: 'setVariableNode',
-  label: 'Set Variable',
+export const setFlowVariableNodeDefinition: NodeDefinition<SetFlowVariableNodeData> = {
+  type: 'setFlowVariableNode',
+  label: 'Set Flow Variable',
   category: 'Variables',
-  component: SetVariableNode,
-  dataSchema: SetVariableNodeDataSchema,
+  component: SetFlowVariableNode,
+  dataSchema: SetFlowVariableNodeDataSchema,
   currentVersion: 1,
   initialData: { variableName: 'myVar' },
   handles: {
@@ -50,4 +50,4 @@ export const setVariableNodeDefinition: NodeDefinition<SetVariableNodeData> = {
   execute,
 };
 
-registrator.register(setVariableNodeDefinition);
+registrator.register(setFlowVariableNodeDefinition);

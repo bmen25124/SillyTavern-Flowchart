@@ -1,14 +1,14 @@
 import { FC } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { SetVariableNodeData } from './definition.js';
+import { SetFlowVariableNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
 
-export type SetVariableNodeProps = NodeProps<Node<SetVariableNodeData>>;
+export type SetFlowVariableNodeProps = NodeProps<Node<SetFlowVariableNodeData>>;
 
 const fields = [
   createFieldConfig({
@@ -19,15 +19,15 @@ const fields = [
   }),
 ];
 
-export const SetVariableNode: FC<SetVariableNodeProps> = ({ id, selected, type }) => {
-  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetVariableNodeData;
+export const SetFlowVariableNode: FC<SetFlowVariableNodeProps> = ({ id, selected, type }) => {
+  const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SetFlowVariableNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
 
   if (!data || !definition) return null;
 
   return (
-    <BaseNode id={id} title="Set Variable" selected={selected}>
+    <BaseNode id={id} title="Set Flow Variable" selected={selected}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <NodeHandleRenderer
           nodeId={id}
