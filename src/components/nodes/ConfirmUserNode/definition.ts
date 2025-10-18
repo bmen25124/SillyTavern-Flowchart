@@ -6,6 +6,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { ConfirmUserNode } from './ConfirmUserNode.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { Edge } from '@xyflow/react';
 
 export const ConfirmUserNodeDataSchema = z.object({
   message: z.string().optional(),
@@ -45,6 +46,12 @@ export const confirmUserNodeDefinition: NodeDefinition<ConfirmUserNodeData> = {
   },
   validate: combineValidators(createRequiredFieldValidator('message', 'Message is required.')),
   execute,
+  determineEdgesToFollow: <T extends Edge>(output: any, outgoingEdges: T[]): T[] => {
+    if (output?.activatedHandle) {
+      return outgoingEdges.filter((edge) => edge.sourceHandle === output.activatedHandle);
+    }
+    return [];
+  },
 };
 
 registrator.register(confirmUserNodeDefinition);

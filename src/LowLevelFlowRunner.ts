@@ -104,6 +104,12 @@ export class LowLevelFlowRunner {
         const nodeId = queue.shift()!;
         const node = nodesById.get(nodeId)!;
 
+        const definition = registrator.nodeDefinitionMap.get(node.type);
+
+        if (definition?.isVisual) {
+          continue;
+        }
+
         // Skip disabled nodes, but pass control flow through
         if (node.data?.disabled) {
           continue;
@@ -136,7 +142,6 @@ export class LowLevelFlowRunner {
             return report; // Graceful exit
           }
 
-          const definition = registrator.nodeDefinitionMap.get(node.type);
           const isPassthrough =
             definition?.handles.inputs.some((h) => h.id === 'main') &&
             definition?.handles.outputs.some((h) => h.id === 'main');
@@ -181,8 +186,8 @@ export class LowLevelFlowRunner {
         const outgoingEdges = adj.get(nodeId) || [];
         let edgesToFollow = outgoingEdges;
 
-        if (['ifNode', 'confirmUserNode'].includes(node.type) && nodeReport.output?.activatedHandle) {
-          edgesToFollow = outgoingEdges.filter((edge) => edge.sourceHandle === nodeReport.output.activatedHandle);
+        if (definition?.determineEdgesToFollow) {
+          edgesToFollow = definition.determineEdgesToFollow(nodeReport.output, outgoingEdges);
         }
 
         for (const edge of edgesToFollow) {

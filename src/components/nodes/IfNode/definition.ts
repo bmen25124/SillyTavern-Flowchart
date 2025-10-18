@@ -204,6 +204,13 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
     }
     return undefined;
   },
+  determineEdgesToFollow: <T extends Edge>(output: any, outgoingEdges: T[]): T[] => {
+    if (output?.activatedHandle) {
+      return outgoingEdges.filter((edge) => edge.sourceHandle === output.activatedHandle);
+    }
+    // If no handle is activated, or the output is not as expected, don't follow any edge.
+    return [];
+  },
 };
 
 registrator.register(ifNodeDefinition);

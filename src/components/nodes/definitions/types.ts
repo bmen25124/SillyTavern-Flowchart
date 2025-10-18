@@ -102,6 +102,18 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * Checks if a given handle ID belongs to a dynamic handle set for this node.
    */
   isDynamicHandle?: (handleId: string | null) => boolean;
+  /**
+   * A flag indicating that this is a purely visual node and should be ignored by the runner.
+   */
+  isVisual?: boolean;
+  /**
+   * Optional function to dynamically determine which outgoing edges to follow based on the node's output.
+   * If not provided, all outgoing edges are followed.
+   * @param output The output of the node's executor function.
+   * @param outgoingEdges All outgoing edges from the current node.
+   * @returns An array of edges that should be followed for execution.
+   */
+  determineEdgesToFollow?: <T extends Edge>(output: any, outgoingEdges: T[]) => T[];
 }
 
 export type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;
