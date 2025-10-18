@@ -18,14 +18,14 @@ const EventInfo: EventInfoStructure = {
       description: 'Emitted when a new message is received/inserted into chat.',
       params: {
         messageId: z.coerce.number().describe('The ID of the message.'),
-        type: z.string().describe('The type of message.'),
+        type: z.string().optional().describe('The type of message.'),
       },
     },
     CHARACTER_MESSAGE_RENDERED: {
       description: 'Emitted after a character message is rendered in the UI.',
       params: {
         messageId: z.coerce.number().describe('The ID of the message.'),
-        type: z.string().describe('The type of message.'),
+        type: z.string().optional().describe('The type of message.'),
       },
     },
     MESSAGE_SENT: {
