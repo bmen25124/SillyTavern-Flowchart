@@ -10,7 +10,7 @@ export interface FlowRunnerDependencies {
     profileId: string,
     messages: any[],
     maxResponseToken: number,
-    onStream?: (data: { chunk: string; fullText: string }) => void,
+    onStream?: (data: { chunk: string; fullText: string }) => Promise<void> | void,
     signal?: AbortSignal,
   ) => Promise<string>;
   makeStructuredRequest: (

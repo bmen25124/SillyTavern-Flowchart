@@ -1,8 +1,12 @@
-export const resolveInput = <T extends object, K extends keyof T>(
+export function resolveInput<T extends object, K extends keyof T>(
   input: Record<string, any>,
   staticData: T,
   key: K,
-): T[K] => input[key as string] ?? staticData[key];
+): T[K];
+export function resolveInput(input: Record<string, any>, staticData: Record<string, any>, key: string): any;
+export function resolveInput(input: Record<string, any>, staticData: Record<string, any>, key: string) {
+  return input[key] ?? staticData[key];
+}
 
 /**
  * Safely retrieves a nested property from an object using a string path.

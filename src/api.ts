@@ -47,7 +47,7 @@ async function makeRequest(
   maxTokens: number,
   overridePayload: any,
   streamCallbacks?: {
-    onStream: (data: { chunk: string; fullText: string }) => void;
+    onStream: (data: { chunk: string; fullText: string }) => Promise<void> | void;
   },
   signal?: AbortSignal,
 ): Promise<ExtractedData | undefined> {
@@ -68,10 +68,10 @@ async function makeRequest(
       {
         abortController,
         onEntry: stream
-          ? (_requestId, streamData) => {
+          ? async (_requestId, streamData) => {
               const text = (streamData as StreamResponse).text;
               if (text && streamCallbacks) {
-                streamCallbacks.onStream({ chunk: text.slice(previousText.length), fullText: text });
+                await streamCallbacks.onStream({ chunk: text.slice(previousText.length), fullText: text });
                 previousText = text;
               }
             }
@@ -98,7 +98,7 @@ export async function makeSimpleRequest(
   profileId: string,
   baseMessages: Message[],
   maxResponseToken: number,
-  onStream?: (data: { chunk: string; fullText: string }) => void,
+  onStream?: (data: { chunk: string; fullText: string }) => void | Promise<void>,
   signal?: AbortSignal,
 ): Promise<string> {
   const response = (await makeRequest(

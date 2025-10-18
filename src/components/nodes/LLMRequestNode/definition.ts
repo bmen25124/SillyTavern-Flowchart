@@ -5,8 +5,9 @@ import { FlowDataType } from '../../../flow-types.js';
 import { LLMRequestNode } from './LLMRequestNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { PromptEngineeringMode } from '../../../config.js';
+import { PromptEngineeringMode, settingsManager } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { notify } from '../../../utils/notify.js';
 import { FieldDefinition } from '../SchemaNode/definition.js';
 import { buildZodSchema, buildZodSchemaFromFields } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
@@ -33,7 +34,8 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal, depth,
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
   const stream = resolveInput(input, data, 'stream');
   const onStreamFlowId = resolveInput(input, data, 'onStreamFlowId');
-  const { messages, schema } = input;
+  const messages = resolveInput(input, data, 'messages');
+  const schema = resolveInput(input, data, 'schema');
 
   if (!profileId || !messages || maxResponseToken === undefined) {
     throw new Error('Missing required inputs: profileId, messages, and maxResponseToken.');
@@ -56,11 +58,17 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal, depth,
   } else {
     let onStream: ((streamData: { chunk: string; fullText: string }) => void) | undefined;
     if (stream && onStreamFlowId) {
-      onStream = (streamData: { chunk: string; fullText: string }) => {
-        // Fire and forget: don't await the sub-flow execution
-        dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath).catch((err) => {
+      onStream = async (streamData: { chunk: string; fullText: string }) => {
+        try {
+          await dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath);
+        } catch (err) {
           console.error(`[Flowchart] Error in streaming sub-flow "${onStreamFlowId}":`, err);
-        });
+          const flowName =
+            settingsManager.getSettings().flows.find((f) => f.id === onStreamFlowId)?.name ?? onStreamFlowId;
+          const errorMessage = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Unknown error';
+          notify('error', `Streaming sub-flow "${flowName}" failed: ${errorMessage}`, 'execution');
+          throw err;
+        }
       };
     }
 

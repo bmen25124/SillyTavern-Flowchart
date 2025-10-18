@@ -607,7 +607,6 @@ class FlowRunner {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    notify('info', `Flowchart: Running flow "${flowData.name}" from node ${startNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { startNodeId });
   }
 
@@ -623,7 +622,6 @@ class FlowRunner {
       notify('error', `Flow "${flowData.name}" is disabled and cannot be run.`, 'execution');
       return;
     }
-    notify('info', `Flowchart: Running flow "${flowData.name}" to node ${endNodeId}.`, 'execution');
     return this.executeFlow(flowId, {}, 0, { endNodeId });
   }
 
