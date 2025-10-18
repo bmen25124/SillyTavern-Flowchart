@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import { createMockContext, createMockNode, mockDependencies } from './mockNodeExecutor.js';
 import { FlowRunnerDependencies, NodeExecutorContext } from '../../NodeExecutor.js';
 import { z } from 'zod';
+import { generateUUID } from '../../utils/uuid.js';
 
 import { stringNodeDefinition } from '../../components/nodes/StringNode/definition.js';
 import { numberNodeDefinition } from '../../components/nodes/NumberNode/definition.js';
@@ -194,7 +195,7 @@ describe('Node Executors', () => {
     const { execute } = ifNodeDefinition;
 
     it('should return the condition ID for the first true simple condition', async () => {
-      const trueConditionId = crypto.randomUUID();
+      const trueConditionId = generateUUID();
       const node = createMockNode(ifNodeDefinition, {
         conditions: [
           { id: 'false-cond', mode: 'simple', operator: 'equals', value: 'wrong', code: '', inputProperty: '' },
@@ -216,7 +217,7 @@ describe('Node Executors', () => {
     });
 
     it('should execute advanced code and return the ID on truthy result', async () => {
-      const trueConditionId = crypto.randomUUID();
+      const trueConditionId = generateUUID();
       const node = createMockNode(ifNodeDefinition, {
         conditions: [
           {

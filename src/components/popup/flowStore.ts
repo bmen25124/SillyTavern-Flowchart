@@ -16,6 +16,7 @@ import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 import { runMigrations } from '../../migrations.js';
 import { migrateFlowFormat, CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 import { registrator } from '../nodes/autogen-imports.js';
+import { generateUUID } from '../../utils/uuid.js';
 
 type Clipboard = {
   nodes: Node[];
@@ -207,12 +208,12 @@ export const useFlowStore = create(
         };
       },
       addNode: (node) => {
-        const newNode = { ...node, id: crypto.randomUUID() };
+        const newNode = { ...node, id: generateUUID() };
         if (newNode.type === 'ifNode' && newNode.data.conditions) {
           // @ts-ignore
           newNode.data.conditions = newNode.data.conditions.map((c: any) => ({
             ...c,
-            id: crypto.randomUUID(),
+            id: generateUUID(),
           }));
         }
         set((state) => {
@@ -229,7 +230,7 @@ export const useFlowStore = create(
         if (!nodeToDuplicate) return;
         const newNode: Node = {
           ...structuredClone(nodeToDuplicate),
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           position: {
             x: nodeToDuplicate.position.x + 50,
             y: nodeToDuplicate.position.y + 50,
@@ -240,7 +241,7 @@ export const useFlowStore = create(
           // @ts-ignore
           newNode.data.conditions = newNode.data.conditions.map((c: any) => ({
             ...c,
-            id: crypto.randomUUID(),
+            id: generateUUID(),
           }));
         }
         set((state) => {
@@ -268,13 +269,13 @@ export const useFlowStore = create(
         const minX = Math.min(...clipboard.nodes.map((n) => n.position.x));
         const minY = Math.min(...clipboard.nodes.map((n) => n.position.y));
         clipboard.nodes.forEach((node) => {
-          const newId = crypto.randomUUID();
+          const newId = generateUUID();
           idMapping.set(node.id, newId);
           if (node.type === 'ifNode' && node.data.conditions) {
             // @ts-ignore
             node.data.conditions = node.data.conditions.map((c: any) => ({
               ...c,
-              id: crypto.randomUUID(),
+              id: generateUUID(),
             }));
           }
           newNodes.push({
@@ -293,7 +294,7 @@ export const useFlowStore = create(
           if (newSource && newTarget) {
             newEdges.push({
               ...edge,
-              id: crypto.randomUUID(),
+              id: generateUUID(),
               source: newSource,
               target: newTarget,
             });

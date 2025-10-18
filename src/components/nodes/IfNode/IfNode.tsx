@@ -14,6 +14,7 @@ import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 const UNARY_OPERATORS: Operator[] = ['is_empty', 'is_not_empty'];
 
@@ -159,7 +160,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected, type }) 
 
   const addCondition = () => {
     const newCondition = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       mode: 'simple' as const,
       inputProperty: '',
       operator: 'equals' as const,

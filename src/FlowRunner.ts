@@ -14,6 +14,7 @@ import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/defini
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
 import { FLOW_RUN_COMMAND } from './constants.js';
+import { generateUUID } from './utils/uuid.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -404,7 +405,7 @@ class FlowRunner {
     let report: ExecutionReport | undefined;
 
     try {
-      const runId = crypto.randomUUID();
+      const runId = generateUUID();
       if (depth === 0) eventEmitter.emit('flow:run:start', { runId });
 
       report = await this.lowLevelRunner.executeFlow(

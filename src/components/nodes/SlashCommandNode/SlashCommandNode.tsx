@@ -6,6 +6,7 @@ import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export type SlashCommandNodeProps = NodeProps<Node<SlashCommandNodeData>>;
 
@@ -73,7 +74,7 @@ export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected, type
 
   const handleAddArg = () => {
     const newArg: ArgumentDefinition = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: `arg${data.arguments.length + 1}`,
       type: 'string',
       isRequired: false,

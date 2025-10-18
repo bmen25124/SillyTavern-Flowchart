@@ -5,6 +5,7 @@ import { CustomMessageNode } from './CustomMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export const CustomMessageNodeDataSchema = z.object({
   messages: z.array(
@@ -35,7 +36,7 @@ export const customMessageNodeDefinition: NodeDefinition<CustomMessageNodeData> 
   dataSchema: CustomMessageNodeDataSchema,
   currentVersion: 1,
   initialData: {
-    messages: [{ id: crypto.randomUUID(), role: 'system', content: 'You are a helpful assistant.' }],
+    messages: [{ id: generateUUID(), role: 'system', content: 'You are a helpful assistant.' }],
   },
   handles: {
     inputs: [{ id: 'main', type: FlowDataType.ANY }],

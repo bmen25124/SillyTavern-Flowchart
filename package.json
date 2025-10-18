@@ -45,15 +45,17 @@
     },
     "dependencies": {
         "@codemirror/lang-javascript": "^6.2.4",
+        "@types/uuid": "^10.0.0",
         "@uiw/react-codemirror": "^4.25.2",
         "@xyflow/react": "^12.8.6",
         "fast-xml-parser": "^5.2.5",
         "handlebars": "^4.7.8",
         "html-to-image": "1.11.11",
         "sillytavern-utils-lib": "^1.0.59",
+        "uuid": "^13.0.0",
         "zod": "^4.1.11",
-        "zustand": "^4.5.4",
-        "zundo": "^2.0.3"
+        "zundo": "^2.0.3",
+        "zustand": "^4.5.4"
     },
     "peerDependencies": {
         "react": "^19.1.1",

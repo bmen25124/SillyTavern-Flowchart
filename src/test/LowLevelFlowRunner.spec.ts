@@ -5,6 +5,7 @@ import { SpecFlow } from '../flow-spec.js';
 import * as events from '../events.js';
 import { FlowRunnerDependencies } from '../NodeExecutor.js';
 import { registrator } from '../components/nodes/autogen-imports.js';
+import { generateUUID } from '../utils/uuid.js';
 
 describe('LowLevelFlowRunner', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -85,7 +86,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
 
     expect(report.error).toBeDefined();
     expect(report.error?.nodeId).toBe('error');
@@ -111,7 +112,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
 
     // The flow should complete successfully with no error.
     expect(report.error).toBeUndefined();
@@ -134,7 +135,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
 
     expect(report.error).toBeUndefined();
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
@@ -161,7 +162,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
 
     expect(report.error).toBeUndefined();
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
@@ -195,7 +196,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, controller.signal);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, controller.signal);
 
     expect(report.error).toBeDefined();
     // Check for the specific AbortError type
@@ -234,7 +235,7 @@ describe('LowLevelFlowRunner', () => {
         ],
       };
 
-      const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, undefined, {
+      const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, undefined, {
         endNodeId: 'target-node',
       });
 
@@ -263,7 +264,7 @@ describe('LowLevelFlowRunner', () => {
         ],
       };
 
-      const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0, undefined, {
+      const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, undefined, {
         startNodeId: 'start-node',
       });
 
@@ -287,7 +288,7 @@ describe('LowLevelFlowRunner', () => {
       edges: [],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, { initial: 'input' }, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, { initial: 'input' }, dependencies, 0);
     expect(report.error).toBeUndefined();
     expect(report.executedNodes).toHaveLength(2);
     expect(report.executedNodes[0].nodeId).toBe('start');
@@ -313,7 +314,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, { value: 5 }, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, { value: 5 }, dependencies, 0);
     expect(report.error).toBeUndefined();
     const executedNodeIds = report.executedNodes.map((n) => n.nodeId);
     expect(executedNodeIds).toContain('if');
@@ -343,7 +344,7 @@ describe('LowLevelFlowRunner', () => {
       ],
     };
 
-    await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
     expect(dependencies.makeStructuredRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -363,7 +364,7 @@ describe('LowLevelFlowRunner', () => {
         { id: 'e-B-merge', source: 'customB', target: 'merge', sourceHandle: null, targetHandle: 'messages_1' },
       ],
     };
-    const report = await runner.executeFlow(crypto.randomUUID(), flow, {}, dependencies, 0);
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0);
     const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
     expect(mergeNodeReport?.output).toEqual({
       result: [

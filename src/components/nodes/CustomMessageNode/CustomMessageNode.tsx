@@ -6,6 +6,7 @@ import { BaseNode } from '../BaseNode.js';
 import { STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export type CustomMessageNodeProps = NodeProps<Node<CustomMessageNodeData>>;
 
@@ -27,7 +28,7 @@ export const CustomMessageNode: FC<CustomMessageNodeProps> = ({ id, selected, ty
   };
 
   const addMessage = () => {
-    const newMessage = { id: crypto.randomUUID(), role: 'user' as const, content: '' };
+    const newMessage = { id: generateUUID(), role: 'user' as const, content: '' };
     updateNodeData(id, { messages: [...(data.messages || []), newMessage] });
   };
 

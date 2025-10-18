@@ -6,6 +6,7 @@ import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -183,7 +184,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
   };
 
   const handleAddChild = (path: number[]) => {
-    const newItem: JsonNodeItem = { id: crypto.randomUUID(), key: 'newKey', value: '', type: 'string' };
+    const newItem: JsonNodeItem = { id: generateUUID(), key: 'newKey', value: '', type: 'string' };
     const newItems = updateNested(data.items, path, (item) => ({
       ...item,
       value: [...(item.value as any[]), newItem],
@@ -192,7 +193,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
   };
 
   const addRootItem = () => {
-    const newItem = { id: crypto.randomUUID(), key: 'newKey', value: '', type: 'string' as const };
+    const newItem = { id: generateUUID(), key: 'newKey', value: '', type: 'string' as const };
     updateNodeData(id, { items: [...data.items, newItem] });
   };
 

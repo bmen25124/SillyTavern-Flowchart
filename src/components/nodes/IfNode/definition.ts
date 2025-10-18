@@ -7,6 +7,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { get } from '../../../utils/node-logic.js';
 import { getHandleSpec } from '../../../utils/handle-logic.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export const OPERATORS = [
   'equals',
@@ -108,7 +109,7 @@ export const ifNodeDefinition: NodeDefinition<IfNodeData> = {
   initialData: {
     conditions: [
       {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         mode: 'simple',
         inputProperty: '',
         operator: 'equals',

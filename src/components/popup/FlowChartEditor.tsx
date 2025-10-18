@@ -33,6 +33,7 @@ import { getHandleSpec } from '../../utils/handle-logic.js';
 import { FlowDataType, FlowDataTypeColors } from '../../flow-types.js';
 import { ValidationIssue } from '../nodes/definitions/types.js';
 import { CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
+import { generateUUID } from '../../utils/uuid.js';
 
 const slugify = (text: string) =>
   text
@@ -659,7 +660,7 @@ const FlowManager: FC = () => {
         notify('error', `A flow with the name "${sanitizedName}" already exists.`, 'ui_action');
         return { confirmed: false };
       }
-      return { confirmed: true, value: { value: crypto.randomUUID(), label: sanitizedName } };
+      return { confirmed: true, value: { value: generateUUID(), label: sanitizedName } };
     },
     [settings.flows],
   );
@@ -881,7 +882,7 @@ const FlowManager: FC = () => {
           }
 
           const newFlow: FlowData = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: newName,
             flow: importedFlow,
             flowVersion: importedFlowVersion || CURRENT_FLOW_VERSION,

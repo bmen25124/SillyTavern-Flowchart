@@ -6,6 +6,7 @@ import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { registrator } from '../autogen-imports.js';
+import { generateUUID } from '../../../utils/uuid.js';
 
 export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
@@ -169,13 +170,13 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   };
 
   const handleAddChild = (path: (string | number)[]) => {
-    const newField: FieldDefinition = { id: crypto.randomUUID(), name: 'newField', type: 'string' };
+    const newField: FieldDefinition = { id: generateUUID(), name: 'newField', type: 'string' };
     const newFields = updateNested(data.fields, [...path, 'fields'], (items: any[]) => [...(items || []), newField]);
     updateNodeData(id, { fields: newFields });
   };
 
   const addRootField = () => {
-    const newField = { id: crypto.randomUUID(), name: 'newField', type: 'string' as const };
+    const newField = { id: generateUUID(), name: 'newField', type: 'string' as const };
     updateNodeData(id, { fields: [...(data.fields || []), newField] });
   };
 
