@@ -18,9 +18,8 @@ export type EditChatMessageNodeData = z.infer<typeof EditChatMessageNodeDataSche
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = EditChatMessageNodeDataSchema.parse(node.data);
   const messageId = resolveInput(input, data, 'messageId');
-  const newMessage = resolveInput(input, data, 'message');
+  const newMessage = resolveInput(input, data, 'message') || '';
   if (messageId === undefined) throw new Error('Message ID is required.');
-  if (newMessage === undefined) throw new Error('New message content is required.');
 
   const { chat } = dependencies.getSillyTavernContext();
   const message = chat[messageId];
@@ -52,10 +51,7 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
       { id: 'message', type: FlowDataType.STRING },
     ],
   },
-  validate: combineValidators(
-    createRequiredFieldValidator('messageId', 'Message ID is required.'),
-    createRequiredFieldValidator('message', 'New Message Content is required.'),
-  ),
+  validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
 };
 
