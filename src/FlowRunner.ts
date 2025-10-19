@@ -1,20 +1,20 @@
 import { z } from 'zod';
 import { EventNameParameters } from './flow-types.js';
-import { sendChatMessage, st_createNewWorldInfo, st_runRegexScript } from 'sillytavern-utils-lib/config';
+import {
+  sendChatMessage,
+  st_createNewWorldInfo,
+  st_getGlobalVariable,
+  st_getLocalVariable,
+  st_runRegexScript,
+  st_setGlobalVariable,
+  st_setLocalVariable,
+} from 'sillytavern-utils-lib/config';
 import { validateFlow } from './validator.js';
 import { makeSimpleRequest, getBaseMessagesForProfile, makeStructuredRequest } from './api.js';
 import { LowLevelFlowRunner, ExecutionReport } from './LowLevelFlowRunner.js';
 import { createCharacter, saveCharacter, applyWorldInfoEntry, getWorldInfos } from 'sillytavern-utils-lib';
 import { eventEmitter } from './events.js';
-import {
-  settingsManager,
-  st_hideChatMessageRange,
-  st_updateMessageBlock,
-  st_setLocalVariable,
-  st_getLocalVariable,
-  st_setGlobalVariable,
-  st_getGlobalVariable,
-} from './config.js';
+import { settingsManager, st_hideChatMessageRange, st_updateMessageBlock } from './config.js';
 import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
@@ -115,6 +115,7 @@ class FlowRunner {
   private dependencies: FlowRunnerDependencies;
 
   private isExecuting: boolean = false;
+  private currentlyExecutingFlowId: string | null = null;
   private flowQueue: {
     flowId: string;
     initialInput: Record<string, any>;
@@ -145,8 +146,8 @@ class FlowRunner {
       saveChat: () => SillyTavern.getContext().saveChat(),
       st_updateMessageBlock: (messageId, message, options) => st_updateMessageBlock(messageId, message, options),
       st_runRegexScript: (script, content) => st_runRegexScript(script, content),
-      st_setLocalVariable: (name, value, args) => st_setLocalVariable(name, value, args),
-      st_getLocalVariable: (name, args) => st_getLocalVariable(name, args),
+      st_setLocalVariable: (name, value) => st_setLocalVariable(name, value),
+      st_getLocalVariable: (name) => st_getLocalVariable(name),
       st_setGlobalVariable: (name, value) => st_setGlobalVariable(name, value),
       st_getGlobalVariable: (name) => st_getGlobalVariable(name),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
@@ -335,6 +336,7 @@ class FlowRunner {
 
     this.isExecuting = true;
     const { flowId, initialInput, options } = this.flowQueue.shift()!;
+    this.currentlyExecutingFlowId = flowId;
 
     try {
       await this._executeFlowInternal(flowId, initialInput, 0, options);
@@ -342,6 +344,7 @@ class FlowRunner {
       console.error(`[Flowchart] Critical error during queued flow execution:`, error);
     } finally {
       this.isExecuting = false;
+      this.currentlyExecutingFlowId = null;
       // After finishing, immediately check if there's more work to do.
       this._processQueue();
     }
@@ -477,6 +480,19 @@ class FlowRunner {
     }
     const startNode = flowData.flow.nodes.find((n) => n.id === startNodeId);
     if (!startNode) return;
+
+    const preventRecursive = startNode.data.preventRecursive ?? true;
+    if (preventRecursive) {
+      const isAlreadyRunning = this.isExecuting && this.currentlyExecutingFlowId === flowId;
+      const isAlreadyQueued = this.flowQueue.some((item) => item.flowId === flowId);
+
+      if (isAlreadyRunning || isAlreadyQueued) {
+        console.log(
+          `[Flowchart] Suppressing recursive event trigger for flow "${flowData.name}". It is already running or queued.`,
+        );
+        return;
+      }
+    }
 
     const eventType = startNode.data.selectedEventType as string;
     const eventParams = EventNameParameters[eventType];

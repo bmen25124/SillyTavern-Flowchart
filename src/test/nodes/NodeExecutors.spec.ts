@@ -189,9 +189,10 @@ describe('Node Executors', () => {
       expect(getResult).toEqual({ value: setValue });
     });
 
-    it('GetFlowVariableNode should throw if variable does not exist', async () => {
+    it('GetFlowVariableNode should return undefined if variable does not exist', async () => {
       const getNode = createMockNode(getFlowVariableNodeDefinition, { variableName: 'nonExistentVar' });
-      await expect(getExecute(getNode, {}, context)).rejects.toThrow('Execution variable "nonExistentVar" not found.');
+      const getResult = await getExecute(getNode, {}, context);
+      expect(getResult).toEqual({ value: undefined });
     });
 
     it('should validate variables against an optional schema', async () => {
@@ -213,35 +214,12 @@ describe('Node Executors', () => {
     const { execute: setLocalExecute } = setLocalVariableNodeDefinition;
     const { execute: getLocalExecute } = getLocalVariableNodeDefinition;
 
-    it('should set and retrieve a local variable with args passthrough', async () => {
-      const storedValue = { stored: 'value' };
-      dependencies.st_getLocalVariable.mockReturnValue(storedValue);
-      const setNode = createMockNode(setLocalVariableNodeDefinition, { variableName: 'chatVar' });
-      const args = { messageId: 123 };
-      await setLocalExecute(setNode, { value: 42, args }, context);
-
-      expect(dependencies.st_setLocalVariable).toHaveBeenCalledWith('chatVar', 42, args);
-
-      const getNode = createMockNode(getLocalVariableNodeDefinition, { variableName: 'chatVar' });
-      const result = await getLocalExecute(getNode, { args }, context);
-
-      expect(dependencies.st_getLocalVariable).toHaveBeenCalledWith('chatVar', args);
-      expect(result).toEqual({ value: storedValue });
-    });
-
-    it('GetLocalVariableNode should throw if args input is not an object', async () => {
-      const getNode = createMockNode(getLocalVariableNodeDefinition, { variableName: 'chatVar' });
-      await expect(getLocalExecute(getNode, { args: 'not-an-object' }, context)).rejects.toThrow(
-        'Args input for Get Local Variable must be an object if provided.',
-      );
-    });
-
     it('SetLocalVariableNode should pass through object inputs without modification', async () => {
       const payload = { foo: 'bar' };
       const setNode = createMockNode(setLocalVariableNodeDefinition, { variableName: 'chatVar' });
       await setLocalExecute(setNode, { value: payload }, context);
 
-      expect(dependencies.st_setLocalVariable).toHaveBeenCalledWith('chatVar', payload, undefined);
+      expect(dependencies.st_setLocalVariable).toHaveBeenCalledWith('chatVar', payload);
     });
 
     it('should validate local variable results against schema when provided', async () => {

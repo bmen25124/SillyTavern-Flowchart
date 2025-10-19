@@ -33,6 +33,10 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected, type }) => {
     updateNodeData(id, { selectedEventType: e.target.value });
   };
 
+  const handlePreventRecursiveChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateNodeData(id, { preventRecursive: e.target.checked });
+  };
+
   const selectedEventDescription = EventDescriptions[data.selectedEventType];
 
   return (
@@ -66,6 +70,21 @@ export const TriggerNode: FC<TriggerNodeProps> = ({ id, selected, type }) => {
           />
         </div>
       )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '10px' }}>
+        <STInput
+          type="checkbox"
+          id={`${id}_preventRecursive`}
+          checked={data.preventRecursive}
+          onChange={handlePreventRecursiveChange}
+        />
+        <label
+          htmlFor={`${id}_preventRecursive`}
+          title="Prevents this trigger from starting a new flow if the same flow is already running or queued."
+        >
+          Prevent recursive calls
+        </label>
+      </div>
 
       <div style={{ marginTop: '5px', fontSize: '11px', color: '#ccc', fontStyle: 'italic' }}>
         {selectedEventDescription && <p style={{ margin: '2px 0 0 0' }}>{selectedEventDescription}</p>}

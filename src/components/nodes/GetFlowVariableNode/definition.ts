@@ -11,6 +11,7 @@ import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetFlowVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
+  defaultValue: z.any().optional(),
   _version: z.number().optional(),
 });
 export type GetFlowVariableNodeData = z.infer<typeof GetFlowVariableNodeDataSchema>;
@@ -19,9 +20,12 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
   const data = GetFlowVariableNodeDataSchema.parse(node.data);
   const variableName = resolveInput(input, data, 'variableName');
   if (!variableName) throw new Error('Variable name is required.');
-  if (!executionVariables.has(variableName)) throw new Error(`Execution variable "${variableName}" not found.`);
   const schema = input.schema;
   let value = executionVariables.get(variableName);
+
+  if (value === undefined && input.defaultValue !== undefined) {
+    value = input.defaultValue;
+  }
 
   if (schema !== undefined) {
     if (!schema || typeof schema.safeParse !== 'function') {
@@ -43,8 +47,8 @@ export const getFlowVariableNodeDefinition: NodeDefinition<GetFlowVariableNodeDa
   category: 'Variables',
   component: GetFlowVariableNode,
   dataSchema: GetFlowVariableNodeDataSchema,
-  currentVersion: 1,
-  initialData: { variableName: 'myVar' },
+  currentVersion: 2,
+  initialData: { variableName: 'myVar', defaultValue: undefined },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -61,9 +65,10 @@ export const getFlowVariableNodeDefinition: NodeDefinition<GetFlowVariableNodeDa
   getDynamicHandles: (node, allNodes, allEdges) => {
     const schema = resolveSchemaFromHandle(node, allNodes, allEdges, 'schema');
     if (!schema) return { inputs: [], outputs: [] };
+    const flowType = zodTypeToFlowType(schema);
     return {
-      inputs: [],
-      outputs: [{ id: 'value', type: zodTypeToFlowType(schema), schema }],
+      inputs: [{ id: 'defaultValue', type: flowType, schema }],
+      outputs: [{ id: 'value', type: flowType, schema }],
     };
   },
 };

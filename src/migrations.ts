@@ -14,6 +14,31 @@ interface Migration {
 // Registry: { nodeType: { fromVersion: MigrationFunction } }
 const MIGRATION_REGISTRY: Record<string, Record<number, Migration>> = {};
 
+// TriggerNode from v1 to v2.
+MIGRATION_REGISTRY['triggerNode'] = {
+  1: {
+    node: (data) => ({ ...data, preventRecursive: true, _version: 2 }),
+  },
+};
+
+MIGRATION_REGISTRY['getLocalVariableNode'] = {
+  1: {
+    node: (data) => ({ ...data, defaultValue: undefined, _version: 2 }),
+  },
+};
+
+MIGRATION_REGISTRY['getGlobalVariableNode'] = {
+  1: {
+    node: (data) => ({ ...data, defaultValue: undefined, _version: 2 }),
+  },
+};
+
+MIGRATION_REGISTRY['getFlowVariableNode'] = {
+  1: {
+    node: (data) => ({ ...data, defaultValue: undefined, _version: 2 }),
+  },
+};
+
 /**
  * Example: Migrating `stringNode` from v1 to v2 where `data.value` is renamed to `data.text`.
  * All new nodes will be created with `currentVersion: 2`.

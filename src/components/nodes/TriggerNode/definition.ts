@@ -8,6 +8,7 @@ import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const TriggerNodeDataSchema = z.object({
   selectedEventType: z.string(), // Allow any string, not just from a predefined list.
+  preventRecursive: z.boolean().default(true),
   _version: z.number().optional(),
 });
 export type TriggerNodeData = z.infer<typeof TriggerNodeDataSchema>;
@@ -22,8 +23,8 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
   category: 'Trigger',
   component: TriggerNode,
   dataSchema: TriggerNodeDataSchema,
-  currentVersion: 1,
-  initialData: { selectedEventType: 'user_message_rendered' },
+  currentVersion: 2,
+  initialData: { selectedEventType: 'user_message_rendered', preventRecursive: true },
   handles: { inputs: [], outputs: [] },
   execute,
   getDynamicHandles: (node) => {

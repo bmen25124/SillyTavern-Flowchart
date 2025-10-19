@@ -298,7 +298,7 @@ export const FlowManager: FC = () => {
       reader.onload = async (e) => {
         try {
           let importedFlow = JSON.parse(e.target?.result as string);
-          if (!importedFlow || !Array.isArray(importedFlow.nodes) || !Array.isArray(importedFlow.edges)) {
+          if (!importedFlow) {
             throw new Error('Invalid flow file structure.');
           }
 
@@ -319,10 +319,17 @@ export const FlowManager: FC = () => {
 
           let importedFlowVersion: string | undefined = undefined;
 
-          if (importedFlow && typeof importedFlow === 'object' && 'flowVersion' in importedFlow) {
-            const flowData = importedFlow as any;
-            importedFlow = flowData.flow || importedFlow;
-            importedFlowVersion = flowData.flowVersion;
+          if (importedFlow && typeof importedFlow === 'object') {
+            if ('flowVersion' in importedFlow) {
+              const flowData = importedFlow as any;
+              importedFlow = flowData.flow || importedFlow;
+              importedFlowVersion = flowData.flowVersion;
+            } else if ('nodes' in importedFlow && 'edges' in importedFlow) {
+            } else {
+              throw new Error('Invalid flow file structure.');
+            }
+          } else {
+            throw new Error('Invalid flow file structure.');
           }
 
           const needsMigration = !importedFlowVersion;

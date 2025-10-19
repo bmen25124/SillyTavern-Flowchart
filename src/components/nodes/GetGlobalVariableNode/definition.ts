@@ -11,6 +11,7 @@ import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetGlobalVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
+  defaultValue: z.any().optional(),
   _version: z.number().optional(),
 });
 export type GetGlobalVariableNodeData = z.infer<typeof GetGlobalVariableNodeDataSchema>;
@@ -21,7 +22,11 @@ const execute: NodeExecutor = async (node, input, context) => {
   if (!variableName) throw new Error('Variable name is required.');
 
   const schema = input.schema;
-  const value = await context.dependencies.st_getGlobalVariable(variableName);
+  let value = await context.dependencies.st_getGlobalVariable(variableName);
+
+  if (value === undefined && input.defaultValue !== undefined) {
+    value = input.defaultValue;
+  }
 
   if (schema !== undefined) {
     if (!schema || typeof schema.safeParse !== 'function') {
@@ -43,8 +48,8 @@ export const getGlobalVariableNodeDefinition: NodeDefinition<GetGlobalVariableNo
   category: 'Variables',
   component: GetGlobalVariableNode,
   dataSchema: GetGlobalVariableNodeDataSchema,
-  currentVersion: 1,
-  initialData: { variableName: 'globalVar' },
+  currentVersion: 2,
+  initialData: { variableName: 'globalVar', defaultValue: undefined },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -61,9 +66,10 @@ export const getGlobalVariableNodeDefinition: NodeDefinition<GetGlobalVariableNo
   getDynamicHandles: (node, allNodes, allEdges) => {
     const schema = resolveSchemaFromHandle(node, allNodes, allEdges, 'schema');
     if (!schema) return { inputs: [], outputs: [] };
+    const flowType = zodTypeToFlowType(schema);
     return {
-      inputs: [],
-      outputs: [{ id: 'value', type: zodTypeToFlowType(schema), schema }],
+      inputs: [{ id: 'defaultValue', type: flowType, schema }],
+      outputs: [{ id: 'value', type: flowType, schema }],
     };
   },
 };

@@ -8,7 +8,6 @@ export default {
 
     // Mock SillyTavern runtime scripts
     '../../../../chats.js': '<rootDir>/src/test/__mocks__/runtimeMock.mjs',
-    '../../../../variables.js': '<rootDir>/src/test/__mocks__/runtimeMock.mjs',
     '../../../../../script.js': '<rootDir>/src/test/__mocks__/runtimeMock.mjs',
 
     // 2. Mock sillytavern-utils-lib AND any subpaths (like /types, /config)

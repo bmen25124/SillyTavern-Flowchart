@@ -27,13 +27,8 @@ const execute: NodeExecutor = async (node, input, context) => {
   }
 
   const value = input.value;
-  const args = input.args;
 
-  if (args !== undefined && (typeof args !== 'object' || args === null)) {
-    throw new Error('Args input for Set Local Variable must be an object if provided.');
-  }
-
-  await context.dependencies.st_setLocalVariable(variableName, value, args);
+  await context.dependencies.st_setLocalVariable(variableName, value);
 };
 
 export const setLocalVariableNodeDefinition: NodeDefinition<SetLocalVariableNodeData> = {
@@ -49,7 +44,6 @@ export const setLocalVariableNodeDefinition: NodeDefinition<SetLocalVariableNode
       { id: 'main', type: FlowDataType.ANY },
       { id: 'value', type: FlowDataType.ANY },
       { id: 'variableName', type: FlowDataType.STRING },
-      { id: 'args', type: FlowDataType.OBJECT },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },

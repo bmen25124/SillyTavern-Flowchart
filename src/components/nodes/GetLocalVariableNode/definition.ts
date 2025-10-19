@@ -11,6 +11,7 @@ import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetLocalVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
+  defaultValue: z.any().optional(),
   _version: z.number().optional(),
 });
 export type GetLocalVariableNodeData = z.infer<typeof GetLocalVariableNodeDataSchema>;
@@ -20,13 +21,12 @@ const execute: NodeExecutor = async (node, input, context) => {
   const variableName = resolveInput(input, data, 'variableName');
   if (!variableName) throw new Error('Variable name is required.');
 
-  const args = input.args;
-  if (args !== undefined && (typeof args !== 'object' || args === null)) {
-    throw new Error('Args input for Get Local Variable must be an object if provided.');
-  }
-
   const schema = input.schema;
-  const value = await context.dependencies.st_getLocalVariable(variableName, args);
+  let value = await context.dependencies.st_getLocalVariable(variableName);
+
+  if (value === undefined && input.defaultValue !== undefined) {
+    value = input.defaultValue;
+  }
 
   if (schema !== undefined) {
     if (!schema || typeof schema.safeParse !== 'function') {
@@ -48,14 +48,13 @@ export const getLocalVariableNodeDefinition: NodeDefinition<GetLocalVariableNode
   category: 'Variables',
   component: GetLocalVariableNode,
   dataSchema: GetLocalVariableNodeDataSchema,
-  currentVersion: 1,
-  initialData: { variableName: 'chatVar' },
+  currentVersion: 2,
+  initialData: { variableName: 'chatVar', defaultValue: undefined },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'variableName', type: FlowDataType.STRING },
       { id: 'schema', type: FlowDataType.SCHEMA },
-      { id: 'args', type: FlowDataType.OBJECT },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -67,9 +66,10 @@ export const getLocalVariableNodeDefinition: NodeDefinition<GetLocalVariableNode
   getDynamicHandles: (node, allNodes, allEdges) => {
     const schema = resolveSchemaFromHandle(node, allNodes, allEdges, 'schema');
     if (!schema) return { inputs: [], outputs: [] };
+    const flowType = zodTypeToFlowType(schema);
     return {
-      inputs: [],
-      outputs: [{ id: 'value', type: zodTypeToFlowType(schema), schema }],
+      inputs: [{ id: 'defaultValue', type: flowType, schema }],
+      outputs: [{ id: 'value', type: flowType, schema }],
     };
   },
 };
