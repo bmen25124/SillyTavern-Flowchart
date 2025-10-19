@@ -21,7 +21,7 @@ import { FlowRunnerDependencies } from './NodeExecutor.js';
 import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
-import { FLOW_RUN_COMMAND } from './constants.js';
+import { FLOW_RUN_COMMAND, FLOW_STOP_COMMAND } from './constants.js';
 import { generateUUID } from './utils/uuid.js';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
@@ -307,6 +307,15 @@ class FlowRunner {
     });
     SlashCommandParser.addCommandObject(globalCommand);
     this.registeredCommands.push(FLOW_RUN_COMMAND);
+
+    const stopCommand = SlashCommand.fromProps({
+      name: FLOW_STOP_COMMAND,
+      helpString: 'Stops the currently running Flowchart flow and clears the queue.',
+      unnamedArgumentList: [],
+      callback: () => this.abortAllRuns(),
+    });
+    SlashCommandParser.addCommandObject(stopCommand);
+    this.registeredCommands.push(FLOW_STOP_COMMAND);
 
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
@@ -627,6 +636,35 @@ class FlowRunner {
 
   public abortCurrentRun() {
     this.abortController?.abort();
+  }
+
+  public abortAllRuns() {
+    const queuedCount = this.flowQueue.length;
+    const hasRunning = this.isExecuting && !!this.abortController && !this.abortController.signal.aborted;
+
+    if (queuedCount > 0) {
+      this.flowQueue = [];
+    }
+
+    if (hasRunning) {
+      this.abortCurrentRun();
+    }
+
+    const parts: string[] = [];
+    if (hasRunning) {
+      parts.push('the current flow');
+    }
+    if (queuedCount > 0) {
+      parts.push(`${queuedCount} queued flow${queuedCount > 1 ? 's' : ''}`);
+    }
+
+    const message =
+      parts.length > 0
+        ? `Flowchart: Stopped ${parts.join(' and ')}.`
+        : 'Flowchart: No flows are currently running or queued.';
+
+    notify('info', message, 'execution');
+    return message;
   }
 }
 
