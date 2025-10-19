@@ -67,85 +67,84 @@ https://github.com/bmen25124/SillyTavern-Flowchart
 
 ### Core Concepts
 
-*   **Nodes:** These are the building blocks of your flow. Each node performs a specific action, like creating a string of text, sending a chat message, or checking a condition.
-*   **Handles:** The small circles on the left and right of nodes are handles.
-    *   **Left Handles (Inputs):** Receive data.
-    *   **Right Handles (Outputs):** Send data out.
-*   **Connections (Wires):** You drag a line from an output handle of one node to an input handle of another. This creates a connection, allowing data to "flow" from one node to the next.
+*   **Nodes:** The building blocks of your flow. Each node performs a specific action, like creating a string, checking a condition, or sending a message.
+*   **Handles:** The circles on the left (inputs) and right (outputs) of nodes. You drag connections between them.
+*   **Connections (Wires):** Lines that connect an output handle of one node to an input handle of another. This defines the order of operations and the flow of data.
 
 #### Control Flow vs. Data Flow (`main` Handle)
 
-A key concept is the difference between *Control Flow* and *Data Flow*.
+There are two types of connections:
 
-*   **Data Flow:** When you connect a specific output like `value` or `result` to a specific input, you are sending a piece of data for the next node to *use*. For example, connecting a `String` node's `value` output to a `Log` node's `value` input tells the `Log` node *what* to print. These are **named handles**.
-*   **Control Flow:** Sometimes, you just need to define the order of operations without passing specific data. This is done using the special `main` handle. Most nodes have a `main` input and a `main` output. Connecting `main` handles creates a sequence. The `main` channel also "passes through" whatever value it receives, allowing you to carry a result through a series of utility nodes.
+*   **Data Flow:** Connecting a specific output (e.g., `value`, `result`) to an input. This sends a piece of data for the next node to *use*. For example, connecting a `String` node's `value` output to a `Log` node's `value` input tells the `Log` node *what* to print.
+*   **Control Flow:** Connecting the special `main` handle. This defines the *order* of operations. Most nodes that perform an action have a `main` input and a `main` output. The `main` channel also "passes through" whatever value it receives, allowing you to carry a result through a series of utility nodes that don't modify it.
 
-Think of it this way: named handles are for *what* a node does, and the `main` handle is for *when* it does it.
+In short: named handles are for *what* a node does; the `main` handle is for *when* it does it.
+
+### Dangerous Nodes
+
+Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They can run arbitrary code or communicate with external services. For security, these nodes will not run unless you explicitly enable the **"Allow Dangerous"** toggle for that specific flow in the toolbar. Only enable this for flows you have created yourself or fully trust.
 
 ### Keyboard Shortcuts
 
-*   **Copy:** `Ctrl/Cmd + C` - Copies the selected node(s).
-*   **Paste:** `Ctrl/Cmd + V` - Pastes the copied node(s) into the center of the view.
+*   **Copy:** `Ctrl/Cmd + C` - Copies selected node(s).
+*   **Paste:** `Ctrl/Cmd + V` - Pastes copied node(s) to the center of the view.
 *   **Undo:** `Ctrl/Cmd + Z` - Undoes the last action.
 *   **Redo:** `Ctrl/Cmd + Y` - Redoes the last undone action.
-*   **Delete:** `Delete` or `Backspace` - Deletes the selected node(s) or edge(s).
-*   **Toggle Disable:** `Space` - Disables or enables the selected node(s). A disabled node is skipped during execution.
+*   **Delete:** `Delete` or `Backspace` - Deletes selected node(s) or edge(s).
+*   **Toggle Disable:** `Space` - Disables or enables selected node(s). A disabled node is skipped during execution.
 
 ### Node Reference
 
-Here is a list of all available nodes and what they do.
-
 #### **Trigger Nodes**
 
-*   **Event Trigger:** Starts a flow when a specific SillyTavern event occurs (e.g., a user message is sent, a chat is changed). This is the primary way to automate things. For a full list of available events and their descriptions, see the [Event Documentation](EVENT_DOCUMENTATION.md).
-*   **Manual Trigger:** Starts a flow only when you click the main "Run" button in the editor. Useful for testing.
-*   **Slash Command:** Creates a new `/flow-` slash command that, when used in chat, will trigger this flow and pass arguments to it.
-*   **On Stream Trigger:** A special trigger used for "handler" flows. It starts a flow that is called repeatedly for each piece of data received from an `LLM Request` node's stream. It provides `chunk` (the newest text) and `fullText` (all text received so far) as outputs.
+*   **Event Trigger:** Starts a flow when a SillyTavern event occurs (e.g., a user message is sent). This is the primary way to create automations. For a full list of events, see the [Event Documentation](EVENT_DOCUMENTATION.md).
+*   **Manual Trigger:** Starts a flow only when you click the "Run" button in the editor. Useful for testing.
+*   **Slash Command:** Creates a new `/flow-<name>` slash command that triggers the flow and passes arguments to its output handles.
+*   **On Stream Trigger:** A special trigger for "handler" flows. It starts a flow that is called repeatedly for each piece of data from an `LLM Request` node's stream. It provides `chunk` (the newest text) and `fullText` (all text received so far).
 
 #### **Logic Nodes**
 
-*   **If:** The most important logic node. It directs the flow based on one or more conditions. If a condition is true, the flow continues from that condition's output. If none are true, it continues from the "Else" output.
-*   **End Flow:** Immediately stops the flow's execution at that point.
+*   **If:** Directs the flow based on one or more conditions. If a condition is true, the flow continues from that condition's output. If none are true, it continues from the "Else" output.
+*   **End Flow:** Immediately stops the flow's execution.
 
 #### **Input Nodes**
 
-*   **String:** Creates a simple piece of text.
-*   **Number:** Creates a number.
-*   **Boolean:** Creates a true/false value.
+*   **String:** Creates a static string of text.
+*   **Number:** Creates a static number.
+*   **Boolean:** Creates a static true/false value.
 *   **Profile ID:** A dropdown to select one of your API Connection Profiles.
 
 #### **Picker Nodes**
-
-These are simple nodes that provide a dropdown menu to select a specific item, which can then be passed to other nodes.
+These nodes provide dropdowns to select a specific item, which can then be passed to other nodes.
 *   **Pick Character:** Outputs the selected character's avatar filename.
 *   **Pick Lorebook:** Outputs the selected lorebook's name.
-*   **Pick Prompt:** Outputs the selected custom prompt's name.
+*   **Pick Prompt:** Outputs the name of a saved custom prompt template.
 *   **Pick Flow:** Outputs the selected flow's ID.
-*   **Pick Regex Script:** Outputs the selected SillyTavern regex script's ID.
-*   **Pick Math Operation:** Outputs the name of a math operation (add, subtract, etc.) for the `Math` node.
-*   **Pick String Operation:** Outputs the name of a string operation for the `String Tools` node.
+*   **Pick Regex Script:** Outputs the ID of a SillyTavern regex script.
+*   **Pick Math Operation:** Outputs an operation name (add, subtract) for the `Math` node.
+*   **Pick String Operation:** Outputs an operation name for the `String Tools` node.
 *   **Pick Prompt Mode:** Outputs a prompt engineering mode (native, json, xml) for the `LLM Request` node.
 *   **Pick Random Mode:** Outputs a mode (number, array) for the `Random` node.
 *   **Pick Regex Mode:** Outputs a mode (sillytavern, custom) for the `Regex` node.
-*   **Pick Conversion Type:** Outputs a target type (string, number, etc.) for the `Type Converter` node.
+*   **Pick Conversion Type:** Outputs a target type (string, number) for the `Type Converter` node.
 
 #### **Chat Nodes**
 
-*   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system. This can be used to create a placeholder message (e.g., with `...` as content) to get a `messageId` for real-time streaming with the `LLM Request` node.
-*   **Get Chat Message:** Retrieves the details of a specific message from the chat history (e.g., the very last message).
+*   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system.
+*   **Get Chat Message:** Retrieves details of a specific message from the chat history.
 *   **Edit Chat Message:** Modifies the content of an existing message.
 *   **Remove Chat Message:** Deletes a message from the chat history.
-*   **Hide/Show Message (Context):** Hides or shows a message or range of messages from being included in the LLM's context. This does not affect the message's visibility in the chat UI.
-*   **Get Chat Input:** Retrieves the current text from the main chat input field.
+*   **Hide/Show Message (Context):** Toggles whether a message or range of messages is included in the LLM's context. Does not affect visibility in the UI.
+*   **Get Chat Input:** Retrieves the text from the main chat input field.
 *   **Update Chat Input:** Sets the text in the main chat input field.
 
 #### **API Request Nodes**
 
-*   **Create Messages:** Gathers the current chat context (system prompt, character definitions, chat history) to prepare it for an LLM request.
-*   **Custom Message:** Lets you build a list of messages from scratch, ignoring the current chat context.
-*   **LLM Request:** Sends messages to an LLM and gets a response. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text, which can call another flow for each token received (see `On Stream Trigger`).
-*   **Merge Messages:** Combines multiple sets of messages into a single list.
-*   **HTTP Request:** (Advanced) Make requests to any external API. Allows you to connect your flows to other web services.
+*   **Create Messages:** Gathers the current chat context (system prompt, history, etc.) to prepare it for an LLM request.
+*   **Custom Message:** Builds a list of messages from scratch, ignoring the current chat context.
+*   **LLM Request:** Sends messages to an LLM. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text, which can call another flow for each token received (see `On Stream Trigger`).
+*   **Merge Messages:** Combines multiple lists of messages into a single list.
+*   **HTTP Request:** (Dangerous) Makes requests to any external API.
 
 #### **Character Nodes**
 
@@ -164,27 +163,34 @@ These are simple nodes that provide a dropdown menu to select a specific item, w
 #### **JSON & Schema Nodes**
 
 *   **JSON:** A visual editor to construct a JSON object. Each key in the object gets its own output handle.
-*   **Schema:** A visual editor to define the *structure* of data you expect from an LLM. You connect this to an "LLM Request" node to force the AI to respond in a specific format.
-*   **Variable Schema:** Lightweight schema builder tailored for validating a single variable. Attach it to any of the `Get … Variable` nodes to enforce the returned value's type.
+*   **Schema:** A visual editor to define the *structure* of data you expect from an LLM. Connect this to an `LLM Request` node to force the AI to respond in a specific format.
+*   **Variable Schema:** Defines a schema to validate a single variable. Attach it to any `Get ... Variable` node to enforce the returned value's type.
 
 #### **Utility Nodes**
 
-*   **Log:** Prints any data connected to it into your browser's developer console (F12). Essential for debugging.
-*   **Set Flow Variable / Get Flow Variable:** Store data for the current execution path. You can optionally connect a schema to `Get Flow Variable` to validate and type its output.
-*   **Set Local Variable / Get Local Variable:** Read/write SillyTavern chat-local variables (per chat). Supports optional schema validation and the `args` parameter SillyTavern expects.
-*   **Set Global Variable / Get Global Variable:** Work with SillyTavern global variables that span all chats, with optional schema-enforced output.
-*   **Get Property:** Pulls a specific piece of data out of an object (e.g., getting the `name` from a character object).
-*   **Math:** Performs basic arithmetic operations (add, subtract, etc.).
-*   **String Tools:** Manipulate text. Includes `toUpperCase`, `toLowerCase`, `trim`, `replace`, `slice`, `length`, `startsWith`, `endsWith`, and more.
-*   **Handlebar:** A powerful templating tool. You can create a template like "Hello, {{name}}!" and provide data to fill it in.
+*   **Log:** Prints any connected data to your browser's developer console (F12). Essential for debugging.
 *   **Date/Time:** Gets the current date and time in various formats.
-*   **Random:** Generates a random number in a range or picks a random item from a list.
-*   **Regex:** Apply a regular expression to find/replace text. Can use SillyTavern's built-in regex scripts or a custom one.
+*   **Handlebar:** A templating tool. Create a template like "Hello, {{name}}!" and provide an object to fill in the values.
+*   **Math:** Performs basic arithmetic operations (add, subtract, etc.).
+*   **Merge Objects:** Combines multiple objects into a single one. Keys from later inputs overwrite earlier ones.
+*   **Note:** A visual-only node for adding comments and documentation to your flow. It is ignored during execution.
+*   **Random:** Generates a random number in a range or picks a random item from an array.
+*   **Regex:** Applies a regular expression to find/replace text. Can use SillyTavern's built-in regex scripts or a custom one.
 *   **Run Slash Command:** Executes any built-in SillyTavern slash command.
-*   **Run Flow:** Triggers another one of your flows. This is great for creating reusable logic.
+*   **Run Flow:** Triggers another flow, allowing for reusable logic.
+*   **String Tools:** A collection of functions to manipulate text (e.g., `toUpperCase`, `split`, `replace`).
 *   **Type Converter:** Converts data from one type to another (e.g., a string of text to a number).
-*   **Execute JS Code:** **(Advanced & Dangerous)** Runs arbitrary JavaScript code. A permission toggle on the flow is required to use this node. Only use it if you understand the code you are writing or pasting.
-*   **Merge Objects:** Combines multiple objects into a single one. If keys conflict, the object connected to a higher-numbered input wins.
+*   **Execute JS Code:** (Dangerous) Runs arbitrary JavaScript code.
+
+#### **Variables Nodes**
+
+*   **Set/Get Flow Variable:** Stores data temporarily for the current execution of a single flow.
+*   **Set/Get Local Variable:** Reads/writes SillyTavern chat-local variables (per-chat persistence).
+*   **Set/Get Global Variable:** Reads/writes SillyTavern global variables (persistent across all chats).
+*   **Get Property:** Pulls a specific piece of data out of an object using a path (e.g., `user.name`).
+
+#### **User Interaction Nodes**
+
 *   **Notification:** Displays a toast notification in the SillyTavern UI (info, success, warning, error).
 *   **Prompt User:** Shows a popup to get text input from the user during a flow run.
 *   **Confirm With User:** Shows a popup with "OK/Cancel" to get a yes/no confirmation from the user.
