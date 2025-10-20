@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { SchemaNodeData, FieldDefinition, SchemaTypeDefinition } from './definition.js';
+import { SchemaNodeData, FieldDefinition, SchemaTypeDefinition, schemaNodeDefinition } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
 import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
@@ -22,6 +22,8 @@ type FieldEditorProps = {
 export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemove, onAddChild }) => {
   const { name } = definition as FieldDefinition;
   const { type, description, values, fields, items } = definition;
+  const availableSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
+  const isPredefined = Object.keys(availableSchemas).includes(type);
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as SchemaTypeDefinition['type'];
@@ -63,69 +65,82 @@ export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, 
           />
         )}
         <STSelect className="nodrag" value={type} onChange={handleTypeChange}>
-          <option value="string">string</option>
-          <option value="number">number</option>
-          <option value="boolean">boolean</option>
-          <option value="object">object</option>
-          <option value="array">array</option>
-          <option value="enum">enum</option>
+          <optgroup label="Primitives">
+            <option value="string">string</option>
+            <option value="number">number</option>
+            <option value="boolean">boolean</option>
+            <option value="object">object</option>
+            <option value="array">array</option>
+            <option value="enum">enum</option>
+          </optgroup>
+          <optgroup label="Predefined">
+            {Object.keys(availableSchemas).map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </optgroup>
         </STSelect>
         {onRemove && <STButton onClick={() => onRemove(path)}>✕</STButton>}
       </div>
-      <STTextarea
-        className="nodrag"
-        value={description || ''}
-        onChange={(e) => onUpdate(path, { description: e.target.value })}
-        placeholder="Description..."
-        rows={2}
-        style={{ marginTop: '5px' }}
-      />
-
-      {type === 'enum' && (
-        <div style={{ marginLeft: '10px', marginTop: '5px' }}>
-          {(values || []).map((val, i) => (
-            <div key={i} style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
-              <STInput className="nodrag" value={val} onChange={(e) => handleValueChange(i, e.target.value)} />
-              <STButton onClick={() => removeValue(i)}>✕</STButton>
-            </div>
-          ))}
-          <STButton onClick={addValue} style={{ marginTop: '5px' }}>
-            + Value
-          </STButton>
-        </div>
-      )}
-
-      {type === 'object' && (
-        <div style={{ marginLeft: '10px', marginTop: '5px' }}>
-          {(fields || []).map((field, i) => (
-            <FieldEditor
-              key={field.id}
-              definition={field}
-              path={[...path, 'fields', i]}
-              onUpdate={onUpdate}
-              onRemove={onRemove}
-              onAddChild={onAddChild}
-            />
-          ))}
-          {onAddChild && (
-            <STButton onClick={() => onAddChild(path)} style={{ marginTop: '5px' }}>
-              + Field
-            </STButton>
-          )}
-        </div>
-      )}
-
-      {type === 'array' && items && (
-        <div style={{ marginLeft: '10px', marginTop: '5px' }}>
-          <span>Items:</span>
-          <FieldEditor
-            definition={items}
-            path={[...path, 'items']}
-            onUpdate={onUpdate}
-            onAddChild={onAddChild}
-            onRemove={onRemove}
+      {!isPredefined && (
+        <>
+          <STTextarea
+            className="nodrag"
+            value={description || ''}
+            onChange={(e) => onUpdate(path, { description: e.target.value })}
+            placeholder="Description..."
+            rows={2}
+            style={{ marginTop: '5px' }}
           />
-        </div>
+
+          {type === 'enum' && (
+            <div style={{ marginLeft: '10px', marginTop: '5px' }}>
+              {(values || []).map((val, i) => (
+                <div key={i} style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
+                  <STInput className="nodrag" value={val} onChange={(e) => handleValueChange(i, e.target.value)} />
+                  <STButton onClick={() => removeValue(i)}>✕</STButton>
+                </div>
+              ))}
+              <STButton onClick={addValue} style={{ marginTop: '5px' }}>
+                + Value
+              </STButton>
+            </div>
+          )}
+
+          {type === 'object' && (
+            <div style={{ marginLeft: '10px', marginTop: '5px' }}>
+              {(fields || []).map((field, i) => (
+                <FieldEditor
+                  key={field.id}
+                  definition={field}
+                  path={[...path, 'fields', i]}
+                  onUpdate={onUpdate}
+                  onRemove={onRemove}
+                  onAddChild={onAddChild}
+                />
+              ))}
+              {onAddChild && (
+                <STButton onClick={() => onAddChild(path)} style={{ marginTop: '5px' }}>
+                  + Field
+                </STButton>
+              )}
+            </div>
+          )}
+
+          {type === 'array' && items && (
+            <div style={{ marginLeft: '10px', marginTop: '5px' }}>
+              <span>Items:</span>
+              <FieldEditor
+                definition={items}
+                path={[...path, 'items']}
+                onUpdate={onUpdate}
+                onAddChild={onAddChild}
+                onRemove={onRemove}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -135,6 +150,7 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as SchemaNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
+  const availableSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
 
   if (!data || !definition) return null;
 
@@ -170,21 +186,52 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
     updateNodeData(id, { fields: [...(data.fields || []), newField] });
   };
 
+  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+      updateNodeData(id, { mode: 'custom' });
+    } else {
+      updateNodeData(id, { mode: 'predefined', selectedSchema: value });
+    }
+  };
+
   return (
     <BaseNode id={id} title="Schema" selected={selected}>
-      {(data.fields || []).map((field, index) => (
-        <FieldEditor
-          key={field.id}
-          definition={field}
-          path={[index]}
-          onUpdate={handleUpdate}
-          onRemove={handleRemove}
-          onAddChild={handleAddChild}
-        />
-      ))}
-      <STButton className="nodrag" onClick={addRootField} style={{ marginTop: '10px' }}>
-        Add Field
-      </STButton>
+      <STSelect
+        className="nodrag"
+        value={data.mode === 'custom' ? 'custom' : data.selectedSchema}
+        onChange={handleModeChange}
+      >
+        <optgroup label="Custom">
+          <option value="custom">Custom Schema</option>
+        </optgroup>
+        <optgroup label="Predefined">
+          {Object.keys(availableSchemas).map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </optgroup>
+      </STSelect>
+
+      {data.mode === 'custom' && (
+        <>
+          {(data.fields || []).map((field, index) => (
+            <FieldEditor
+              key={field.id}
+              definition={field}
+              path={[index]}
+              onUpdate={handleUpdate}
+              onRemove={handleRemove}
+              onAddChild={handleAddChild}
+            />
+          ))}
+          <STButton className="nodrag" onClick={addRootField} style={{ marginTop: '10px' }}>
+            Add Field
+          </STButton>
+        </>
+      )}
+
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>

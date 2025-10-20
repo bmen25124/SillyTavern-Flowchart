@@ -6,6 +6,18 @@ import { SchemaNode } from './SchemaNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { buildZodSchema } from '../../../utils/schema-builder.js';
+import { WIEntrySchema, ChatMessageSchemaWithoutId } from '../../../schemas.js';
+
+// A map of available pre-defined schemas. Easy to extend.
+const PREDEFINED_SCHEMAS = {
+  ChatMessage: ChatMessageSchemaWithoutId,
+  WIEntry: WIEntrySchema,
+} as const;
+
+// Define all possible schema types for the dropdown and validation.
+const PRIMITIVE_TYPES = ['string', 'number', 'boolean', 'object', 'array', 'enum'] as const;
+const ALL_SCHEMA_TYPES = [...PRIMITIVE_TYPES, ...Object.keys(PREDEFINED_SCHEMAS)] as [string, ...string[]];
+const SchemaTypeEnum = z.enum(ALL_SCHEMA_TYPES);
 
 // Recursive schema definitions for SchemaNode - EXPORTED for reuse
 export type FieldDefinition = {
@@ -14,16 +26,17 @@ export type FieldDefinition = {
 } & SchemaTypeDefinition;
 
 export type SchemaTypeDefinition = {
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'enum';
+  type: z.infer<typeof SchemaTypeEnum>;
   description?: string;
   fields?: FieldDefinition[]; // For 'object'
   items?: SchemaTypeDefinition; // For 'array'
   values?: string[]; // For 'enum'
 };
 
+// Define the recursive Zod schemas, using the pre-defined SchemaTypeEnum to avoid circular inference issues.
 export const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.lazy(() =>
   z.object({
-    type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
+    type: SchemaTypeEnum,
     description: z.string().optional(),
     fields: z.array(FieldDefinitionSchema).optional(),
     items: SchemaTypeDefinitionSchema.optional(),
@@ -35,7 +48,7 @@ export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
   z.object({
     id: z.string(),
     name: z.string(),
-    type: z.enum(['string', 'number', 'boolean', 'object', 'array', 'enum']),
+    type: SchemaTypeEnum,
     description: z.string().optional(),
     fields: z.array(z.lazy(() => FieldDefinitionSchema)).optional(),
     items: z.lazy(() => SchemaTypeDefinitionSchema).optional(),
@@ -44,6 +57,8 @@ export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
 );
 
 export const SchemaNodeDataSchema = z.object({
+  mode: z.enum(['custom', 'predefined']).default('custom'),
+  selectedSchema: z.string().optional(),
   fields: z.array(FieldDefinitionSchema).default([]),
   _version: z.number().optional(),
 });
@@ -51,6 +66,16 @@ export type SchemaNodeData = z.infer<typeof SchemaNodeDataSchema>;
 
 const execute: NodeExecutor = async (node) => {
   const data = SchemaNodeDataSchema.parse(node.data);
+
+  if (data.mode === 'predefined') {
+    const schema = PREDEFINED_SCHEMAS[data.selectedSchema as keyof typeof PREDEFINED_SCHEMAS];
+    if (!schema) {
+      throw new Error(`Predefined schema "${data.selectedSchema}" not found.`);
+    }
+    return { result: schema };
+  }
+
+  // Custom mode
   const topLevelObjectDefinition: SchemaTypeDefinition = { type: 'object', fields: data.fields };
   const schema = buildZodSchema(topLevelObjectDefinition);
   return { result: schema };
@@ -84,19 +109,23 @@ export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
   category: 'JSON',
   component: SchemaNode,
   dataSchema: SchemaNodeDataSchema,
-  currentVersion: 1,
-  initialData: { fields: [] },
+  currentVersion: 2,
+  initialData: { fields: [], mode: 'custom' },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
-    outputs: [
-      { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.SCHEMA },
-    ],
+    inputs: [],
+    outputs: [{ id: 'result', type: FlowDataType.SCHEMA }],
   },
   validate: (node: Node<SchemaNodeData>): ValidationIssue[] => {
-    return validateFields(node.data.fields);
+    // Only validate if in custom mode.
+    if (node.data.mode === 'custom') {
+      return validateFields(node.data.fields);
+    }
+    return [];
   },
   execute,
+  meta: {
+    schemas: PREDEFINED_SCHEMAS,
+  },
 };
 
 registrator.register(schemaNodeDefinition);

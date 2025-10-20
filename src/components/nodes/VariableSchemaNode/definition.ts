@@ -4,18 +4,38 @@ import { FlowDataType } from '../../../flow-types.js';
 import { VariableSchemaNode } from './VariableSchemaNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { SchemaTypeDefinitionSchema } from '../SchemaNode/definition.js';
+import { SchemaTypeDefinitionSchema, schemaNodeDefinition } from '../SchemaNode/definition.js';
 import { buildZodSchema } from '../../../utils/schema-builder.js';
 
 export const VariableSchemaNodeDataSchema = z.object({
-  definition: SchemaTypeDefinitionSchema.default({ type: 'string' }),
+  mode: z.enum(['custom', 'predefined']).default('custom'),
+  selectedSchema: z.string().optional(),
+  definition: z.any().optional(), // for breaking circular dependency
   _version: z.number().optional(),
 });
 export type VariableSchemaNodeData = z.infer<typeof VariableSchemaNodeDataSchema>;
 
 const execute: NodeExecutor = async (node) => {
   const data = VariableSchemaNodeDataSchema.parse(node.data);
-  const schema = buildZodSchema(data.definition);
+  const predefinedSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
+
+  if (data.mode === 'predefined') {
+    const schema = predefinedSchemas[data.selectedSchema as string];
+    if (!schema) {
+      throw new Error(`Predefined schema "${data.selectedSchema}" not found.`);
+    }
+    return { schema };
+  }
+
+  // Custom mode
+  const definition = data.definition ?? { type: 'string' };
+  const parsedDefinition = SchemaTypeDefinitionSchema.safeParse(definition);
+
+  if (!parsedDefinition.success) {
+    throw new Error(`Invalid custom schema definition in VariableSchemaNode: ${parsedDefinition.error.message}`);
+  }
+
+  const schema = buildZodSchema(parsedDefinition.data);
   return { schema };
 };
 
@@ -25,14 +45,11 @@ export const variableSchemaNodeDefinition: NodeDefinition<VariableSchemaNodeData
   category: 'Variables',
   component: VariableSchemaNode,
   dataSchema: VariableSchemaNodeDataSchema,
-  currentVersion: 1,
-  initialData: { definition: { type: 'string' } },
+  currentVersion: 2,
+  initialData: { definition: { type: 'string' }, mode: 'custom' },
   handles: {
-    inputs: [{ id: 'main', type: FlowDataType.ANY }],
-    outputs: [
-      { id: 'main', type: FlowDataType.ANY },
-      { id: 'schema', type: FlowDataType.SCHEMA },
-    ],
+    inputs: [],
+    outputs: [{ id: 'schema', type: FlowDataType.SCHEMA }],
   },
   execute,
 };

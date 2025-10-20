@@ -68,6 +68,29 @@ MIGRATION_REGISTRY['manualTriggerNode'] = {
   },
 };
 
+// SchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'. v3 expands types.
+MIGRATION_REGISTRY['schemaNode'] = {
+  1: {
+    node: (data) => ({
+      ...data,
+      mode: 'custom', // Old nodes are always custom.
+      selectedSchema: undefined,
+      _version: 2,
+    }),
+  },
+};
+
+// VariableSchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'.
+MIGRATION_REGISTRY['variableSchemaNode'] = {
+  1: {
+    node: (data) => ({
+      ...data,
+      mode: 'custom',
+      _version: 2,
+    }),
+  },
+};
+
 /**
  * Example: Migrating `stringNode` from v1 to v2 where `data.value` is renamed to `data.text`.
  * All new nodes will be created with `currentVersion: 2`.

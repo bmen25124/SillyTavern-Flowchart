@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { Node, Edge } from '@xyflow/react';
-import { FieldDefinition, SchemaTypeDefinition } from '../components/nodes/SchemaNode/definition.js';
+import {
+  FieldDefinition,
+  SchemaTypeDefinition,
+  schemaNodeDefinition,
+} from '../components/nodes/SchemaNode/definition.js';
 import { JsonNodeData, JsonNodeItem } from '../components/nodes/JsonNode/definition.js';
 
 /**
@@ -26,36 +30,41 @@ export function applySchema(value: any, schema: z.ZodType | undefined, nodeLabel
 
 export function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
   let zodType: z.ZodTypeAny;
+  const predefinedSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
 
-  switch (definition.type) {
-    case 'string':
-      zodType = z.string();
-      break;
-    case 'number':
-      zodType = z.number();
-      break;
-    case 'boolean':
-      zodType = z.boolean();
-      break;
-    case 'enum':
-      if (!definition.values || definition.values.length === 0) {
+  if (predefinedSchemas[definition.type]) {
+    zodType = predefinedSchemas[definition.type];
+  } else {
+    switch (definition.type) {
+      case 'string':
         zodType = z.string();
-      } else {
-        zodType = z.enum(definition.values as [string, ...string[]]);
-      }
-      break;
-    case 'object':
-      zodType = buildZodSchemaFromFields(definition.fields || []);
-      break;
-    case 'array':
-      if (definition.items) {
-        zodType = z.array(buildZodSchema(definition.items));
-      } else {
-        zodType = z.array(z.any());
-      }
-      break;
-    default:
-      zodType = z.any();
+        break;
+      case 'number':
+        zodType = z.number();
+        break;
+      case 'boolean':
+        zodType = z.boolean();
+        break;
+      case 'enum':
+        if (!definition.values || definition.values.length === 0) {
+          zodType = z.string();
+        } else {
+          zodType = z.enum(definition.values as [string, ...string[]]);
+        }
+        break;
+      case 'object':
+        zodType = buildZodSchemaFromFields(definition.fields || []);
+        break;
+      case 'array':
+        if (definition.items) {
+          zodType = z.array(buildZodSchema(definition.items));
+        } else {
+          zodType = z.array(z.any());
+        }
+        break;
+      default:
+        zodType = z.any();
+    }
   }
 
   if (definition.description) {
@@ -144,6 +153,11 @@ export function resolveSchemaFromHandle(
   if (!schemaSource) return undefined;
 
   if (schemaSource.type === 'schemaNode') {
+    const data = schemaNodeDefinition.dataSchema.parse(schemaSource.data);
+    if (data.mode === 'predefined') {
+      const predefinedSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
+      return predefinedSchemas[data.selectedSchema as string];
+    }
     const fields = schemaSource.data?.fields as FieldDefinition[] | undefined;
     if (!Array.isArray(fields)) return undefined;
     return buildZodSchemaFromFields(fields);

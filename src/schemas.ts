@@ -16,3 +16,5 @@ export const ChatMessageSchema = z.object({
   is_user: z.boolean().describe('True if the message is from the user.'),
   is_system: z.boolean().describe('True if the message is a system message (hidden from LLM context).'),
 });
+
+export const ChatMessageSchemaWithoutId = ChatMessageSchema.omit({ id: true });

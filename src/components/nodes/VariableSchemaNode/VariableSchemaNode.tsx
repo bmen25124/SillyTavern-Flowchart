@@ -3,12 +3,12 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { VariableSchemaNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STButton } from 'sillytavern-utils-lib/components';
+import { STButton, STSelect } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { registrator } from '../autogen-imports.js';
 import { FieldEditor } from '../SchemaNode/SchemaNode.js';
 import { generateUUID } from '../../../utils/uuid.js';
-import { SchemaTypeDefinition } from '../SchemaNode/definition.js';
+import { SchemaTypeDefinition, schemaNodeDefinition } from '../SchemaNode/definition.js';
 import { updateNested } from '../../../utils/nested-logic.js';
 
 export type VariableSchemaNodeProps = NodeProps<Node<VariableSchemaNodeData>>;
@@ -17,6 +17,7 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as VariableSchemaNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
+  const availableSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
 
   if (!data || !definition) return null;
 
@@ -41,7 +42,7 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
     const indexToRemove = path[path.length - 1] as number;
 
     if (parentPath.length === 0 && containerKey === 'fields') {
-      const newFields = (rootDefinition.fields || []).filter((_, i) => i !== indexToRemove);
+      const newFields = (rootDefinition.fields || []).filter((_: any, i: number) => i !== indexToRemove);
       updateNodeData(id, { definition: { ...rootDefinition, fields: newFields } });
       return;
     }
@@ -72,18 +73,49 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
     }
   };
 
+  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+      updateNodeData(id, { mode: 'custom' });
+    } else {
+      updateNodeData(id, { mode: 'predefined', selectedSchema: value });
+    }
+  };
+
   return (
     <BaseNode id={id} title="Variable Schema" selected={selected}>
-      <FieldEditor
-        definition={rootDefinition}
-        path={[]}
-        onUpdate={handleUpdate}
-        onRemove={handleRemoveWithGuard}
-        onAddChild={handleAddChild}
-      />
-      <STButton className="nodrag" onClick={ensureObjectRoot} style={{ marginTop: '10px' }}>
-        Set To Object Root
-      </STButton>
+      <STSelect
+        className="nodrag"
+        value={data.mode === 'custom' ? 'custom' : data.selectedSchema}
+        onChange={handleModeChange}
+      >
+        <optgroup label="Custom">
+          <option value="custom">Custom Schema</option>
+        </optgroup>
+        <optgroup label="Predefined">
+          {Object.keys(availableSchemas).map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </optgroup>
+      </STSelect>
+
+      {data.mode === 'custom' && (
+        <>
+          <FieldEditor
+            definition={rootDefinition}
+            path={[]}
+            onUpdate={handleUpdate}
+            onRemove={handleRemoveWithGuard}
+            onAddChild={handleAddChild}
+          />
+          <STButton className="nodrag" onClick={ensureObjectRoot} style={{ marginTop: '10px' }}>
+            Set To Object Root
+          </STButton>
+        </>
+      )}
+
       <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
         <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>

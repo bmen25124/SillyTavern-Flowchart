@@ -65,6 +65,11 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
   };
   execute: NodeExecutor;
   /**
+   * Optional metadata that can be attached to the definition.
+   * Useful for storing static data that the node's component might need.
+   */
+  meta?: Record<string, any>;
+  /**
    * Optional function to perform semantic validation on the node's data and connections.
    * @returns An array of validation issues. An empty array means the node is valid.
    */
