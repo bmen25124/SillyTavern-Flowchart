@@ -3,9 +3,10 @@ import { STButton } from 'sillytavern-utils-lib/components';
 import { PromptsSettings } from './PromptsSettings.js';
 import { FlowchartEditor } from './FlowchartEditor.js';
 import { FlowHistory } from './FlowHistory.js';
+import { QrGroupSettings } from './QrGroupSettings.js';
 import { eventEmitter } from '../../events.js';
 
-type Tab = 'editor' | 'prompts' | 'history';
+type Tab = 'editor' | 'prompts' | 'history' | 'qr_groups';
 
 interface FlowchartDataPopupProps {
   onSave: () => void;
@@ -38,6 +39,7 @@ export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave, isFull
           <STButton onClick={() => setActiveTab('editor')}>Editor</STButton>
           <STButton onClick={() => setActiveTab('prompts')}>Prompts</STButton>
           <STButton onClick={() => setActiveTab('history')}>History</STButton>
+          <STButton onClick={() => setActiveTab('qr_groups')}>QR Groups</STButton>
         </div>
         <div className="flowchart-popup-controls">
           <STButton onClick={toggleFullscreen} title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>
@@ -49,6 +51,7 @@ export const FlowchartDataPopup: FC<FlowchartDataPopupProps> = ({ onSave, isFull
         {activeTab === 'editor' && <FlowchartEditor key={`editor-${importKey}`} />}
         {activeTab === 'prompts' && <PromptsSettings key={`prompts-${importKey}`} />}
         {activeTab === 'history' && <FlowHistory />}
+        {activeTab === 'qr_groups' && <QrGroupSettings />}
       </div>
       <div className="flowchart-popup-footer">
         <div style={{ flex: 1 }} />

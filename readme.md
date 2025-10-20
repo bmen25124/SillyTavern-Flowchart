@@ -102,6 +102,7 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 *   **Slash Command:** Creates a new `/flow-<name>` slash command that triggers the flow and passes arguments to its output handles.
 *   **Menu Trigger:** Adds a custom button to the main "Extensions" menu that triggers the flow when clicked.
 *   **Message Toolbar Trigger:** Adds a custom button to the toolbar on every chat message.
+*   **QR Button Trigger:** Adds a button to the Quick Reply bar. Buttons are arranged into rows by `group`, and sorted within each row by `order`. The order of the groups themselves is configured in the "QR Groups" tab of the popup.
 *   **On Stream Trigger:** A special trigger for "handler" flows. It starts a flow that is called repeatedly for each piece of data from an `LLM Request` node's stream. It provides `chunk` (the newest text) and `fullText` (all text received so far).
 
 #### **Logic Nodes**

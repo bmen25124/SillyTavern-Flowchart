@@ -224,7 +224,8 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
       n.type === 'manualTriggerNode' ||
       n.type === 'slashCommandNode' ||
       n.type === 'menuTriggerNode' ||
-      n.type === 'messageToolbarTriggerNode',
+      n.type === 'messageToolbarTriggerNode' ||
+      n.type === 'quickReplyTriggerNode',
   );
   for (const triggerNode of triggerNodes) {
     const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);

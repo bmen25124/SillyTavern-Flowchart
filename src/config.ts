@@ -36,6 +36,7 @@ export interface ExtensionSettings {
   activeFlow: string;
   isPaletteCollapsed: boolean;
   showExecutionNotifications: boolean;
+  qrGroupOrder: string[];
 }
 
 export const EXTENSION_NAME = 'SillyTavern-Flowchart';
@@ -71,6 +72,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   ],
   isPaletteCollapsed: false,
   showExecutionNotifications: true,
+  qrGroupOrder: ['default'],
 };
 
 export const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(EXTENSION_KEY, DEFAULT_SETTINGS);

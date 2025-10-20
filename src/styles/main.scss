@@ -718,3 +718,35 @@
   cursor: help;
   color: var(--text-color-secondary);
 }
+
+.qr-group-settings-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
+  max-width: 400px;
+}
+
+.qr-group-item {
+  padding: 10px;
+  background-color: var(--SmartThemeInputColor);
+  border-bottom: 1px solid var(--SmartThemeBorderColor);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    background: var(--SmartThemeEmColor);
+  }
+
+  .fa-grip-vertical {
+    color: var(--text-color-secondary);
+  }
+}

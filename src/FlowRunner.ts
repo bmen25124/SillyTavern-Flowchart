@@ -25,6 +25,8 @@ import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
 import { FLOW_RUN_COMMAND, FLOW_STOP_COMMAND } from './constants.js';
 import { generateUUID } from './utils/uuid.js';
+import { QuickReplyTriggerNodeData } from './components/nodes/QuickReplyTriggerNode/definition.js';
+import { EventNames } from 'sillytavern-utils-lib/types';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
 const MAX_HISTORY_LENGTH = 50;
@@ -114,6 +116,7 @@ class FlowRunner {
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
   private isToolbarListenerAttached: boolean = false;
+  private isQrBarListenerAttached: boolean = false;
   private abortController: AbortController | null = null;
   private dependencies: FlowRunnerDependencies;
 
@@ -197,8 +200,20 @@ class FlowRunner {
     this.executeFlow(flowId, initialInput, 0, { startNodeId: nodeId });
   }
 
+  private handleQrButtonClick(event: MouseEvent) {
+    const button = (event.target as HTMLElement).closest('.flowchart-qr-button');
+    if (!button) return;
+
+    const { flowId, nodeId } = (button as HTMLElement).dataset;
+    if (!flowId || !nodeId) return;
+
+    this.executeFlow(flowId, {}, 0, { startNodeId: nodeId });
+  }
+
   private setupEventListeners() {
     if (this.isListeningToEvents) return;
+    const { eventSource } = SillyTavern.getContext();
+
     eventEmitter.on('flow:run:start', ({ runId }) => useFlowRunStore.getState().startRun(runId));
     eventEmitter.on('node:run:start', ({ runId, nodeId }) => useFlowRunStore.getState().setActiveNode(runId, nodeId));
     eventEmitter.on('node:run:end', ({ runId, nodeId, report }) =>
@@ -213,7 +228,77 @@ class FlowRunner {
       this.isToolbarListenerAttached = true;
     }
 
+    if (!this.isQrBarListenerAttached) {
+      (document.querySelector('#qr--bar') as HTMLElement)?.addEventListener(
+        'click',
+        this.handleQrButtonClick.bind(this),
+      );
+      this.isQrBarListenerAttached = true;
+    }
+
+    // Add static listener for chat changes to re-render UI elements
+    eventSource.on(EventNames.CHAT_CHANGED, this.renderQrButtons.bind(this));
+
     this.isListeningToEvents = true;
+  }
+
+  private renderQrButtons() {
+    const qrBar = document.querySelector('#qr--bar');
+    if (!qrBar) return;
+
+    // Clear only our own buttons
+    document.querySelectorAll('#qr--bar .flowchart-qr-group').forEach((el) => el.remove());
+
+    const settings = settingsManager.getSettings();
+    if (!settings.enabled) return;
+
+    type QrButtonInfo = QuickReplyTriggerNodeData & { flowId: string; nodeId: string };
+    const qrButtonsByGroup: Record<string, QrButtonInfo[]> = {};
+    const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
+
+    for (const { id: flowId, flow } of enabledFlows) {
+      for (const node of flow.nodes) {
+        if (node.type === 'quickReplyTriggerNode' && !node.data?.disabled) {
+          const qrData = node.data as QuickReplyTriggerNodeData;
+          if (!qrButtonsByGroup[qrData.group]) {
+            qrButtonsByGroup[qrData.group] = [];
+          }
+          qrButtonsByGroup[qrData.group].push({ ...qrData, flowId, nodeId: node.id });
+        }
+      }
+    }
+
+    if (Object.keys(qrButtonsByGroup).length === 0) return;
+
+    const groupOrder = settings.qrGroupOrder || [];
+    const sortedGroupNames = Object.keys(qrButtonsByGroup).sort((a, b) => {
+      const indexA = groupOrder.indexOf(a);
+      const indexB = groupOrder.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    for (const groupName of sortedGroupNames) {
+      const buttons = qrButtonsByGroup[groupName];
+      buttons.sort((a, b) => a.order - b.order);
+
+      const groupEl = document.createElement('div');
+      groupEl.className = 'qr--buttons qr--color qr--borderColor flowchart-qr-group';
+
+      for (const btnData of buttons) {
+        const buttonEl = document.createElement('div');
+        buttonEl.className = 'qr--button menu_button interactable flowchart-qr-button';
+        buttonEl.title = btnData.buttonText;
+        buttonEl.dataset.flowId = btnData.flowId;
+        buttonEl.dataset.nodeId = btnData.nodeId;
+        const iconHtml = btnData.icon ? `<i class="${btnData.icon}"></i>` : '';
+        buttonEl.innerHTML = `<div class="qr--button-label">${iconHtml} ${btnData.buttonText}</div>`;
+        groupEl.appendChild(buttonEl);
+      }
+      qrBar.appendChild(groupEl);
+    }
   }
 
   reinitialize() {
@@ -239,6 +324,7 @@ class FlowRunner {
 
     const settings = settingsManager.getSettings();
     if (!settings.enabled) {
+      this.renderQrButtons();
       return;
     }
 
@@ -348,6 +434,8 @@ class FlowRunner {
         }
       }
     }
+
+    this.renderQrButtons();
 
     // Register global /flow-run command
     const globalCommand = SlashCommand.fromProps({
