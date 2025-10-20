@@ -76,10 +76,20 @@ export const EditLorebookEntryNode: FC<EditLorebookEntryNodeProps> = ({ id, sele
         id: 'key',
         label: 'New Keys (comma-separated)',
         component: STInput,
-        props: { type: 'text' },
+        props: { type: 'text', placeholder: 'Leave blank to not change' },
       }),
-      createFieldConfig({ id: 'comment', label: 'New Comment (Title)', component: STInput, props: { type: 'text' } }),
-      createFieldConfig({ id: 'content', label: 'New Content', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({
+        id: 'comment',
+        label: 'New Comment (Title)',
+        component: STInput,
+        props: { type: 'text', placeholder: 'Leave blank to not change' },
+      }),
+      createFieldConfig({
+        id: 'content',
+        label: 'New Content',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
     ],
     [lorebookOptions, entryOptions, data?.worldName],
   );

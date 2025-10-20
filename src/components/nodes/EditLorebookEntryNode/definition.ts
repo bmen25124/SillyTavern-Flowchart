@@ -10,10 +10,10 @@ import { combineValidators, createRequiredFieldValidator } from '../../../utils/
 
 export const EditLorebookEntryNodeDataSchema = z.object({
   worldName: z.string().optional(),
-  entryUid: z.number().optional(), // uid is used as an identifier
+  entryUid: z.number().optional(),
   key: z.string().optional(),
   content: z.string().optional(),
-  comment: z.string().optional(), // new comment
+  comment: z.string().optional(),
   _version: z.number().optional(),
 });
 export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
@@ -32,19 +32,36 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const entryToEdit = world.find((entry) => entry.uid === entryUid);
   if (!entryToEdit) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
 
-  const newKeys = resolveInput(input, data, 'key');
-  if (newKeys) {
-    entryToEdit.key = newKeys.split(',').map((k: string) => k.trim());
-  }
+  let anyChanges = false;
 
-  const newContent = resolveInput(input, data, 'content');
-  if (newContent) {
-    entryToEdit.content = newContent;
-  }
+  const fields: ('key' | 'content' | 'comment')[] = ['key', 'content', 'comment'];
 
-  const newComment = resolveInput(input, data, 'comment');
-  if (newComment) {
-    entryToEdit.comment = newComment;
+  fields.forEach((field) => {
+    const value = resolveInput(input, data, field);
+    const isConnected = input[field] !== undefined;
+
+    if (isConnected) {
+      if (field === 'key') {
+        entryToEdit.key = String(value)
+          .split(',')
+          .map((k: string) => k.trim());
+      } else {
+        entryToEdit[field] = String(value);
+      }
+      anyChanges = true;
+    } else if (value) {
+      // Only for non-empty static values
+      if (field === 'key') {
+        entryToEdit.key = value.split(',').map((k: string) => k.trim());
+      } else {
+        (entryToEdit as any)[field] = value;
+      }
+      anyChanges = true;
+    }
+  });
+
+  if (!anyChanges) {
+    return { result: structuredClone(entryToEdit) };
   }
 
   const result = await dependencies.applyWorldInfoEntry({

@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { EditCharacterNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STInput, STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STTextarea, STFancyDropdown } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { registrator } from '../autogen-imports.js';
@@ -35,13 +35,36 @@ export const EditCharacterNode: FC<EditCharacterNodeProps> = ({ id, selected, ty
         getValueFromEvent: (e: string[]) => e[0],
         formatValue: (value) => [value ?? ''],
       }),
-      createFieldConfig({ id: 'name', label: 'New Name', component: STInput, props: { type: 'text' } }),
-      createFieldConfig({ id: 'description', label: 'Description', component: STTextarea, props: { rows: 2 } }),
-      createFieldConfig({ id: 'first_mes', label: 'First Message', component: STTextarea, props: { rows: 2 } }),
-      createFieldConfig({ id: 'scenario', label: 'Scenario', component: STTextarea, props: { rows: 2 } }),
-      createFieldConfig({ id: 'personality', label: 'Personality', component: STTextarea, props: { rows: 2 } }),
-      createFieldConfig({ id: 'mes_example', label: 'Message Examples', component: STTextarea, props: { rows: 2 } }),
-      createFieldConfig({ id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } }),
+      createFieldConfig({
+        id: 'description',
+        label: 'Description',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
+      createFieldConfig({
+        id: 'first_mes',
+        label: 'First Message',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
+      createFieldConfig({
+        id: 'scenario',
+        label: 'Scenario',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
+      createFieldConfig({
+        id: 'personality',
+        label: 'Personality',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
+      createFieldConfig({
+        id: 'mes_example',
+        label: 'Message Examples',
+        component: STTextarea,
+        props: { rows: 2, placeholder: 'Leave blank to not change' },
+      }),
     ],
     [characterOptions],
   );

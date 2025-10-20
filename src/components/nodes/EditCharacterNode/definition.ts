@@ -9,13 +9,11 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 const CharacterFieldsSchema = {
-  name: z.string().optional(),
   description: z.string().optional(),
   first_mes: z.string().optional(),
   scenario: z.string().optional(),
   personality: z.string().optional(),
   mes_example: z.string().optional(),
-  tags: z.string().optional(), // Comma-separated
 };
 
 export const EditCharacterNodeDataSchema = z.object({
@@ -42,49 +40,42 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   if (!characterAvatar) throw new Error(`Character avatar is required.`);
 
   const stContext = dependencies.getSillyTavernContext();
-  let existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
+  const existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
   if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
 
-  const updatedChar = structuredClone(existingChar);
-  delete updatedChar.json_data;
-  delete updatedChar.data?.json_data;
-
-  const fields: (keyof typeof data)[] = ['name', 'description', 'first_mes', 'scenario', 'personality', 'mes_example'];
-
-  const characterPartial: Partial<Character> & { avatar: string } = { avatar: existingChar.avatar };
-
+  const characterPartial: Partial<Character> & { avatar: string; data?: any } = { avatar: existingChar.avatar };
   let anyChanges = false;
+
+  const fields: (keyof typeof CharacterFieldsSchema)[] = [
+    'description',
+    'first_mes',
+    'scenario',
+    'personality',
+    'mes_example',
+  ];
+
   fields.forEach((field) => {
     const value = resolveInput(input, data, field);
-    if (value) {
+    const isConnected = input[field] !== undefined;
+
+    if (isConnected || (value && value.trim() !== '')) {
       (characterPartial as any)[field] = value;
-      (updatedChar as any)[field] = value;
-      if (!characterPartial.data) {
-        characterPartial.data = {};
-      }
-      characterPartial.data[field] = value;
       anyChanges = true;
     }
   });
 
-  const tagsStr = resolveInput(input, data, 'tags');
-  if (tagsStr) {
-    const newTags = tagsStr
-      .split(',')
-      .map((t: string) => t.trim())
-      .filter(Boolean);
-    characterPartial.tags = newTags;
-    updatedChar.tags = newTags;
-    anyChanges = true;
+  if (!anyChanges) {
+    const unmodifiedChar = structuredClone(existingChar);
+    delete unmodifiedChar.json_data;
+    delete unmodifiedChar.data?.json_data;
+    return { ...unmodifiedChar, result: unmodifiedChar };
   }
-
-  if (!anyChanges) throw new Error('No changes provided to update the character.');
 
   await dependencies.saveCharacter(characterPartial);
 
-  if (characterPartial.data) {
-    updatedChar.data = { ...existingChar.data, ...characterPartial.data };
-  }
+  const updatedChar = { ...structuredClone(existingChar), ...characterPartial };
+  delete updatedChar.json_data;
+  if (updatedChar.data) delete updatedChar.data.json_data;
 
   return { ...updatedChar, result: updatedChar };
 };
@@ -101,13 +92,11 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'characterAvatar', type: FlowDataType.CHARACTER_AVATAR },
-      { id: 'name', type: FlowDataType.STRING },
       { id: 'description', type: FlowDataType.STRING },
       { id: 'first_mes', type: FlowDataType.STRING },
       { id: 'scenario', type: FlowDataType.STRING },
       { id: 'personality', type: FlowDataType.STRING },
       { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },

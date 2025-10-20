@@ -22,7 +22,20 @@ const fields = [
     id: 'message',
     label: 'New Message Content',
     component: STTextarea,
-    props: { rows: 3 },
+    props: { rows: 2, placeholder: '(Optional) Leave blank to not change.' },
+  }),
+  createFieldConfig({
+    id: 'displayText',
+    label: 'Display Text',
+    component: STTextarea,
+    props: { rows: 2, placeholder: '(Optional) Overrides display text.' },
+  }),
+  createFieldConfig({
+    id: 'removeDisplayText',
+    label: 'Remove Display Text',
+    component: STInput,
+    props: { type: 'checkbox' },
+    getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
   }),
 ];
 
