@@ -139,34 +139,30 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   if (!data || !definition) return null;
 
   const handleUpdate = (path: (string | number)[], newPartialData: object) => {
-    const newFields = updateNested({ fields: data.fields }, path, (item: object) => ({ ...item, ...newPartialData }));
-    updateNodeData(id, { fields: newFields.fields });
+    const newRoot = updateNested({ fields: data.fields }, ['fields', ...path], (item: object) => ({
+      ...item,
+      ...newPartialData,
+    }));
+    updateNodeData(id, { fields: newRoot.fields });
   };
 
   const handleRemove = (path: (string | number)[]) => {
-    const parentPath = path.slice(0, -2);
-    const containerKey = path[path.length - 2] as string;
+    const parentPath = path.slice(0, -1);
     const indexToRemove = path[path.length - 1] as number;
 
-    let newFields;
-    if (parentPath.length === 0) {
-      newFields = data.fields.filter((_, i) => i !== indexToRemove);
-    } else {
-      const updatedRoot = updateNested({ fields: data.fields }, [...parentPath, containerKey], (items: any[]) =>
-        items.filter((_, i) => i !== indexToRemove),
-      );
-      newFields = updatedRoot.fields;
-    }
-    updateNodeData(id, { fields: newFields });
+    const newRoot = updateNested({ fields: data.fields }, ['fields', ...parentPath], (items: any[]) =>
+      items.filter((_, i) => i !== indexToRemove),
+    );
+    updateNodeData(id, { fields: newRoot.fields });
   };
 
   const handleAddChild = (path: (string | number)[]) => {
     const newField: FieldDefinition = { id: generateUUID(), name: 'newField', type: 'string' };
-    const newFields = updateNested({ fields: data.fields }, [...path, 'fields'], (items: any[]) => [
+    const newRoot = updateNested({ fields: data.fields }, ['fields', ...path, 'fields'], (items: any[]) => [
       ...(items || []),
       newField,
     ]);
-    updateNodeData(id, { fields: newFields.fields });
+    updateNodeData(id, { fields: newRoot.fields });
   };
 
   const addRootField = () => {

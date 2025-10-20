@@ -33,6 +33,7 @@ import { slashCommandNodeDefinition } from '../../components/nodes/SlashCommandN
 import { triggerNodeDefinition } from '../../components/nodes/TriggerNode/definition.js';
 import { typeConverterNodeDefinition } from '../../components/nodes/TypeConverterNode/definition.js';
 import { dateTimeNodeDefinition } from '../../components/nodes/DateTimeNode/definition.js';
+import { manualTriggerNodeDefinition } from '../../components/nodes/ManualTriggerNode/definition.js';
 
 describe('Node Executors', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -441,6 +442,25 @@ describe('Node Executors', () => {
       const input = { arg1: 'value', unnamed: 'text' };
       const result = await execute(node, input, context);
       expect(result).toEqual({ ...input, allArgs: input });
+    });
+  });
+
+  describe('ManualTriggerNode', () => {
+    const { execute } = manualTriggerNodeDefinition;
+    it('should use static payload for manual runs (empty input)', async () => {
+      const node = createMockNode(manualTriggerNodeDefinition, { payload: '{"manual": true}' });
+      const result = await execute(node, {}, context);
+      expect(result).toEqual({ manual: true, result: { manual: true } });
+    });
+    it('should pass through input for sub-flow runs', async () => {
+      const node = createMockNode(manualTriggerNodeDefinition, { payload: '{"manual": true}' });
+      const input = { fromSubFlow: true };
+      const result = await execute(node, input, context);
+      expect(result).toEqual({ fromSubFlow: true, result: { fromSubFlow: true } });
+    });
+    it('should throw on invalid JSON in payload for manual runs', async () => {
+      const node = createMockNode(manualTriggerNodeDefinition, { payload: '{"invalid"' });
+      await expect(execute(node, {}, context)).rejects.toThrow('Invalid JSON payload');
     });
   });
 

@@ -62,6 +62,12 @@ MIGRATION_REGISTRY['runFlowNode'] = {
   },
 };
 
+MIGRATION_REGISTRY['manualTriggerNode'] = {
+  1: {
+    node: (data) => ({ ...data, _version: 2 }),
+  },
+};
+
 /**
  * Example: Migrating `stringNode` from v1 to v2 where `data.value` is renamed to `data.text`.
  * All new nodes will be created with `currentVersion: 2`.

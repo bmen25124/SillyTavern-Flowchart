@@ -22,12 +22,19 @@ export const ManualTriggerNode: FC<ManualTriggerNodeProps> = ({ id, selected, ty
   };
 
   return (
-    <BaseNode id={id} title="Manual Trigger" selected={selected}>
-      <label>Initial JSON Payload</label>
+    <BaseNode id={id} title="Manual / Sub-Flow Trigger" selected={selected}>
+      <div style={{ borderBottom: '1px solid #555', paddingBottom: '10px', marginBottom: '10px' }}>
+        <NodeHandleRenderer nodeId={id} definition={definition} type="input" />
+        <p style={{ fontSize: '11px', color: '#ccc', margin: '4px 0 0 0' }}>
+          Connect a Schema node to define typed inputs for this sub-flow.
+        </p>
+      </div>
+
+      <label>Default Payload (for manual runs)</label>
       <CodeMirror
         className="nodrag"
         value={data.payload || '{}'}
-        height="150px"
+        height="100px"
         extensions={[javascript({})]}
         width="100%"
         onChange={handleCodeChange}

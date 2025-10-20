@@ -23,6 +23,16 @@ jest.mock('../components/nodes/autogen-imports.js', () => {
     dataSchema: z.object({ selectedEventType: z.string() }),
   });
 
+  nodeDefinitionMap.set('manualTriggerNode', {
+    nodeType: 'manualTriggerNode',
+    dataSchema: z.object({ payload: z.string() }),
+  });
+
+  nodeDefinitionMap.set('schemaNode', {
+    nodeType: 'schemaNode',
+    dataSchema: z.object({}),
+  });
+
   nodeDefinitionMap.set('runFlowNode', {
     nodeType: 'runFlowNode',
     dataSchema: z.object({ flowId: z.string().optional() }),
@@ -142,6 +152,36 @@ describe('validateFlow', () => {
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [unknownNodeType]: Unknown node type "unknownNodeType".');
     expect(invalidNodeIds.has('a')).toBe(true);
+  });
+});
+
+describe('ManualTriggerNode validation', () => {
+  it('should allow a connection to the schema handle of a ManualTriggerNode', () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'schema', type: 'schemaNode', data: {} },
+        { id: 'trigger', type: 'manualTriggerNode', data: { payload: '{}' } },
+      ],
+      edges: [{ id: 'e1', source: 'schema', target: 'trigger', sourceHandle: 'result', targetHandle: 'schema' }],
+    };
+    const { isValid, errors } = validateFlow(flow, true, generateUUID());
+    expect(isValid).toBe(true);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('should invalidate a connection to a non-schema handle of a ManualTriggerNode', () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'string', type: 'stringNode', data: { value: 'test' } },
+        { id: 'trigger', type: 'manualTriggerNode', data: { payload: '{}' } },
+      ],
+      edges: [{ id: 'e1', source: 'string', target: 'trigger', sourceHandle: 'value', targetHandle: 'any_other' }],
+    };
+    const { isValid, errors } = validateFlow(flow, true, generateUUID());
+    expect(isValid).toBe(false);
+    expect(errors).toContain(
+      `Node [manualTriggerNode]: Manual Triggers can only accept incoming connections on the 'schema' handle for sub-flow definitions.`,
+    );
   });
 });
 

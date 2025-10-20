@@ -218,19 +218,34 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
   }
 
   // 4. Validate trigger nodes
-  const triggerNodes = flow.nodes.filter(
-    (n) =>
-      n.type === 'triggerNode' ||
-      n.type === 'manualTriggerNode' ||
-      n.type === 'slashCommandNode' ||
-      n.type === 'menuTriggerNode' ||
-      n.type === 'messageToolbarTriggerNode' ||
-      n.type === 'quickReplyTriggerNode',
-  );
-  for (const triggerNode of triggerNodes) {
-    const hasIncomingEdge = flow.edges.some((e) => e.target === triggerNode.id);
-    if (hasIncomingEdge) {
-      addNodeError(triggerNode.id, triggerNode.type, {
+  const triggerNodeTypes = new Set([
+    'triggerNode',
+    'slashCommandNode',
+    'menuTriggerNode',
+    'messageToolbarTriggerNode',
+    'quickReplyTriggerNode',
+    'manualTriggerNode',
+  ]);
+
+  for (const node of flow.nodes) {
+    if (!triggerNodeTypes.has(node.type)) continue;
+
+    const incomingEdges = flow.edges.filter((e) => e.target === node.id);
+    if (incomingEdges.length === 0) continue;
+
+    if (node.type === 'manualTriggerNode') {
+      // ManualTriggerNode can have an incoming connection, but ONLY to the 'schema' handle.
+      for (const edge of incomingEdges) {
+        if (edge.targetHandle !== 'schema') {
+          addNodeError(node.id, node.type, {
+            message: `Manual Triggers can only accept incoming connections on the 'schema' handle for sub-flow definitions.`,
+            severity: 'error',
+          });
+        }
+      }
+    } else {
+      // All other trigger types cannot have any incoming connections.
+      addNodeError(node.id, node.type, {
         message: `Trigger nodes cannot have incoming connections.`,
         severity: 'error',
       });
