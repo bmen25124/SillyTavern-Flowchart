@@ -4,6 +4,7 @@ import { FlowDataType } from '../../../flow-types.js';
 import { LogNode } from './LogNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { resolveInput } from '../../../utils/node-logic.js';
 
 export const LogNodeDataSchema = z.object({
   prefix: z.string().default(''),
@@ -13,7 +14,8 @@ export type LogNodeData = z.infer<typeof LogNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
   const data = LogNodeDataSchema.parse(node.data);
-  console.log(data.prefix, input.value);
+  const prefix = resolveInput(input, data, 'prefix');
+  console.log(prefix, input.value);
   // Returns void. The runner handles the passthrough automatically.
 };
 
