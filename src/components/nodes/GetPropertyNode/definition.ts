@@ -8,6 +8,7 @@ import { resolveInput, get } from '../../../utils/node-logic.js';
 import { getHandleSpec } from '../../../utils/handle-logic.js';
 import { GetPropertyNode } from './GetPropertyNode.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetPropertyNodeDataSchema = z.object({
   path: z.string().optional(),
@@ -42,14 +43,22 @@ function zodTypeFromPath(schema: z.ZodType, path: string): z.ZodType | undefined
     let unwrapped = currentSchema;
     // Repeatedly unwrap to get to the core type (e.g., from ZodOptional<ZodNullable<ZodObject<...>>> to ZodObject<...>)
     while ('unwrap' in unwrapped && typeof unwrapped.unwrap === 'function') {
+      // @ts-ignore
       unwrapped = unwrapped.unwrap();
     }
+    // Now, unwrap inner types like promises or transforms
+    while ('innerType' in unwrapped && typeof unwrapped.innerType === 'function') {
+      // @ts-ignore
+      unwrapped = unwrapped.innerType();
+    }
+    // Ensure the unwrapped type is still a Zod type
+    if (!(unwrapped instanceof z.ZodType)) return undefined;
 
     if (unwrapped instanceof z.ZodObject) {
       currentSchema = unwrapped.shape[part];
     } else if (unwrapped instanceof z.ZodArray) {
-      // If we're at an array, the path part must be an index. We don't validate the index itself,
-      // but instead transition to the array's element schema for the next part of the path.
+      // If we're at an array, the path part must be an index (e.g., '0', '1').
+      // We don't validate the index, we step into the array's element schema for the next part of the path.
       if (!isNaN(parseInt(part, 10))) {
         // @ts-ignore
         currentSchema = unwrapped.element;
@@ -92,24 +101,33 @@ export const getPropertyNodeDefinition: NodeDefinition<GetPropertyNodeData> = {
     },
   ),
   execute,
-  getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
-    if (handleDirection === 'output' && handleId === 'value') {
-      const edge = edges.find((e) => e.target === node.id && e.targetHandle === 'object');
-      if (!edge) return FlowDataType.ANY;
+  getDynamicHandles: (node, nodes, edges) => {
+    const data = GetPropertyNodeDataSchema.parse(node.data);
+    const path = data.path;
 
+    // 1. Find the schema from the connected source node
+    const edge = edges.find((e) => e.target === node.id && e.targetHandle === 'object');
+    let outputSchema: z.ZodTypeAny = z.any();
+    let outputType = FlowDataType.ANY;
+
+    if (edge) {
       const sourceNode = nodes.find((n) => n.id === edge.source);
-      if (!sourceNode) return FlowDataType.ANY;
-
-      const sourceHandleSpec = getHandleSpec(sourceNode, edge.sourceHandle || null, 'output', nodes, edges);
-      if (!sourceHandleSpec?.schema) return FlowDataType.ANY;
-
-      const propertySchema = zodTypeFromPath(sourceHandleSpec.schema, (node.data as GetPropertyNodeData).path ?? '');
-      if (propertySchema instanceof z.ZodString) return FlowDataType.STRING;
-      if (propertySchema instanceof z.ZodNumber) return FlowDataType.NUMBER;
-      if (propertySchema instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-      if (propertySchema instanceof z.ZodObject || propertySchema instanceof z.ZodArray) return FlowDataType.OBJECT;
+      if (sourceNode) {
+        const sourceHandleSpec = getHandleSpec(sourceNode, edge.sourceHandle || null, 'output', nodes, edges);
+        if (sourceHandleSpec?.schema) {
+          const propertySchema = zodTypeFromPath(sourceHandleSpec.schema, path ?? '');
+          if (propertySchema) {
+            outputSchema = propertySchema;
+            outputType = zodTypeToFlowType(propertySchema);
+          }
+        }
+      }
     }
-    return undefined; // Fallback to default
+
+    return {
+      inputs: [],
+      outputs: [{ id: 'value', type: outputType, schema: outputSchema }],
+    };
   },
 };
 

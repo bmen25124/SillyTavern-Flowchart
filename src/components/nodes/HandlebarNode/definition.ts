@@ -6,6 +6,11 @@ import { HandlebarNode } from './HandlebarNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import {
+  combineValidators,
+  createRequiredConnectionValidator,
+  createRequiredFieldValidator,
+} from '../../../utils/validation-helpers.js';
 
 export const HandlebarNodeDataSchema = z.object({
   template: z.string().default('Hello, {{name}}!'),
@@ -16,15 +21,22 @@ export type HandlebarNodeData = z.infer<typeof HandlebarNodeDataSchema>;
 const execute: NodeExecutor = async (node, input) => {
   const data = HandlebarNodeDataSchema.parse(node.data);
   const template = resolveInput(input, data, 'template');
+  const context = input.context;
 
-  let context = (input.context ?? input) || {};
-  if (typeof context !== 'object') {
-    context = { context: context };
+  if (context === undefined) {
+    throw new Error('A value must be connected to the "context" input.');
+  }
+
+  // Ensure context is an object for Handlebars compilation.
+  // If a primitive is passed (e.g., a number), wrap it in { context: value }
+  let templateContext = context;
+  if (typeof templateContext !== 'object' || templateContext === null) {
+    templateContext = { context: templateContext };
   }
 
   try {
     const compiled = Handlebars.compile(template, { noEscape: true, strict: true });
-    return { result: compiled(context) };
+    return { result: compiled(templateContext) };
   } catch (e: unknown) {
     const error = e as Error;
     throw new Error(`Error executing handlebar template: ${error.message}`);
@@ -50,6 +62,10 @@ export const handlebarNodeDefinition: NodeDefinition<HandlebarNodeData> = {
       { id: 'result', type: FlowDataType.STRING },
     ],
   },
+  validate: combineValidators(
+    createRequiredFieldValidator('template', 'Template is required.'),
+    createRequiredConnectionValidator('context', 'A value must be connected to the "context" input.'),
+  ),
   execute,
 };
 

@@ -6,6 +6,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 
 export const GetChatMessageNodeDataSchema = z.object({
   messageId: z.string().default('last'),
@@ -15,28 +16,32 @@ export type GetChatMessageNodeData = z.infer<typeof GetChatMessageNodeDataSchema
 
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = GetChatMessageNodeDataSchema.parse(node.data);
-  const messageIdInput = resolveInput(input, data, 'messageId');
-  if (messageIdInput === undefined) throw new Error('Message ID is required.');
+  const messageIdInput = String(resolveInput(input, data, 'messageId') ?? '')
+    .trim()
+    .toLowerCase();
+
+  if (!messageIdInput) throw new Error('Message ID is required.');
 
   const { chat } = dependencies.getSillyTavernContext();
   let messageIndex: number;
 
-  if (typeof messageIdInput === 'number') {
-    messageIndex = chat.findIndex((_, i) => i === messageIdInput);
+  if (messageIdInput === 'last') {
+    messageIndex = chat.length - 1;
+  } else if (messageIdInput === 'first') {
+    messageIndex = 0;
   } else {
-    const idStr = String(messageIdInput).toLowerCase().trim();
-    if (idStr === 'last') {
-      messageIndex = chat.length - 1;
-    } else if (idStr === 'first') {
-      messageIndex = 0;
-    } else {
-      messageIndex = parseInt(idStr, 10);
+    // Parse as numeric index.
+    const parsedIndex = parseInt(messageIdInput, 10);
+    if (isNaN(parsedIndex)) {
+      throw new Error(`Message ID/Index "${messageIdInput}" must be 'last', 'first', or a valid integer.`);
     }
+    messageIndex = parsedIndex;
   }
 
-  if (isNaN(messageIndex) || messageIndex < 0 || messageIndex >= chat.length) {
+  if (messageIndex < 0 || messageIndex >= chat.length) {
     throw new Error(`Message with ID/Index "${messageIdInput}" not found or invalid.`);
   }
+
   const message = structuredClone(chat[messageIndex]);
   return {
     id: messageIndex,
@@ -59,7 +64,7 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'messageId', type: FlowDataType.ANY },
+      { id: 'messageId', type: FlowDataType.STRING },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -71,6 +76,7 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
       { id: 'is_system', type: FlowDataType.BOOLEAN },
     ],
   },
+  validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
 };
 
