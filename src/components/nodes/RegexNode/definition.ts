@@ -76,7 +76,7 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'result', type: FlowDataType.STRING },
-      { id: 'matches', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
+      { id: 'matches', type: FlowDataType.ARRAY, schema: z.array(z.string()) },
     ],
   },
   getDynamicHandles: (node) => {

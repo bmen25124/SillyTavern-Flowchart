@@ -40,7 +40,7 @@ export const getLorebookNodeDefinition: NodeDefinition<GetLorebookNodeData> = {
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'entries', type: FlowDataType.OBJECT, schema: WIEntryListSchema },
+      { id: 'entries', type: FlowDataType.ARRAY, schema: WIEntryListSchema },
     ],
   },
   validate: combineValidators(createRequiredFieldValidator('worldName', 'Lorebook Name is required.')),

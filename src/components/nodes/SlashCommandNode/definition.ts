@@ -38,7 +38,7 @@ function mapArgTypeToFlowType(type: ArgumentType): FlowDataType {
     case 'boolean':
       return FlowDataType.BOOLEAN;
     case 'list':
-      return FlowDataType.OBJECT; // Represented as an array
+      return FlowDataType.ARRAY;
     case 'string':
     default:
       return FlowDataType.STRING;

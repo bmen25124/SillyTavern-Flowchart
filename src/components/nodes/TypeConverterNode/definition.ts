@@ -85,8 +85,10 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
         resultType = FlowDataType.NUMBER;
         break;
       case 'object':
-      case 'array':
         resultType = FlowDataType.OBJECT;
+        break;
+      case 'array':
+        resultType = FlowDataType.ARRAY;
         break;
       default:
         resultType = FlowDataType.ANY;

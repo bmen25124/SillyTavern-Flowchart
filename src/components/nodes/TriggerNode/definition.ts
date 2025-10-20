@@ -40,7 +40,7 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
       }));
     } else {
       outputs = [
-        { id: 'allArgs', type: FlowDataType.OBJECT, schema: z.array(z.any()) },
+        { id: 'allArgs', type: FlowDataType.ARRAY, schema: z.array(z.any()) },
         { id: 'arg0', type: FlowDataType.ANY },
         { id: 'arg1', type: FlowDataType.ANY },
         { id: 'arg2', type: FlowDataType.ANY },
@@ -60,7 +60,7 @@ export const triggerNodeDefinition: NodeDefinition<TriggerNodeData> = {
           return zodTypeToFlowType(eventParams[handleId]);
         }
       } else {
-        if (handleId === 'allArgs') return FlowDataType.OBJECT;
+        if (handleId === 'allArgs') return FlowDataType.ARRAY;
         if (handleId.startsWith('arg')) return FlowDataType.ANY;
       }
     }

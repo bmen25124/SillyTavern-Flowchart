@@ -69,7 +69,7 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
       inputs.push({ id: 'max', type: FlowDataType.NUMBER });
       outputs.push({ id: 'result', type: FlowDataType.NUMBER }); // Correctly typed output
     } else if (data.mode === 'array') {
-      inputs.push({ id: 'array', type: FlowDataType.OBJECT });
+      inputs.push({ id: 'array', type: FlowDataType.ARRAY });
       outputs.push({ id: 'result', type: FlowDataType.ANY }); // Type of element is unknown
     } else {
       // Fallback case if mode is somehow undefined

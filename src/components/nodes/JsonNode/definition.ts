@@ -139,7 +139,8 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
     const data = node.data;
     const inputs = getItemHandles(data.items);
     const fullSchema = inferSchemaFromJsonNode(data);
-    const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: fullSchema }];
+    const resultType = zodTypeToFlowType(fullSchema);
+    const outputs = [{ id: 'result', type: resultType, schema: fullSchema }];
 
     if (data.rootType === 'object') {
       for (const item of data.items) {
@@ -169,8 +170,10 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
       }
     }
     if (handleDirection === 'output') {
-      if (handleId === 'result') return FlowDataType.OBJECT;
       const data = node.data as JsonNodeData;
+      if (handleId === 'result') {
+        return data.rootType === 'array' ? FlowDataType.ARRAY : FlowDataType.OBJECT;
+      }
       if (data.rootType === 'object') {
         const item = data.items.find((item) => item.key === handleId);
         if (item) {

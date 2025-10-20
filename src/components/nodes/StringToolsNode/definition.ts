@@ -195,7 +195,7 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   getDynamicHandles: (node) => {
     const { data } = node;
     const inputs = [];
-    let resultType = FlowDataType.ANY;
+    let resultType: FlowDataType = FlowDataType.ANY;
 
     switch (data.operation) {
       case 'merge':
@@ -208,10 +208,10 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
       case 'split':
         inputs.push({ id: 'string', type: FlowDataType.STRING });
         inputs.push({ id: 'delimiter', type: FlowDataType.STRING });
-        resultType = FlowDataType.OBJECT; // Array
+        resultType = FlowDataType.ARRAY;
         break;
       case 'join':
-        inputs.push({ id: 'array', type: FlowDataType.OBJECT });
+        inputs.push({ id: 'array', type: FlowDataType.ARRAY });
         inputs.push({ id: 'delimiter', type: FlowDataType.STRING });
         resultType = FlowDataType.STRING;
         break;

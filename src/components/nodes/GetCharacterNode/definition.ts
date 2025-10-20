@@ -62,7 +62,7 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
       { id: 'scenario', type: FlowDataType.STRING },
       { id: 'personality', type: FlowDataType.STRING },
       { id: 'mes_example', type: FlowDataType.STRING },
-      { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
+      { id: 'tags', type: FlowDataType.ARRAY, schema: z.array(z.string()) },
     ],
   },
   validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character is required.')),

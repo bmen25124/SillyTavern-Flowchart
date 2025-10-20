@@ -28,10 +28,10 @@ describe('type-mapping', () => {
       expect(type).toBe(FlowDataType.OBJECT);
     });
 
-    it('should map array schema to OBJECT type', () => {
+    it('should map array schema to ARRAY type', () => {
       const schema = z.array(z.string());
       const type = zodTypeToFlowType(schema);
-      expect(type).toBe(FlowDataType.OBJECT);
+      expect(type).toBe(FlowDataType.ARRAY);
     });
 
     it('should map enum schema to OBJECT type', () => {
@@ -68,9 +68,9 @@ describe('type-mapping', () => {
       expect(type).toBe(FlowDataType.OBJECT);
     });
 
-    it('should map array value to OBJECT type', () => {
+    it('should map array value to ARRAY type', () => {
       const type = valueToFlowType(['test']);
-      expect(type).toBe(FlowDataType.OBJECT);
+      expect(type).toBe(FlowDataType.ARRAY);
     });
 
     it('should map null value to ANY type', () => {
