@@ -45,6 +45,9 @@ function mapArgTypeToFlowType(type: ArgumentType): FlowDataType {
   }
 }
 
+// Module-level state to track registered commands for this node type
+const registeredCommands = new Set<string>();
+
 export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = {
   type: 'slashCommandNode',
   label: 'Slash Command',
@@ -96,6 +99,49 @@ export const slashCommandNodeDefinition: NodeDefinition<SlashCommandNodeData> = 
     return issues;
   },
   execute,
+  register: (flowId, node, runner) => {
+    const { SlashCommandParser, SlashCommand, SlashCommandNamedArgument, ARGUMENT_TYPE } = SillyTavern.getContext();
+    const commandData = node.data as SlashCommandNodeData;
+    const commandName = `flow-${commandData.commandName}`;
+
+    if (
+      ['run'].includes(commandData.commandName.toLowerCase()) ||
+      SlashCommandParser.commands[commandName] ||
+      registeredCommands.has(commandName)
+    ) {
+      console.warn(
+        `[Flowchart] Slash command "${commandName}" conflicts with an existing command and was not registered.`,
+      );
+      return;
+    }
+
+    const namedArgs = commandData.arguments.map((arg) =>
+      SlashCommandNamedArgument.fromProps({
+        name: arg.name,
+        description: arg.description,
+        typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
+        isRequired: arg.isRequired,
+        defaultValue: arg.defaultValue,
+      }),
+    );
+
+    const cmd = SlashCommand.fromProps({
+      name: commandName,
+      helpString: commandData.helpText,
+      unnamedArgumentList: [],
+      namedArgumentList: namedArgs,
+      callback: (named: Record<string, any>, unnamed: string) =>
+        runner.executeFlowFromSlashCommand(flowId, node.id, named, unnamed),
+    });
+
+    SlashCommandParser.addCommandObject(cmd);
+    registeredCommands.add(commandName);
+  },
+  unregisterAll: () => {
+    const { SlashCommandParser } = SillyTavern.getContext();
+    registeredCommands.forEach((cmd) => delete SlashCommandParser.commands[cmd]);
+    registeredCommands.clear();
+  },
   // MODIFIED the logic to build a dynamic schema for 'allArgs'
   getDynamicHandles: (node) => {
     const data = node.data;

@@ -7,6 +7,7 @@ import { STInput, STButton, STSelect } from 'sillytavern-utils-lib/components';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { generateUUID } from '../../../utils/uuid.js';
+import { updateNested } from '../../../utils/nested-logic.js';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -152,17 +153,6 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
   const definition = registrator.nodeDefinitionMap.get(type);
 
   if (!data || !definition) return null;
-
-  const updateNested = (items: JsonNodeItem[], path: number[], updater: (item: JsonNodeItem) => JsonNodeItem) => {
-    const newItems = structuredClone(items);
-    let currentLevel = newItems;
-    for (let i = 0; i < path.length - 1; i++) {
-      currentLevel = currentLevel[path[i]].value as JsonNodeItem[];
-    }
-    const finalIndex = path[path.length - 1];
-    currentLevel[finalIndex] = updater(currentLevel[finalIndex]);
-    return newItems;
-  };
 
   const handleUpdate = (path: number[], newPartialData: object) => {
     const newItems = updateNested(data.items, path, (item) => ({ ...item, ...newPartialData }));

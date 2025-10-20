@@ -19,13 +19,11 @@ import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
 import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
-import { MenuTriggerNodeData } from './components/nodes/MenuTriggerNode/definition.js';
-import { MessageToolbarTriggerNodeData } from './components/nodes/MessageToolbarTriggerNode/definition.js';
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
 import { FLOW_RUN_COMMAND, FLOW_STOP_COMMAND } from './constants.js';
 import { generateUUID } from './utils/uuid.js';
-import { QuickReplyTriggerNodeData } from './components/nodes/QuickReplyTriggerNode/definition.js';
+import { renderAllQrButtons } from './components/nodes/QuickReplyTriggerNode/definition.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 
 const HISTORY_STORAGE_KEY = 'flowchart_execution_history';
@@ -110,9 +108,9 @@ export function clearExecutionHistory() {
   localStorage.removeItem(HISTORY_STORAGE_KEY);
 }
 
-class FlowRunner {
-  private registeredListeners: Map<string, (...args: any[]) => void> = new Map();
-  private registeredCommands: string[] = [];
+export class FlowRunner {
+  private registeredEventListeners: Map<string, (...args: any[]) => void> = new Map();
+  private registeredStaticCommands: string[] = [];
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
   private isToolbarListenerAttached: boolean = false;
@@ -237,208 +235,71 @@ class FlowRunner {
     }
 
     // Add static listener for chat changes to re-render UI elements
-    eventSource.on(EventNames.CHAT_CHANGED, this.renderQrButtons.bind(this));
+    eventSource.on(EventNames.CHAT_CHANGED, renderAllQrButtons);
 
     this.isListeningToEvents = true;
   }
 
-  private renderQrButtons() {
-    const qrBar = document.querySelector('#qr--bar');
-    if (!qrBar) return;
-
-    // Clear only our own buttons
-    document.querySelectorAll('#qr--bar .flowchart-qr-group').forEach((el) => el.remove());
-
-    const settings = settingsManager.getSettings();
-    if (!settings.enabled) return;
-
-    type QrButtonInfo = QuickReplyTriggerNodeData & { flowId: string; nodeId: string };
-    const qrButtonsByGroup: Record<string, QrButtonInfo[]> = {};
-    const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
-
-    for (const { id: flowId, flow } of enabledFlows) {
-      for (const node of flow.nodes) {
-        if (node.type === 'quickReplyTriggerNode' && !node.data?.disabled) {
-          const qrData = node.data as QuickReplyTriggerNodeData;
-          if (!qrButtonsByGroup[qrData.group]) {
-            qrButtonsByGroup[qrData.group] = [];
-          }
-          qrButtonsByGroup[qrData.group].push({ ...qrData, flowId, nodeId: node.id });
-        }
-      }
-    }
-
-    if (Object.keys(qrButtonsByGroup).length === 0) return;
-
-    const groupOrder = settings.qrGroupOrder || [];
-    const sortedGroupNames = Object.keys(qrButtonsByGroup).sort((a, b) => {
-      const indexA = groupOrder.indexOf(a);
-      const indexB = groupOrder.indexOf(b);
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-
-    for (const groupName of sortedGroupNames) {
-      const buttons = qrButtonsByGroup[groupName];
-      buttons.sort((a, b) => a.order - b.order);
-
-      const groupEl = document.createElement('div');
-      groupEl.className = 'qr--buttons qr--color qr--borderColor flowchart-qr-group';
-
-      for (const btnData of buttons) {
-        const buttonEl = document.createElement('div');
-        buttonEl.className = 'qr--button menu_button interactable flowchart-qr-button';
-        buttonEl.title = btnData.buttonText;
-        buttonEl.dataset.flowId = btnData.flowId;
-        buttonEl.dataset.nodeId = btnData.nodeId;
-        const iconHtml = btnData.icon ? `<i class="${btnData.icon}"></i>` : '';
-        buttonEl.innerHTML = `<div class="qr--button-label">${iconHtml} ${btnData.buttonText}</div>`;
-        groupEl.appendChild(buttonEl);
-      }
-      qrBar.appendChild(groupEl);
-    }
-  }
-
   reinitialize() {
-    const {
-      eventSource,
-      SlashCommandParser,
-      SlashCommand,
-      SlashCommandArgument,
-      SlashCommandNamedArgument,
-      ARGUMENT_TYPE,
-    } = SillyTavern.getContext();
-    for (const [eventType, listener] of this.registeredListeners.entries()) {
+    const { eventSource, SlashCommandParser, SlashCommand, SlashCommandArgument } = SillyTavern.getContext();
+
+    // 1. Unregister all existing triggers and listeners.
+    for (const [eventType, listener] of this.registeredEventListeners.entries()) {
       eventSource.removeListener(eventType as any, listener);
     }
-    this.registeredListeners.clear();
+    this.registeredEventListeners.clear();
 
-    this.registeredCommands.forEach((cmd) => delete SlashCommandParser.commands[cmd]);
-    this.registeredCommands = [];
+    this.registeredStaticCommands.forEach((cmd) => delete SlashCommandParser.commands[cmd]);
+    this.registeredStaticCommands = [];
 
-    // Clear UI elements
-    document.getElementById('flowchart_menu_buttons')?.remove();
-    document.querySelectorAll('#message_template .flowchart-message-toolbar-button').forEach((btn) => btn.remove());
+    const triggerNodeDefinitions = Array.from(registrator.nodeDefinitionMap.values()).filter(
+      (def) => def.unregisterAll,
+    );
+    triggerNodeDefinitions.forEach((def) => def.unregisterAll!());
 
+    // 2. Check if the extension is enabled. If not, stop here.
     const settings = settingsManager.getSettings();
     if (!settings.enabled) {
-      this.renderQrButtons();
       return;
     }
 
+    // 3. Register triggers for all valid, enabled flows.
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
     const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
-    const extensionsMenu = document.querySelector('#extensionsMenu');
-    const messageTemplateButtons = document.querySelector('#message_template .mes_buttons .extraMesButtons');
 
     for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
       const { isValid, errors } = validateFlow(flow, allowDangerousExecution, flowId);
       if (!isValid) {
-        console.warn(`Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
+        console.warn(`[Flowchart] Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
         continue;
       }
       for (const node of flow.nodes) {
         if (node.data?.disabled) continue;
 
-        // Event Trigger
-        if (node.type === 'triggerNode' && node.data.selectedEventType) {
+        const definition = registrator.nodeDefinitionMap.get(node.type);
+
+        // A. Handle UI-based triggers via their definition's `register` method.
+        if (definition?.register) {
+          try {
+            definition.register(flowId, node, this);
+          } catch (err) {
+            console.error(`[Flowchart] Failed to register trigger for node ${node.id} in flow "${name}":`, err);
+          }
+        }
+        // B. Handle event-based triggers by collecting them for the runner to manage.
+        else if (node.type === 'triggerNode' && node.data.selectedEventType) {
           const eventType = node.data.selectedEventType;
           if (!eventTriggers[eventType]) eventTriggers[eventType] = [];
           eventTriggers[eventType].push({ flowId, nodeId: node.id });
         }
-        // Slash Command Trigger
-        else if (node.type === 'slashCommandNode') {
-          const commandData = node.data as SlashCommandNodeData;
-          const commandName = `flow-${commandData.commandName}`;
-
-          const reservedNames = ['run'];
-          if (reservedNames.includes(commandData.commandName.toLowerCase())) {
-            console.warn(`[Flowchart] Slash command "${commandName}" uses a reserved name and will not be registered.`);
-            continue;
-          }
-
-          if (SlashCommandParser.commands[commandName]) {
-            console.warn(
-              `[Flowchart] Slash command "${commandName}" already exists in SillyTavern and will not be registered.`,
-            );
-            continue;
-          }
-
-          if (this.registeredCommands.includes(commandName)) {
-            console.warn(`[Flowchart] Slash command "${commandName}" is already registered. Skipping from ${name}.`);
-            continue;
-          }
-
-          const namedArgs = commandData.arguments.map((arg) =>
-            SlashCommandNamedArgument.fromProps({
-              name: arg.name,
-              description: arg.description,
-              typeList: [ARGUMENT_TYPE[arg.type.toUpperCase() as keyof typeof ARGUMENT_TYPE]],
-              isRequired: arg.isRequired,
-              defaultValue: arg.defaultValue,
-            }),
-          );
-
-          const cmd = SlashCommand.fromProps({
-            name: commandName,
-            helpString: commandData.helpText,
-            unnamedArgumentList: [],
-            namedArgumentList: namedArgs,
-            callback: (named: Record<string, any>, unnamed: string) =>
-              this.executeFlowFromSlashCommand(flowId, node.id, named, unnamed),
-          });
-
-          SlashCommandParser.addCommandObject(cmd);
-          this.registeredCommands.push(commandName);
-        }
-        // Main Menu Trigger
-        else if (node.type === 'menuTriggerNode') {
-          if (!extensionsMenu) continue;
-
-          let container = document.getElementById('flowchart_menu_buttons');
-          if (!container) {
-            container = document.createElement('div');
-            container.id = 'flowchart_menu_buttons';
-            container.className = 'extension_container';
-            extensionsMenu.appendChild(container);
-          }
-
-          const menuData = node.data as MenuTriggerNodeData;
-          const button = document.createElement('div');
-          button.className = 'list-group-item flex-container flexGap5 interactable';
-          button.tabIndex = 0;
-          button.setAttribute('role', 'listitem');
-          button.innerHTML = `<div class="${menuData.icon} extensionsMenuExtensionButton"></div><span>${menuData.buttonText}</span>`;
-
-          button.addEventListener('click', () => {
-            this.executeFlow(flowId, {}, 0, { startNodeId: node.id });
-          });
-
-          container.appendChild(button);
-        }
-        // Message Toolbar Trigger
-        else if (node.type === 'messageToolbarTriggerNode') {
-          if (!messageTemplateButtons) continue;
-
-          const menuData = node.data as MessageToolbarTriggerNodeData;
-          const button = document.createElement('div');
-          button.className = `mes_button flowchart-message-toolbar-button ${menuData.icon} interactable`;
-          button.title = menuData.buttonText;
-          button.tabIndex = 0;
-          button.dataset.flowId = flowId;
-          button.dataset.nodeId = node.id;
-
-          messageTemplateButtons.prepend(button);
-        }
       }
     }
 
-    this.renderQrButtons();
+    // 4. Render UI elements that depend on all nodes being registered (e.g., QR buttons).
+    renderAllQrButtons();
 
-    // Register global /flow-run command
-    const globalCommand = SlashCommand.fromProps({
+    // 5. Register global slash commands managed by the runner itself.
+    const runCommand = SlashCommand.fromProps({
       name: FLOW_RUN_COMMAND,
       helpString: 'Manually runs a Flowchart flow by its name.',
       unnamedArgumentList: [
@@ -447,14 +308,9 @@ class FlowRunner {
       ],
       callback: async (_: any, unnamed: any) => {
         const [flowName, paramsJson] = Array.isArray(unnamed) ? unnamed : [unnamed];
-        const settings = settingsManager.getSettings();
         const flowEntry = Object.values(settings.flows).find((f) => f.name === flowName);
 
-        if (!flowEntry) {
-          return `Error: Flow with name "${flowName}" not found.`;
-        }
-        const flowId = flowEntry.id;
-
+        if (!flowEntry) return `Error: Flow with name "${flowName}" not found.`;
         let params = {};
         if (paramsJson) {
           try {
@@ -463,29 +319,25 @@ class FlowRunner {
             return `Error: Invalid JSON parameters provided for flow "${flowName}".`;
           }
         }
-        const report = await this.runFlowManually(flowId, params);
-        if (report?.error) {
-          return `Flow Error: ${report.error.message}`;
-        }
+        const report = await this.runFlowManually(flowEntry.id, params);
+        if (report?.error) return `Flow Error: ${report.error.message}`;
         const output = report?.lastOutput;
-        if (output === undefined || output === null) {
-          return `Flow "${flowName}" executed successfully.`;
-        }
+        if (output === undefined || output === null) return `Flow "${flowName}" executed successfully.`;
         return typeof output === 'object' ? safeJsonStringify(output) : String(output);
       },
     });
-    SlashCommandParser.addCommandObject(globalCommand);
-    this.registeredCommands.push(FLOW_RUN_COMMAND);
+    SlashCommandParser.addCommandObject(runCommand);
+    this.registeredStaticCommands.push(FLOW_RUN_COMMAND);
 
     const stopCommand = SlashCommand.fromProps({
       name: FLOW_STOP_COMMAND,
       helpString: 'Stops the currently running Flowchart flow and clears the queue.',
-      unnamedArgumentList: [],
       callback: () => this.abortAllRuns(),
     });
     SlashCommandParser.addCommandObject(stopCommand);
-    this.registeredCommands.push(FLOW_STOP_COMMAND);
+    this.registeredStaticCommands.push(FLOW_STOP_COMMAND);
 
+    // 6. Set up event listeners for the collected event-based triggers.
     for (const eventType in eventTriggers) {
       const listener = (...args: any[]) => {
         for (const trigger of eventTriggers[eventType]) {
@@ -493,7 +345,7 @@ class FlowRunner {
         }
       };
       eventSource.on(eventType as any, listener);
-      this.registeredListeners.set(eventType, listener);
+      this.registeredEventListeners.set(eventType, listener);
     }
   }
 

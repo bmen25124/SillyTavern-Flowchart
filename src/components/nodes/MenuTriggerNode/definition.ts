@@ -16,6 +16,8 @@ const execute: NodeExecutor = async (_node, input) => {
   return { ...input };
 };
 
+const CONTAINER_ID = 'flowchart_menu_buttons';
+
 export const menuTriggerNodeDefinition: NodeDefinition<MenuTriggerNodeData> = {
   type: 'menuTriggerNode',
   label: 'Menu Trigger',
@@ -29,6 +31,34 @@ export const menuTriggerNodeDefinition: NodeDefinition<MenuTriggerNodeData> = {
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
+  register: (flowId, node, runner) => {
+    const extensionsMenu = document.querySelector('#extensionsMenu');
+    if (!extensionsMenu) return;
+
+    let container = document.getElementById(CONTAINER_ID);
+    if (!container) {
+      container = document.createElement('div');
+      container.id = CONTAINER_ID;
+      container.className = 'extension_container';
+      extensionsMenu.appendChild(container);
+    }
+
+    const menuData = node.data as MenuTriggerNodeData;
+    const button = document.createElement('div');
+    button.className = 'list-group-item flex-container flexGap5 interactable';
+    button.tabIndex = 0;
+    button.setAttribute('role', 'listitem');
+    button.innerHTML = `<div class="${menuData.icon} extensionsMenuExtensionButton"></div><span>${menuData.buttonText}</span>`;
+
+    button.addEventListener('click', () => {
+      runner.executeFlow(flowId, {}, 0, { startNodeId: node.id });
+    });
+
+    container.appendChild(button);
+  },
+  unregisterAll: () => {
+    document.getElementById(CONTAINER_ID)?.remove();
+  },
 };
 
 registrator.register(menuTriggerNodeDefinition);

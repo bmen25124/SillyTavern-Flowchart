@@ -3,6 +3,8 @@ import { Node, NodeProps, Edge } from '@xyflow/react';
 import { z } from 'zod';
 import { FlowDataType } from '../../../flow-types.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
+import { SpecNode } from '../../../flow-spec.js';
+import type { FlowRunner } from '../../../FlowRunner.js';
 
 export interface ValidationIssue {
   fieldId?: string; // The ID of the field/handle that is invalid.
@@ -114,6 +116,19 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * @returns An array of edges that should be followed for execution.
    */
   determineEdgesToFollow?: <T extends Edge>(output: any, outgoingEdges: T[]) => T[];
+  /**
+   * For trigger nodes, this function is called on `reinitialize` to set up listeners,
+   * commands, or UI elements.
+   * @param flowId The ID of the flow this node belongs to.
+   * @param node The node data from the flow spec.
+   * @param runner The FlowRunner instance, for callbacks.
+   */
+  register?: (flowId: string, node: SpecNode, runner: FlowRunner) => void;
+  /**
+   * For trigger nodes, this function is called on `reinitialize` to clean up any
+   * listeners, commands, or UI elements before re-registering them.
+   */
+  unregisterAll?: () => void;
 }
 
 export type BaseNodeDefinition<T = any> = Omit<NodeDefinition<T>, 'component'>;

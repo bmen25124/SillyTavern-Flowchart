@@ -7,6 +7,7 @@ import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/c
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { registrator } from '../autogen-imports.js';
 import { generateUUID } from '../../../utils/uuid.js';
+import { updateNested } from '../../../utils/nested-logic.js';
 
 export type SchemaNodeProps = NodeProps<Node<SchemaNodeData>>;
 
@@ -137,20 +138,9 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
 
   if (!data || !definition) return null;
 
-  const updateNested = (obj: any, path: (string | number)[], updater: (item: any) => any) => {
-    const newObj = structuredClone(obj);
-    let current = newObj;
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current[path[i]];
-    }
-    const finalKey = path[path.length - 1];
-    current[finalKey] = updater(current[finalKey]);
-    return newObj;
-  };
-
   const handleUpdate = (path: (string | number)[], newPartialData: object) => {
-    const newFields = updateNested(data.fields, path, (item: object) => ({ ...item, ...newPartialData }));
-    updateNodeData(id, { fields: newFields });
+    const newFields = updateNested({ fields: data.fields }, path, (item: object) => ({ ...item, ...newPartialData }));
+    updateNodeData(id, { fields: newFields.fields });
   };
 
   const handleRemove = (path: (string | number)[]) => {
@@ -162,17 +152,21 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
     if (parentPath.length === 0) {
       newFields = data.fields.filter((_, i) => i !== indexToRemove);
     } else {
-      newFields = updateNested(data.fields, [...parentPath, containerKey], (items: any[]) =>
+      const updatedRoot = updateNested({ fields: data.fields }, [...parentPath, containerKey], (items: any[]) =>
         items.filter((_, i) => i !== indexToRemove),
       );
+      newFields = updatedRoot.fields;
     }
     updateNodeData(id, { fields: newFields });
   };
 
   const handleAddChild = (path: (string | number)[]) => {
     const newField: FieldDefinition = { id: generateUUID(), name: 'newField', type: 'string' };
-    const newFields = updateNested(data.fields, [...path, 'fields'], (items: any[]) => [...(items || []), newField]);
-    updateNodeData(id, { fields: newFields });
+    const newFields = updateNested({ fields: data.fields }, [...path, 'fields'], (items: any[]) => [
+      ...(items || []),
+      newField,
+    ]);
+    updateNodeData(id, { fields: newFields.fields });
   };
 
   const addRootField = () => {

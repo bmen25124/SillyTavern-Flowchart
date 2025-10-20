@@ -9,6 +9,7 @@ import { registrator } from '../autogen-imports.js';
 import { FieldEditor } from '../SchemaNode/SchemaNode.js';
 import { generateUUID } from '../../../utils/uuid.js';
 import { SchemaTypeDefinition } from '../SchemaNode/definition.js';
+import { updateNested } from '../../../utils/nested-logic.js';
 
 export type VariableSchemaNodeProps = NodeProps<Node<VariableSchemaNodeData>>;
 
@@ -20,25 +21,6 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
   if (!data || !definition) return null;
 
   const rootDefinition = data.definition;
-
-  const updateNested = (obj: SchemaTypeDefinition, path: (string | number)[], updater: (item: any) => any) => {
-    const cloned = structuredClone(obj);
-    if (path.length === 0) {
-      return updater(cloned);
-    }
-
-    let cursor: any = cloned;
-    for (let i = 0; i < path.length - 1; i++) {
-      const key = path[i];
-      if (cursor[key] === undefined) {
-        cursor[key] = typeof path[i + 1] === 'number' ? [] : {};
-      }
-      cursor = cursor[key];
-    }
-    const finalKey = path[path.length - 1];
-    cursor[finalKey] = updater(cursor[finalKey]);
-    return cloned;
-  };
 
   const handleUpdate = (path: (string | number)[], partial: Record<string, any>) => {
     let updatedDefinition: SchemaTypeDefinition;
