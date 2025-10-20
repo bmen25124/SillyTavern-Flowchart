@@ -100,6 +100,8 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 *   **Event Trigger:** Starts a flow when a SillyTavern event occurs (e.g., a user message is sent). This is the primary way to create automations. For a full list of events, see the [Event Documentation](EVENT_DOCUMENTATION.md).
 *   **Manual Trigger:** Starts a flow only when you click the "Run" button in the editor. Useful for testing.
 *   **Slash Command:** Creates a new `/flow-<name>` slash command that triggers the flow and passes arguments to its output handles.
+*   **Menu Trigger:** Adds a custom button to the main "Extensions" menu that triggers the flow when clicked.
+*   **Message Toolbar Trigger:** Adds a custom button to the toolbar on every chat message.
 *   **On Stream Trigger:** A special trigger for "handler" flows. It starts a flow that is called repeatedly for each piece of data from an `LLM Request` node's stream. It provides `chunk` (the newest text) and `fullText` (all text received so far).
 
 #### **Logic Nodes**

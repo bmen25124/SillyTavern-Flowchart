@@ -19,6 +19,8 @@ import { useFlowRunStore } from './components/popup/flowRunStore.js';
 import { registrator } from './components/nodes/autogen-imports.js';
 import { FlowRunnerDependencies } from './NodeExecutor.js';
 import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
+import { MenuTriggerNodeData } from './components/nodes/MenuTriggerNode/definition.js';
+import { MessageToolbarTriggerNodeData } from './components/nodes/MessageToolbarTriggerNode/definition.js';
 import { safeJsonStringify } from './utils/safeJsonStringify.js';
 import { notify } from './utils/notify.js';
 import { FLOW_RUN_COMMAND, FLOW_STOP_COMMAND } from './constants.js';
@@ -111,6 +113,7 @@ class FlowRunner {
   private registeredCommands: string[] = [];
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
+  private isToolbarListenerAttached: boolean = false;
   private abortController: AbortController | null = null;
   private dependencies: FlowRunnerDependencies;
 
@@ -170,6 +173,30 @@ class FlowRunner {
     };
   }
 
+  private handleMessageToolbarClick(event: MouseEvent) {
+    const button = (event.target as HTMLElement).closest('.flowchart-message-toolbar-button');
+    if (!button) return;
+
+    const { flowId, nodeId } = (button as HTMLElement).dataset;
+    if (!flowId || !nodeId) return;
+
+    const messageBlock = (event.target as HTMLElement).closest('.mes');
+    const messageIdAttr = messageBlock?.getAttribute('mesid');
+    if (!messageIdAttr) return;
+
+    const messageId = Number(messageIdAttr);
+    const message = SillyTavern.getContext().chat[messageId];
+    if (!message) return;
+
+    const initialInput = {
+      messageId: messageId,
+      messageContent: message.mes,
+      messageObject: { ...message },
+    };
+
+    this.executeFlow(flowId, initialInput, 0, { startNodeId: nodeId });
+  }
+
   private setupEventListeners() {
     if (this.isListeningToEvents) return;
     eventEmitter.on('flow:run:start', ({ runId }) => useFlowRunStore.getState().startRun(runId));
@@ -180,6 +207,12 @@ class FlowRunner {
     eventEmitter.on('flow:run:end', ({ runId, status, executedNodes }) =>
       useFlowRunStore.getState().endRun(runId, status, executedNodes),
     );
+
+    if (!this.isToolbarListenerAttached) {
+      document.addEventListener('click', this.handleMessageToolbarClick.bind(this));
+      this.isToolbarListenerAttached = true;
+    }
+
     this.isListeningToEvents = true;
   }
 
@@ -200,6 +233,10 @@ class FlowRunner {
     this.registeredCommands.forEach((cmd) => delete SlashCommandParser.commands[cmd]);
     this.registeredCommands = [];
 
+    // Clear UI elements
+    document.getElementById('flowchart_menu_buttons')?.remove();
+    document.querySelectorAll('#message_template .flowchart-message-toolbar-button').forEach((btn) => btn.remove());
+
     const settings = settingsManager.getSettings();
     if (!settings.enabled) {
       return;
@@ -207,6 +244,8 @@ class FlowRunner {
 
     const eventTriggers: Record<string, { flowId: string; nodeId: string }[]> = {};
     const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
+    const extensionsMenu = document.querySelector('#extensionsMenu');
+    const messageTemplateButtons = document.querySelector('#message_template .mes_buttons .extraMesButtons');
 
     for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
       const { isValid, errors } = validateFlow(flow, allowDangerousExecution, flowId);
@@ -216,22 +255,24 @@ class FlowRunner {
       }
       for (const node of flow.nodes) {
         if (node.data?.disabled) continue;
+
+        // Event Trigger
         if (node.type === 'triggerNode' && node.data.selectedEventType) {
           const eventType = node.data.selectedEventType;
           if (!eventTriggers[eventType]) eventTriggers[eventType] = [];
           eventTriggers[eventType].push({ flowId, nodeId: node.id });
-        } else if (node.type === 'slashCommandNode') {
+        }
+        // Slash Command Trigger
+        else if (node.type === 'slashCommandNode') {
           const commandData = node.data as SlashCommandNodeData;
           const commandName = `flow-${commandData.commandName}`;
 
-          // Check for reserved command names
           const reservedNames = ['run'];
           if (reservedNames.includes(commandData.commandName.toLowerCase())) {
             console.warn(`[Flowchart] Slash command "${commandName}" uses a reserved name and will not be registered.`);
             continue;
           }
 
-          // Check if command already exists in SillyTavern
           if (SlashCommandParser.commands[commandName]) {
             console.warn(
               `[Flowchart] Slash command "${commandName}" already exists in SillyTavern and will not be registered.`,
@@ -257,7 +298,7 @@ class FlowRunner {
           const cmd = SlashCommand.fromProps({
             name: commandName,
             helpString: commandData.helpText,
-            unnamedArgumentList: [], // All other text is passed as a single string
+            unnamedArgumentList: [],
             namedArgumentList: namedArgs,
             callback: (named: Record<string, any>, unnamed: string) =>
               this.executeFlowFromSlashCommand(flowId, node.id, named, unnamed),
@@ -265,6 +306,45 @@ class FlowRunner {
 
           SlashCommandParser.addCommandObject(cmd);
           this.registeredCommands.push(commandName);
+        }
+        // Main Menu Trigger
+        else if (node.type === 'menuTriggerNode') {
+          if (!extensionsMenu) continue;
+
+          let container = document.getElementById('flowchart_menu_buttons');
+          if (!container) {
+            container = document.createElement('div');
+            container.id = 'flowchart_menu_buttons';
+            container.className = 'extension_container';
+            extensionsMenu.appendChild(container);
+          }
+
+          const menuData = node.data as MenuTriggerNodeData;
+          const button = document.createElement('div');
+          button.className = 'list-group-item flex-container flexGap5 interactable';
+          button.tabIndex = 0;
+          button.setAttribute('role', 'listitem');
+          button.innerHTML = `<div class="${menuData.icon} extensionsMenuExtensionButton"></div><span>${menuData.buttonText}</span>`;
+
+          button.addEventListener('click', () => {
+            this.executeFlow(flowId, {}, 0, { startNodeId: node.id });
+          });
+
+          container.appendChild(button);
+        }
+        // Message Toolbar Trigger
+        else if (node.type === 'messageToolbarTriggerNode') {
+          if (!messageTemplateButtons) continue;
+
+          const menuData = node.data as MessageToolbarTriggerNodeData;
+          const button = document.createElement('div');
+          button.className = `mes_button flowchart-message-toolbar-button ${menuData.icon} interactable`;
+          button.title = menuData.buttonText;
+          button.tabIndex = 0;
+          button.dataset.flowId = flowId;
+          button.dataset.nodeId = node.id;
+
+          messageTemplateButtons.prepend(button);
         }
       }
     }
