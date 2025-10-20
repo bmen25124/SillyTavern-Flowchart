@@ -23,8 +23,8 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   let character = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
   if (!character) throw new Error(`Character with avatar ${characterAvatar} not found.`);
   character = structuredClone(character);
-  delete (character as any)?.data?.json_data;
-  delete (character as any)?.json_data;
+  delete character.data?.json_data;
+  delete character.json_data;
 
   return { ...character, result: character };
 };

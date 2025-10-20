@@ -39,6 +39,23 @@ MIGRATION_REGISTRY['getFlowVariableNode'] = {
   },
 };
 
+// EditCharacterNode from v1 to v2. The 'result' output changed from string to object.
+// The old 'result' behavior is now on the 'name' output.
+MIGRATION_REGISTRY['editCharacterNode'] = {
+  1: {
+    edge: (node, edges) => {
+      return edges.map((edge) => {
+        if (edge.source === node.id && edge.sourceHandle === 'result') {
+          // Re-route the old 'result' (string) connection to the new 'name' handle.
+          return { ...edge, sourceHandle: 'name' };
+        }
+        return edge;
+      });
+    },
+    node: (data) => ({ ...data, _version: 2 }),
+  },
+};
+
 /**
  * Example: Migrating `stringNode` from v1 to v2 where `data.value` is renamed to `data.text`.
  * All new nodes will be created with `currentVersion: 2`.

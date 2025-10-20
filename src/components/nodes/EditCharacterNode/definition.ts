@@ -25,6 +25,17 @@ export const EditCharacterNodeDataSchema = z.object({
 });
 export type EditCharacterNodeData = z.infer<typeof EditCharacterNodeDataSchema>;
 
+const CharacterDataSchema = z.object({
+  name: z.string().describe("The character's name."),
+  avatar: z.string().describe("The character's avatar filename."),
+  description: z.string().describe("The character's description."),
+  first_mes: z.string().describe("The character's first message."),
+  scenario: z.string().describe('The scenario.'),
+  personality: z.string().describe("The character's personality."),
+  mes_example: z.string().describe('Example messages.'),
+  tags: z.array(z.string()).describe('A list of tags.'),
+});
+
 const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = EditCharacterNodeDataSchema.parse(node.data);
   const characterAvatar = resolveInput(input, data, 'characterAvatar');
@@ -33,6 +44,10 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const stContext = dependencies.getSillyTavernContext();
   let existingChar = stContext.characters.find((c: Character) => c.avatar === characterAvatar);
   if (!existingChar) throw new Error(`Character with avatar "${characterAvatar}" not found.`);
+
+  const updatedChar = structuredClone(existingChar);
+  delete updatedChar.json_data;
+  delete updatedChar.data?.json_data;
 
   const fields: (keyof typeof data)[] = ['name', 'description', 'first_mes', 'scenario', 'personality', 'mes_example'];
 
@@ -43,6 +58,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     const value = resolveInput(input, data, field);
     if (value) {
       (characterPartial as any)[field] = value;
+      (updatedChar as any)[field] = value;
       if (!characterPartial.data) {
         characterPartial.data = {};
       }
@@ -53,17 +69,24 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
 
   const tagsStr = resolveInput(input, data, 'tags');
   if (tagsStr) {
-    characterPartial.tags = tagsStr
+    const newTags = tagsStr
       .split(',')
       .map((t: string) => t.trim())
       .filter(Boolean);
+    characterPartial.tags = newTags;
+    updatedChar.tags = newTags;
     anyChanges = true;
   }
 
   if (!anyChanges) throw new Error('No changes provided to update the character.');
 
   await dependencies.saveCharacter(characterPartial);
-  return { result: existingChar.name };
+
+  if (characterPartial.data) {
+    updatedChar.data = { ...existingChar.data, ...characterPartial.data };
+  }
+
+  return { ...updatedChar, result: updatedChar };
 };
 
 export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> = {
@@ -72,7 +95,7 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
   category: 'Character',
   component: EditCharacterNode,
   dataSchema: EditCharacterNodeDataSchema,
-  currentVersion: 1,
+  currentVersion: 2,
   initialData: { characterAvatar: '' },
   handles: {
     inputs: [
@@ -88,7 +111,14 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
-      { id: 'result', type: FlowDataType.STRING },
+      { id: 'result', type: FlowDataType.OBJECT, schema: CharacterDataSchema },
+      { id: 'name', type: FlowDataType.STRING },
+      { id: 'description', type: FlowDataType.STRING },
+      { id: 'first_mes', type: FlowDataType.STRING },
+      { id: 'scenario', type: FlowDataType.STRING },
+      { id: 'personality', type: FlowDataType.STRING },
+      { id: 'mes_example', type: FlowDataType.STRING },
+      { id: 'tags', type: FlowDataType.OBJECT, schema: z.array(z.string()) },
     ],
   },
   validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character to Edit is required.')),
