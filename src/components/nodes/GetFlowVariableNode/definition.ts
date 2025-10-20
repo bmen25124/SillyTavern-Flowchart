@@ -6,7 +6,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
-import { resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
+import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetFlowVariableNodeDataSchema = z.object({
@@ -20,6 +20,7 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
   const data = GetFlowVariableNodeDataSchema.parse(node.data);
   const variableName = resolveInput(input, data, 'variableName');
   if (!variableName) throw new Error('Variable name is required.');
+
   const schema = input.schema;
   let value = executionVariables.get(variableName);
 
@@ -27,18 +28,9 @@ const execute: NodeExecutor = async (node, input, { executionVariables }) => {
     value = input.defaultValue;
   }
 
-  if (schema !== undefined) {
-    if (!schema || typeof schema.safeParse !== 'function') {
-      throw new Error('Schema input for Get Flow Variable is invalid.');
-    }
-    const result = schema.safeParse(value);
-    if (!result.success) {
-      throw new Error(`Value for variable "${variableName}" failed schema validation: ${result.error.message}`);
-    }
-    value = result.data;
-  }
+  const finalValue = applySchema(value, schema, 'Get Flow Variable');
 
-  return { value };
+  return { value: finalValue };
 };
 
 export const getFlowVariableNodeDefinition: NodeDefinition<GetFlowVariableNodeData> = {

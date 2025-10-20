@@ -8,14 +8,14 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { PromptEngineeringMode, settingsManager } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { notify } from '../../../utils/notify.js';
-import { FieldDefinition } from '../SchemaNode/definition.js';
-import { buildZodSchema, buildZodSchemaFromFields } from '../../../utils/schema-builder.js';
+import { resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 import {
   combineValidators,
   createRequiredConnectionValidator,
   createRequiredFieldValidator,
 } from '../../../utils/validation-helpers.js';
+import { createDynamicOutputHandlesForSchema } from '../../../utils/handle-logic.js';
 
 export const LLMRequestNodeDataSchema = z.object({
   profileId: z.string().default(''),
@@ -133,8 +133,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
   },
   execute,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
-    const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-    const isSchemaConnected = !!schemaEdge;
+    const isSchemaConnected = allEdges.some((edge) => edge.target === node.id && edge.targetHandle === 'schema');
     const isStreaming = node.data.stream;
 
     const dynamicInputs = [];
@@ -153,22 +152,15 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
       return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
     }
 
-    const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
-      return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.STRING }] };
+    const schema = resolveSchemaFromHandle(node, allNodes, allEdges, 'schema');
+    if (!schema) {
+      return { inputs: dynamicInputs, outputs: [{ id: 'result', type: FlowDataType.ANY }] };
     }
 
-    const fields = schemaNode.data.fields as FieldDefinition[];
-    const fullSchema = buildZodSchemaFromFields(fields);
-    const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema: fullSchema };
+    const resultHandle = { id: 'result', type: FlowDataType.STRUCTURED_RESULT, schema };
+    const propertyHandles = createDynamicOutputHandlesForSchema(schema);
 
-    const fieldHandles = fields.map((field) => ({
-      id: field.name,
-      type: zodTypeToFlowType(buildZodSchema(field)),
-      schema: buildZodSchema(field),
-    }));
-
-    return { inputs: dynamicInputs, outputs: [resultHandle, ...fieldHandles] };
+    return { inputs: dynamicInputs, outputs: [resultHandle, ...propertyHandles] };
   },
   getSuggestionBlueprints: ({ direction }) => {
     if (direction === 'inputs') {
@@ -185,19 +177,17 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
   getHandleType: ({ handleId, handleDirection, node, nodes, edges }) => {
     if (handleDirection !== 'output') return undefined;
 
-    const schemaEdge = edges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-    if (!schemaEdge) {
+    const schema = resolveSchemaFromHandle(node, nodes, edges, 'schema');
+    if (!schema) {
       return handleId === 'result' ? FlowDataType.STRING : undefined;
     }
     if (handleId === 'result') return FlowDataType.STRUCTURED_RESULT;
 
-    const schemaNode = nodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) return undefined;
+    if (schema instanceof z.ZodObject && handleId && schema.shape[handleId]) {
+      return zodTypeToFlowType(schema.shape[handleId]);
+    }
 
-    const field = schemaNode.data.fields.find((f: FieldDefinition) => f.name === handleId);
-    if (!field) return undefined;
-
-    return zodTypeToFlowType(buildZodSchema(field));
+    return undefined;
   },
 };
 

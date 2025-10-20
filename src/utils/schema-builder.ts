@@ -3,6 +3,27 @@ import { Node, Edge } from '@xyflow/react';
 import { FieldDefinition, SchemaTypeDefinition } from '../components/nodes/SchemaNode/definition.js';
 import { JsonNodeData, JsonNodeItem } from '../components/nodes/JsonNode/definition.js';
 
+/**
+ * Safely validates a value against an optional schema, throwing a formatted error on failure.
+ * @param value The value to validate.
+ * @param schema The Zod schema to validate against. Can be undefined.
+ * @param nodeLabel A label for the node type, used in error messages.
+ * @returns The validated (and possibly coerced) value, or the original value if no schema is provided.
+ */
+export function applySchema(value: any, schema: z.ZodType | undefined, nodeLabel: string): any {
+  if (!schema) {
+    return value; // No schema, no validation.
+  }
+  if (typeof schema.safeParse !== 'function') {
+    throw new Error(`Invalid schema provided to ${nodeLabel} node.`);
+  }
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw new Error(`${nodeLabel} output failed schema validation: ${result.error.message}`);
+  }
+  return result.data; // Return the validated/coerced data
+}
+
 export function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
   let zodType: z.ZodTypeAny;
 

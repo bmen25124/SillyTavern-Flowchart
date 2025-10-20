@@ -5,8 +5,8 @@ import { FlowDataType } from '../../../flow-types.js';
 import { ExecuteJsNode } from './ExecuteJsNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { FieldDefinition } from '../SchemaNode/definition.js';
-import { buildZodSchema, buildZodSchemaFromFields } from '../../../utils/schema-builder.js';
+import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
+import { createDynamicOutputHandlesForSchema } from '../../../utils/handle-logic.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const ExecuteJsNodeDataSchema = z.object({
@@ -18,7 +18,7 @@ export type ExecuteJsNodeData = z.infer<typeof ExecuteJsNodeDataSchema>;
 const execute: NodeExecutor = async (node, input, { dependencies, executionVariables }) => {
   const data = ExecuteJsNodeDataSchema.parse(node.data);
   const variables = { ...Object.fromEntries(executionVariables) };
-  const providedSchema = input.schema;
+  const schema = input.schema;
 
   const scriptInput = input.scriptInput;
 
@@ -31,16 +31,12 @@ const execute: NodeExecutor = async (node, input, { dependencies, executionVaria
     throw new Error(`Error executing JS code: ${e.message}`);
   }
 
-  if (providedSchema instanceof z.ZodType) {
-    const validation = providedSchema.safeParse(result);
-    if (!validation.success) {
-      console.error('JS Node Output Validation Error:', validation.error);
-      throw new Error(`JavaScript execution result failed schema validation: ${validation.error.message}`);
-    }
-    return { ...(validation.data as any), result: validation.data };
-  }
+  const finalOutput = applySchema(result, schema, 'Execute JS Code');
 
-  return result;
+  if (typeof finalOutput === 'object' && finalOutput !== null) {
+    return { ...finalOutput, result: finalOutput };
+  }
+  return { result: finalOutput };
 };
 
 export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
@@ -62,27 +58,15 @@ export const executeJsNodeDefinition: NodeDefinition<ExecuteJsNodeData> = {
   execute,
   isDangerous: true,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
-    const schemaEdge = allEdges.find((edge) => edge.target === node.id && edge.targetHandle === 'schema');
-    if (!schemaEdge) {
+    const schema = resolveSchemaFromHandle(node, allNodes, allEdges, 'schema');
+    if (!schema) {
       return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.ANY }] };
     }
 
-    const schemaNode = allNodes.find((n) => n.id === schemaEdge.source);
-    if (schemaNode?.type !== 'schemaNode' || !Array.isArray(schemaNode.data.fields)) {
-      return { inputs: [], outputs: [{ id: 'result', type: FlowDataType.ANY }] };
-    }
+    const resultHandle = { id: 'result', type: zodTypeToFlowType(schema), schema };
+    const propertyHandles = createDynamicOutputHandlesForSchema(schema);
 
-    const fields = schemaNode.data.fields as FieldDefinition[];
-    const fullSchema = buildZodSchemaFromFields(fields);
-    const resultHandle = { id: 'result', type: FlowDataType.OBJECT, schema: fullSchema };
-
-    const fieldHandles = fields.map((field) => ({
-      id: field.name,
-      type: zodTypeToFlowType(buildZodSchema(field)),
-      schema: buildZodSchema(field),
-    }));
-
-    return { inputs: [], outputs: [resultHandle, ...fieldHandles] };
+    return { inputs: [], outputs: [resultHandle, ...propertyHandles] };
   },
 };
 

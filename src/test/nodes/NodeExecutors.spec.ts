@@ -489,7 +489,7 @@ describe('Node Executors', () => {
     it('should execute code and return the result', async () => {
       const node = createMockNode(executeJsNodeDefinition, { code: 'return input.a + input.b;' });
       const result = await execute(node, { scriptInput: { a: 10, b: 5 } }, context);
-      expect(result).toBe(15);
+      expect(result).toEqual({ result: 15 });
     });
 
     it('should have access to variables and stContext', async () => {
@@ -499,7 +499,7 @@ describe('Node Executors', () => {
         code: 'return variables.myVar + (stContext.test ? 1 : 0);',
       });
       const result = await execute(node, {}, context);
-      expect(result).toBe(101);
+      expect(result).toEqual({ result: 101 });
     });
   });
 

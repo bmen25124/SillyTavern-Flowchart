@@ -6,7 +6,7 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
-import { resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
+import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 
 export const GetLocalVariableNodeDataSchema = z.object({
@@ -28,18 +28,9 @@ const execute: NodeExecutor = async (node, input, context) => {
     value = input.defaultValue;
   }
 
-  if (schema !== undefined) {
-    if (!schema || typeof schema.safeParse !== 'function') {
-      throw new Error('Schema input for Get Local Variable is invalid.');
-    }
-    const result = schema.safeParse(value);
-    if (!result.success) {
-      throw new Error(`Local variable "${variableName}" failed schema validation: ${result.error.message}`);
-    }
-    return { value: result.data };
-  }
+  const finalValue = applySchema(value, schema, 'Get Local Variable');
 
-  return { value };
+  return { value: finalValue };
 };
 
 export const getLocalVariableNodeDefinition: NodeDefinition<GetLocalVariableNodeData> = {

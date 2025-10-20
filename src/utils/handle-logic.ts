@@ -1,6 +1,8 @@
 import { Node, Edge } from '@xyflow/react';
+import { z } from 'zod';
 import { HandleSpec } from '../components/nodes/definitions/types.js';
 import { registrator } from '../components/nodes/autogen-imports.js';
+import { zodTypeToFlowType } from './type-mapping.js';
 
 export function getHandleSpec(
   node: Node,
@@ -23,4 +25,28 @@ export function getHandleSpec(
 
   const staticHandles = direction === 'input' ? definition.handles.inputs : definition.handles.outputs;
   return staticHandles.find((h) => h.id === handleId);
+}
+
+/**
+ * Creates an array of HandleSpec objects for each property in a ZodObject schema.
+ * @param schema The ZodObject schema to generate handles for.
+ * @returns An array of HandleSpec objects for dynamic output handles.
+ */
+export function createDynamicOutputHandlesForSchema(schema: z.ZodType): HandleSpec[] {
+  const handles: HandleSpec[] = [];
+
+  if (schema instanceof z.ZodObject) {
+    for (const key in schema.shape) {
+      if (Object.prototype.hasOwnProperty.call(schema.shape, key)) {
+        const fieldSchema = schema.shape[key];
+        handles.push({
+          id: key,
+          type: zodTypeToFlowType(fieldSchema),
+          schema: fieldSchema,
+        });
+      }
+    }
+  }
+
+  return handles;
 }
