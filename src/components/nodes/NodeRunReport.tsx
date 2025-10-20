@@ -39,7 +39,9 @@ export const NodeRunReport: FC<NodeRunReportProps> = ({ report }) => {
               onClick={() => handleCopy(activeTab === 'input' ? report.input : report.output)}
             />
           </div>
-          <pre className="report-data">{safeJsonStringify(activeTab === 'input' ? report.input : report.output)}</pre>
+          <pre className="report-data nowheel">
+            {safeJsonStringify(activeTab === 'input' ? report.input : report.output)}
+          </pre>
         </div>
       </details>
     </div>
