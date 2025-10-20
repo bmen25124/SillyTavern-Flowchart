@@ -109,7 +109,7 @@ const ConditionEditor: FC<{
         </>
       ) : (
         <CodeMirror
-          className="nodrag"
+          className="nodrag nowheel"
           value={condition.code || ''}
           height="100px"
           extensions={[javascript({})]}

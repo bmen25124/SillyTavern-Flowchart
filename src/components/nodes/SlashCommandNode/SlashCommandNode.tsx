@@ -101,7 +101,7 @@ export const SlashCommandNode: FC<SlashCommandNodeProps> = ({ id, selected, type
         <div>
           <label>Help Text</label>
           <STTextarea
-            className="nodrag"
+            className="nodrag nowheel"
             value={data.helpText}
             onChange={(e) => updateNodeData(id, { helpText: e.target.value })}
             rows={3}

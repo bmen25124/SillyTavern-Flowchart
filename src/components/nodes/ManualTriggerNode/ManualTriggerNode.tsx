@@ -32,7 +32,7 @@ export const ManualTriggerNode: FC<ManualTriggerNodeProps> = ({ id, selected, ty
 
       <label>Default Payload (for manual runs)</label>
       <CodeMirror
-        className="nodrag"
+        className="nodrag nowheel"
         value={data.payload || '{}'}
         height="100px"
         extensions={[javascript({})]}

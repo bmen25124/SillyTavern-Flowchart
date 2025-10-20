@@ -57,7 +57,7 @@ const MessageEditor: FC<MessageEditorProps> = ({ nodeId, msg, onUpdate, onRemove
         />
         {!connectedContent ? (
           <STTextarea
-            className="nodrag"
+            className="nodrag nowheel"
             value={msg.content}
             onChange={(e) => onUpdate(msg.id, 'content', e.target.value)}
             rows={3}

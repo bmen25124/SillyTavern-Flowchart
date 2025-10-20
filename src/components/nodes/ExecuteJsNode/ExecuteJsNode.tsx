@@ -66,7 +66,7 @@ export const ExecuteJsNode: FC<ExecuteJsNodeProps> = ({ id, selected, type }) =>
             </div>
           )}
           <CodeMirror
-            className="nodrag"
+            className="nodrag nowheel"
             value={data.code || ''}
             height="150px"
             extensions={[javascript({})]}

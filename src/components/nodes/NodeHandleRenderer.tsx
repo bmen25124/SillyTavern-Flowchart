@@ -94,7 +94,7 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
           };
 
           const componentProps: Record<string, any> = {
-            className: 'nodrag',
+            className: 'nodrag nowheel',
             onChange: handleChange,
             ...fieldConfig.props,
           };

@@ -86,7 +86,7 @@ export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, 
       {!isPredefined && (
         <>
           <STTextarea
-            className="nodrag"
+            className="nodrag nowheel"
             value={description || ''}
             onChange={(e) => onUpdate(path, { description: e.target.value })}
             placeholder="Description..."

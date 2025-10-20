@@ -20,7 +20,7 @@ export const NoteNode: FC<NoteNodeProps> = ({ id, selected }) => {
   return (
     <BaseNode id={id} title="Note" selected={selected} contentGrows minWidth={60}>
       <STTextarea
-        className="nodrag"
+        className="nodrag nowheel"
         value={data.text}
         onChange={handleTextChange}
         style={{
