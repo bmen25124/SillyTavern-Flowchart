@@ -20,7 +20,8 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const data = RegexNodeDataSchema.parse(node.data);
   const mode = resolveInput(input, data, 'mode') ?? 'sillytavern';
   const scriptId = resolveInput(input, data, 'scriptId');
-  const { findRegex, replaceString } = data;
+  const findRegex = resolveInput(input, data, 'findRegex');
+  const replaceString = resolveInput(input, data, 'replaceString');
   const inputString = input.string ?? '';
   if (typeof inputString !== 'string') throw new Error('Input must be a string.');
 
