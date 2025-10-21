@@ -422,6 +422,32 @@ export const FlowManager: FC = () => {
       return;
     }
 
+    // Temporarily replace select elements with spans containing their selected value.
+    const replacements: { original: HTMLElement; replacement: HTMLElement }[] = [];
+    const selects = flowElement.querySelectorAll<HTMLSelectElement>('select');
+
+    selects.forEach((select) => {
+      if (select.selectedIndex === -1) return;
+
+      const replacement = document.createElement('span');
+      replacement.textContent = select.options[select.selectedIndex].text;
+      // Style the span to look like the input field
+      replacement.style.display = 'inline-block';
+      replacement.style.width = `${select.offsetWidth}px`;
+      replacement.style.padding = '4px 8px';
+      replacement.style.border = '1px solid var(--SmartThemeBorderColor)';
+      replacement.style.borderRadius = '4px';
+      replacement.style.backgroundColor = 'var(--SmartThemeInputColor)';
+      replacement.style.fontFamily = 'var(--mainFontFamily)';
+      replacement.style.fontSize = 'var(--mainFontSize)';
+      replacement.style.color = 'var(--text-color-main)';
+      replacement.style.boxSizing = 'border-box';
+
+      select.style.display = 'none';
+      select.parentNode?.insertBefore(replacement, select);
+      replacements.push({ original: select, replacement });
+    });
+
     const imageWidth = 2048;
     const padding = 40;
     const nodesBounds = getNodesBounds(currentNodes);
@@ -462,6 +488,10 @@ export const FlowManager: FC = () => {
         console.error('Failed to take screenshot:', err);
         notify('error', 'Failed to take screenshot.', 'ui_action');
       } finally {
+        replacements.forEach(({ original, replacement }) => {
+          original.style.display = '';
+          replacement.remove();
+        });
         setViewport(originalViewport, { duration: 0 });
         pane.style.backgroundColor = previousBg;
       }
