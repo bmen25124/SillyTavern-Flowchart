@@ -3,7 +3,7 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { ContinueLoopNode } from './ContinueLoopNode.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 import { CONTINUE_LOOP_SENTINEL } from '../ForEachNode/definition.js';
 
 export const ContinueLoopNodeDataSchema = z.object({
@@ -19,7 +19,7 @@ export const continueLoopNodeDefinition: NodeDefinition<ContinueLoopNodeData> = 
   type: 'continueLoopNode',
   label: 'Continue Loop',
   category: 'Logic',
-  component: ContinueLoopNode,
+  component: SimpleDisplayNode,
   dataSchema: ContinueLoopNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -28,6 +28,9 @@ export const continueLoopNodeDefinition: NodeDefinition<ContinueLoopNodeData> = 
     outputs: [],
   },
   execute,
+  meta: {
+    description: 'Skips to the next item in the "For Each" loop.',
+  },
 };
 
 registrator.register(continueLoopNodeDefinition);

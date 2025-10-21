@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { RunSlashCommandNode } from './RunSlashCommandNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STTextarea } from 'sillytavern-utils-lib/components';
 
 export const RunSlashCommandNodeDataSchema = z.object({
   command: z.string().default(''),
@@ -35,7 +37,7 @@ export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeDa
   type: 'runSlashCommandNode',
   label: 'Run Slash Command',
   category: 'System',
-  component: RunSlashCommandNode,
+  component: DataDrivenNode,
   dataSchema: RunSlashCommandNodeDataSchema,
   currentVersion: 1,
   initialData: { command: '' },
@@ -51,6 +53,16 @@ export const runSlashCommandNodeDefinition: NodeDefinition<RunSlashCommandNodeDa
   },
   validate: combineValidators(createRequiredFieldValidator('command', 'Command is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'command',
+        label: 'Command',
+        component: STTextarea,
+        props: { rows: 3, placeholder: '/echo "Hello World"' },
+      }),
+    ],
+  },
 };
 
 registrator.register(runSlashCommandNodeDefinition);

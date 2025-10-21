@@ -750,3 +750,9 @@
     color: var(--text-color-secondary);
   }
 }
+
+.node-output-section {
+  margin-top: 10px;
+  padding-top: 5px;
+  border-top: 1px solid var(--SmartThemeBorderColor);
+}

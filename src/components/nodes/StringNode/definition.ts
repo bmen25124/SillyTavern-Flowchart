@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { StringNode } from './StringNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),
@@ -22,7 +24,7 @@ export const stringNodeDefinition: NodeDefinition<StringNodeData> = {
   type: 'stringNode',
   label: 'String',
   category: 'Input',
-  component: StringNode,
+  component: DataDrivenNode,
   dataSchema: StringNodeDataSchema,
   currentVersion: 1,
   initialData: { value: 'hello' },
@@ -37,6 +39,9 @@ export const stringNodeDefinition: NodeDefinition<StringNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: [createFieldConfig({ id: 'value', label: 'Value', component: STInput, props: { type: 'text' } })],
+  },
 };
 
 registrator.register(stringNodeDefinition);

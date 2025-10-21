@@ -7,7 +7,10 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { getHandleSpec } from '../../../utils/handle-logic.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
-import { ArrayToolsNode } from './ArrayToolsNode.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const ArrayToolsNodeDataSchema = z.object({
   operation: z
@@ -77,11 +80,23 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
+const allOperations = [
+  'length',
+  'get_by_index',
+  'slice',
+  'push',
+  'pop',
+  'shift',
+  'unshift',
+  'reverse',
+  'includes',
+] as const;
+
 export const arrayToolsNodeDefinition: NodeDefinition<ArrayToolsNodeData> = {
   type: 'arrayToolsNode',
   label: 'Array Tools',
   category: 'Data Processing',
-  component: ArrayToolsNode,
+  component: DataDrivenNode,
   dataSchema: ArrayToolsNodeDataSchema,
   currentVersion: 1,
   initialData: { operation: 'length' },
@@ -156,6 +171,55 @@ export const arrayToolsNodeDefinition: NodeDefinition<ArrayToolsNodeData> = {
         break;
     }
     return { inputs, outputs };
+  },
+  meta: {
+    fields: (data) => {
+      const operation = data?.operation ?? 'length';
+      const baseFields = [
+        createFieldConfig({
+          id: 'operation',
+          label: 'Operation',
+          component: STSelect,
+          options: allOperations.map((op) => ({ value: op, label: op.replace(/_/g, ' ') })),
+        }),
+      ];
+
+      if (['get_by_index', 'slice'].includes(operation)) {
+        baseFields.push(
+          createFieldConfig({
+            id: 'index',
+            label: operation === 'slice' ? 'Start Index' : 'Index',
+            component: STInput,
+            props: { type: 'number' },
+            getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+          }),
+        );
+      }
+      if (operation === 'slice') {
+        baseFields.push(
+          createFieldConfig({
+            id: 'endIndex',
+            label: 'End Index (optional)',
+            component: STInput,
+            props: { type: 'number' },
+            getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+              e.target.value === '' ? undefined : Number(e.target.value),
+          }),
+        );
+      }
+      if (['push', 'unshift', 'includes'].includes(operation)) {
+        baseFields.push(
+          createFieldConfig({
+            id: 'value',
+            label: 'Value',
+            component: STInput,
+            props: { type: 'text' },
+          }),
+        );
+      }
+
+      return baseFields;
+    },
   },
 };
 

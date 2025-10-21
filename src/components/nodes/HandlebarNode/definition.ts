@@ -11,6 +11,8 @@ import {
   createRequiredConnectionValidator,
   createRequiredFieldValidator,
 } from '../../../utils/validation-helpers.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STTextarea } from 'sillytavern-utils-lib/components';
 
 export const HandlebarNodeDataSchema = z.object({
   template: z.string().default('Hello, {{name}}!'),
@@ -67,6 +69,16 @@ export const handlebarNodeDefinition: NodeDefinition<HandlebarNodeData> = {
     createRequiredConnectionValidator('context', 'A value must be connected to the "context" input.'),
   ),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'template',
+        label: 'Template',
+        component: STTextarea,
+        props: { rows: 4 },
+      }),
+    ],
+  },
 };
 
 registrator.register(handlebarNodeDefinition);

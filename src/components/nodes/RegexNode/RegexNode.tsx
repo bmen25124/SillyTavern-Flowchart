@@ -59,7 +59,7 @@ export const RegexNode: FC<RegexNodeProps> = ({ id, selected, type }) => {
                 items: regexOptions,
                 multiple: false,
                 inputClasses: 'nodrag',
-                containerClasses: 'nodrag',
+                containerClasses: 'nodrag nowheel',
                 closeOnSelect: true,
                 enableSearch: true,
               },

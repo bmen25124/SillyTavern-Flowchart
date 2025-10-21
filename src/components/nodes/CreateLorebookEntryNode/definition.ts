@@ -1,13 +1,16 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { CreateLorebookEntryNode } from './CreateLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown, STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { getWorldInfos } from 'sillytavern-utils-lib';
+import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 
 export const CreateLorebookEntryNodeDataSchema = z.object({
   worldName: z.string().optional(),
@@ -46,7 +49,7 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
   type: 'createLorebookEntryNode',
   label: 'Create Lorebook Entry',
   category: 'Lorebook',
-  component: CreateLorebookEntryNode,
+  component: AsyncDataDrivenNode,
   dataSchema: CreateLorebookEntryNodeDataSchema,
   currentVersion: 1,
   initialData: { worldName: '', key: '', content: '', comment: '' },
@@ -68,6 +71,33 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
     createRequiredFieldValidator('key', 'Keys are required.'),
   ),
   execute,
+  meta: {
+    fields: async () => {
+      const worlds = await getWorldInfos(['all']);
+      const lorebookOptions = Object.keys(worlds).map((name) => ({ value: name, label: name }));
+
+      return [
+        createFieldConfig({
+          id: 'worldName',
+          label: 'Lorebook Name',
+          component: STFancyDropdown,
+          props: {
+            items: lorebookOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          getValueFromEvent: (e: string[]) => e[0],
+          formatValue: (value: string) => [value ?? ''],
+        }),
+        createFieldConfig({ id: 'key', label: 'Keys (comma-separated)', component: STInput, props: { type: 'text' } }),
+        createFieldConfig({ id: 'comment', label: 'Comment (Title)', component: STInput, props: { type: 'text' } }),
+        createFieldConfig({ id: 'content', label: 'Content', component: STTextarea, props: { rows: 2 } }),
+      ];
+    },
+  },
 };
 
 registrator.register(createLorebookEntryNodeDefinition);

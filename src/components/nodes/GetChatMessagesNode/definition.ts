@@ -5,7 +5,9 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
-import { GetChatMessagesNode } from './GetChatMessagesNode.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const GetChatMessagesNodeDataSchema = z.object({
   startId: z.string().default('first'),
@@ -58,7 +60,7 @@ export const getChatMessagesNodeDefinition: NodeDefinition<GetChatMessagesNodeDa
   type: 'getChatMessagesNode',
   label: 'Get Chat Messages',
   category: 'Chat',
-  component: GetChatMessagesNode,
+  component: DataDrivenNode,
   dataSchema: GetChatMessagesNodeDataSchema,
   currentVersion: 1,
   initialData: { startId: 'first', endId: 'last' },
@@ -75,6 +77,22 @@ export const getChatMessagesNodeDefinition: NodeDefinition<GetChatMessagesNodeDa
     ],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'startId',
+        label: 'Start ID (e.g., first, 0, 123)',
+        component: STInput,
+        props: { placeholder: 'first', type: 'text' },
+      }),
+      createFieldConfig({
+        id: 'endId',
+        label: 'End ID (e.g., last, 10, 123)',
+        component: STInput,
+        props: { placeholder: 'last', type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(getChatMessagesNodeDefinition);

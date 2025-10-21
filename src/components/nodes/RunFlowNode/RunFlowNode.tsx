@@ -34,7 +34,7 @@ export const RunFlowNode: FC<RunFlowNodeProps> = ({ id, selected, type }) => {
           items: flowOptions,
           multiple: false,
           inputClasses: 'nodrag',
-          containerClasses: 'nodrag',
+          containerClasses: 'nodrag nowheel',
           closeOnSelect: true,
           enableSearch: true,
         },

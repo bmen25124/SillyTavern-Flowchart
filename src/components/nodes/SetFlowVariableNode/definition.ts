@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { SetFlowVariableNode } from './SetFlowVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
@@ -10,6 +9,9 @@ import {
   createRequiredFieldValidator,
   createRequiredConnectionValidator,
 } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const SetFlowVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
@@ -31,7 +33,7 @@ export const setFlowVariableNodeDefinition: NodeDefinition<SetFlowVariableNodeDa
   type: 'setFlowVariableNode',
   label: 'Set Flow Variable',
   category: 'Variables',
-  component: SetFlowVariableNode,
+  component: DataDrivenNode,
   dataSchema: SetFlowVariableNodeDataSchema,
   currentVersion: 1,
   initialData: { variableName: 'myVar' },
@@ -48,6 +50,16 @@ export const setFlowVariableNodeDefinition: NodeDefinition<SetFlowVariableNodeDa
     createRequiredConnectionValidator('value', 'A value must be connected to set.'),
   ),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'variableName',
+        label: 'Variable Name',
+        component: STInput,
+        props: { type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(setFlowVariableNodeDefinition);

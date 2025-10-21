@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { TypeConverterNode } from './TypeConverterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STSelect } from 'sillytavern-utils-lib/components';
 
 export const TypeConverterNodeDataSchema = z.object({
   targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),
@@ -61,7 +63,7 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
   type: 'typeConverterNode',
   label: 'Type Converter',
   category: 'Data Processing',
-  component: TypeConverterNode,
+  component: DataDrivenNode,
   dataSchema: TypeConverterNodeDataSchema,
   currentVersion: 1,
   initialData: { targetType: 'string' },
@@ -105,6 +107,21 @@ export const typeConverterNodeDefinition: NodeDefinition<TypeConverterNodeData> 
       { id: 'target-object', labelSuffix: '(Object)', dataOverrides: { targetType: 'object' } },
       { id: 'target-array', labelSuffix: '(Array)', dataOverrides: { targetType: 'array' } },
     ];
+  },
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'targetType',
+        label: 'Convert To',
+        component: STSelect,
+        options: [
+          { value: 'string', label: 'String' },
+          { value: 'number', label: 'Number' },
+          { value: 'object', label: 'Object (from JSON string)' },
+          { value: 'array', label: 'Array (from JSON string)' },
+        ],
+      }),
+    ],
   },
 };
 

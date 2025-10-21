@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { MathNode } from './MathNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const MathNodeDataSchema = z.object({
   operation: z.enum(['add', 'subtract', 'multiply', 'divide', 'modulo']).optional(),
@@ -40,11 +43,13 @@ const execute: NodeExecutor = async (node, input) => {
   }
 };
 
+const operations = ['add', 'subtract', 'multiply', 'divide', 'modulo'] as const;
+
 export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
   type: 'mathNode',
   label: 'Math',
   category: 'Math & Logic',
-  component: MathNode,
+  component: DataDrivenNode,
   dataSchema: MathNodeDataSchema,
   currentVersion: 1,
   initialData: { operation: 'add', a: 0, b: 0 },
@@ -61,6 +66,30 @@ export const mathNodeDefinition: NodeDefinition<MathNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'operation',
+        label: 'Operation',
+        component: STSelect,
+        options: operations.map((op) => ({ value: op, label: op })),
+      }),
+      createFieldConfig({
+        id: 'a',
+        label: 'Value A',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'b',
+        label: 'Value B',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+      }),
+    ],
+  },
 };
 
 registrator.register(mathNodeDefinition);

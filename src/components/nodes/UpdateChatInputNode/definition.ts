@@ -5,7 +5,9 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
-import { UpdateChatInputNode } from './UpdateChatInputNode.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STTextarea } from 'sillytavern-utils-lib/components';
 
 export const UpdateChatInputNodeDataSchema = z.object({
   value: z.string().optional(),
@@ -28,7 +30,7 @@ export const updateChatInputNodeDefinition: NodeDefinition<UpdateChatInputNodeDa
   type: 'updateChatInputNode',
   label: 'Update Chat Input',
   category: 'Chat',
-  component: UpdateChatInputNode,
+  component: DataDrivenNode,
   dataSchema: UpdateChatInputNodeDataSchema,
   currentVersion: 1,
   initialData: { value: '' },
@@ -41,6 +43,16 @@ export const updateChatInputNodeDefinition: NodeDefinition<UpdateChatInputNodeDa
   },
   validate: combineValidators(createRequiredFieldValidator('value', 'Value is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'value',
+        label: 'Value',
+        component: STTextarea,
+        props: { rows: 3 },
+      }),
+    ],
+  },
 };
 
 registrator.register(updateChatInputNodeDefinition);

@@ -4,7 +4,10 @@ import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
-import { BooleanNode } from './BooleanNode.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STSelect } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const BooleanNodeDataSchema = z.object({
   value: z.boolean().default(false),
@@ -15,8 +18,6 @@ export type BooleanNodeData = z.infer<typeof BooleanNodeDataSchema>;
 const execute: NodeExecutor = async (node, input) => {
   const data = BooleanNodeDataSchema.parse(node.data);
   const value = resolveInput(input, data, 'value');
-  // Coerce any input into a boolean using standard JavaScript rules.
-  // e.g., 0, "", null, undefined -> false; non-empty strings, numbers != 0 -> true
   return { value: Boolean(value) };
 };
 
@@ -24,7 +25,7 @@ export const booleanNodeDefinition: NodeDefinition<BooleanNodeData> = {
   type: 'booleanNode',
   label: 'Boolean',
   category: 'Input',
-  component: BooleanNode,
+  component: DataDrivenNode,
   dataSchema: BooleanNodeDataSchema,
   currentVersion: 1,
   initialData: { value: false },
@@ -39,6 +40,21 @@ export const booleanNodeDefinition: NodeDefinition<BooleanNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'value',
+        label: 'Value',
+        component: STSelect,
+        options: [
+          { value: 'true', label: 'True' },
+          { value: 'false', label: 'False' },
+        ],
+        getValueFromEvent: (e: React.ChangeEvent<HTMLSelectElement>) => e.target.value === 'true',
+        formatValue: (value: boolean) => String(value),
+      }),
+    ],
+  },
 };
 
 registrator.register(booleanNodeDefinition);

@@ -1,12 +1,16 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { EditLorebookEntryNode } from './EditLorebookEntryNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { WIEntrySchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown, STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { getWorldInfos } from 'sillytavern-utils-lib';
+import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
+import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 
 export const EditLorebookEntryNodeDataSchema = z.object({
   worldName: z.string().optional(),
@@ -76,7 +80,7 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
   type: 'editLorebookEntryNode',
   label: 'Edit Lorebook Entry',
   category: 'Lorebook',
-  component: EditLorebookEntryNode,
+  component: AsyncDataDrivenNode,
   dataSchema: EditLorebookEntryNodeDataSchema,
   currentVersion: 1,
   initialData: { worldName: '', entryUid: undefined },
@@ -99,6 +103,73 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
     createRequiredFieldValidator('entryUid', 'Entry to Edit is required.'),
   ),
   execute,
+  meta: {
+    fields: async (data: EditLorebookEntryNodeData) => {
+      const allWorldsData: Record<string, WIEntry[]> = await getWorldInfos(['all']);
+      const lorebookOptions = Object.keys(allWorldsData).map((name) => ({ value: name, label: name }));
+      const entryOptions =
+        !data?.worldName || !allWorldsData[data.worldName]
+          ? []
+          : allWorldsData[data.worldName].map((entry) => ({
+              value: String(entry.uid),
+              label: entry.comment || `Entry UID: ${entry.uid}`,
+            }));
+
+      return [
+        createFieldConfig({
+          id: 'worldName',
+          label: 'Lorebook Name',
+          component: STFancyDropdown,
+          props: {
+            items: lorebookOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          customChangeHandler: (e: string[], { nodeId, updateNodeData }) => {
+            updateNodeData(nodeId, { worldName: e[0], entryUid: undefined });
+          },
+          formatValue: (value: string) => [value ?? ''],
+        }),
+        createFieldConfig({
+          id: 'entryUid',
+          label: 'Entry to Edit',
+          component: STFancyDropdown,
+          props: {
+            items: entryOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+            disabled: !data?.worldName,
+          },
+          getValueFromEvent: (e: string[]) => Number(e[0]),
+          formatValue: (value: number) => [String(value ?? '')],
+        }),
+        createFieldConfig({
+          id: 'key',
+          label: 'New Keys (comma-separated)',
+          component: STInput,
+          props: { type: 'text', placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'comment',
+          label: 'New Comment (Title)',
+          component: STInput,
+          props: { type: 'text', placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'content',
+          label: 'New Content',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+      ];
+    },
+  },
 };
 
 registrator.register(editLorebookEntryNodeDefinition);

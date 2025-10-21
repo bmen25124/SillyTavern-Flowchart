@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { CreateLorebookNode } from './CreateLorebookNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const CreateLorebookNodeDataSchema = z.object({
   worldName: z.string().optional(),
@@ -27,7 +29,7 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
   type: 'createLorebookNode',
   label: 'Create Lorebook',
   category: 'Lorebook',
-  component: CreateLorebookNode,
+  component: DataDrivenNode,
   dataSchema: CreateLorebookNodeDataSchema,
   currentVersion: 1,
   initialData: { worldName: 'My Lorebook' },
@@ -43,6 +45,11 @@ export const createLorebookNodeDefinition: NodeDefinition<CreateLorebookNodeData
   },
   validate: combineValidators(createRequiredFieldValidator('worldName', 'Lorebook Name is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({ id: 'worldName', label: 'Lorebook Name', component: STInput, props: { type: 'text' } }),
+    ],
+  },
 };
 
 registrator.register(createLorebookNodeDefinition);

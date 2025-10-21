@@ -31,7 +31,7 @@ export const GetPromptNode: FC<GetPromptNodeProps> = ({ id, selected, type }) =>
           items: promptOptions,
           multiple: false,
           inputClasses: 'nodrag',
-          containerClasses: 'nodrag',
+          containerClasses: 'nodrag nowheel',
           closeOnSelect: true,
           enableSearch: true,
         },

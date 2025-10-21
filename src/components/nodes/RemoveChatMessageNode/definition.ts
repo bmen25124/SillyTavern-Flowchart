@@ -1,11 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { RemoveChatMessageNode } from './RemoveChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const RemoveChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(),
@@ -26,7 +29,7 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
   type: 'removeChatMessageNode',
   label: 'Remove Chat Message',
   category: 'Chat',
-  component: RemoveChatMessageNode,
+  component: DataDrivenNode,
   dataSchema: RemoveChatMessageNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -39,6 +42,17 @@ export const removeChatMessageNodeDefinition: NodeDefinition<RemoveChatMessageNo
   },
   validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'messageId',
+        label: 'Message ID',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+      }),
+    ],
+  },
 };
 
 registrator.register(removeChatMessageNodeDefinition);

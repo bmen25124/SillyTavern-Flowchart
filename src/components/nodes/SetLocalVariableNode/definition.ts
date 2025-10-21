@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { SetLocalVariableNode } from './SetLocalVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
@@ -10,6 +9,9 @@ import {
   createRequiredConnectionValidator,
   createRequiredFieldValidator,
 } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const SetLocalVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
@@ -35,7 +37,7 @@ export const setLocalVariableNodeDefinition: NodeDefinition<SetLocalVariableNode
   type: 'setLocalVariableNode',
   label: 'Set Local Variable',
   category: 'Variables',
-  component: SetLocalVariableNode,
+  component: DataDrivenNode,
   dataSchema: SetLocalVariableNodeDataSchema,
   currentVersion: 1,
   initialData: { variableName: 'chatVar' },
@@ -52,6 +54,16 @@ export const setLocalVariableNodeDefinition: NodeDefinition<SetLocalVariableNode
     createRequiredConnectionValidator('value', 'A value must be connected to set.'),
   ),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'variableName',
+        label: 'Variable Name',
+        component: STInput,
+        props: { type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(setLocalVariableNodeDefinition);

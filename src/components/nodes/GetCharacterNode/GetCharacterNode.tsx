@@ -31,7 +31,7 @@ export const GetCharacterNode: FC<GetCharacterNodeProps> = ({ id, selected, type
           items: characterOptions,
           multiple: false,
           inputClasses: 'nodrag',
-          containerClasses: 'nodrag',
+          containerClasses: 'nodrag nowheel',
           closeOnSelect: true,
           enableSearch: true,
         },
