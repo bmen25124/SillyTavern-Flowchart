@@ -82,7 +82,7 @@ In short: named handles are for *what* a node does; the `main` handle is for *wh
 
 ### Dangerous Nodes
 
-Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They can run arbitrary code or communicate with external services. For security, these nodes will not run unless you explicitly enable the **"Allow Dangerous"** toggle for that specific flow in the toolbar. Only enable this for flows you have created yourself or fully trust.
+Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They can run arbitrary code or communicate with external services. The `If` node is also considered dangerous when using "Advanced Code Editor" mode. For security, these nodes will not run unless you explicitly enable the **"Allow Dangerous"** toggle for that specific flow in the toolbar. Only enable this for flows you have created yourself or fully trust.
 
 ### Keyboard Shortcuts
 
@@ -98,7 +98,7 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 #### **Trigger Nodes**
 
 *   **Event Trigger:** Starts a flow when a SillyTavern event occurs (e.g., a user message is sent). This is the primary way to create automations. For a full list of events, see the [Event Documentation](EVENT_DOCUMENTATION.md).
-*   **Manual Trigger:** Starts a flow only when you click the "Run" button in the editor. Useful for testing.
+*   **Manual / Sub-Flow Trigger:** Starts a flow when you click the "Run" button in the editor. Also serves as the entry point when a flow is run by a `Run Flow` node.
 *   **Slash Command:** Creates a new `/flow-<name>` slash command that triggers the flow and passes arguments to its output handles.
 *   **Menu Trigger:** Adds a custom button to the main "Extensions" menu that triggers the flow when clicked.
 *   **Message Toolbar Trigger:** Adds a custom button to the toolbar on every chat message.
@@ -118,18 +118,20 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 *   **Profile ID:** A dropdown to select one of your API Connection Profiles.
 
 #### **Picker Nodes**
+
 These nodes provide dropdowns to select a specific item, which can then be passed to other nodes.
+
 *   **Pick Character:** Outputs the selected character's avatar filename.
 *   **Pick Lorebook:** Outputs the selected lorebook's name.
-*   **Pick Prompt:** Outputs the name of a saved custom prompt template.
 *   **Pick Flow:** Outputs the selected flow's ID.
+*   **Pick Prompt Template:** Outputs the name of a saved custom prompt template.
 *   **Pick Regex Script:** Outputs the ID of a SillyTavern regex script.
 *   **Pick Math Operation:** Outputs an operation name (add, subtract) for the `Math` node.
 *   **Pick String Operation:** Outputs an operation name for the `String Tools` node.
 *   **Pick Prompt Mode:** Outputs a prompt engineering mode (native, json, xml) for the `LLM Request` node.
 *   **Pick Random Mode:** Outputs a mode (number, array) for the `Random` node.
 *   **Pick Regex Mode:** Outputs a mode (sillytavern, custom) for the `Regex` node.
-*   **Pick Conversion Type:** Outputs a target type (string, number) for the `Type Converter` node.
+*   **Pick Conversion Type:** Outputs a target type (string, number, etc.) for the `Type Converter` node.
 
 #### **Chat Nodes**
 
@@ -147,7 +149,6 @@ These nodes provide dropdowns to select a specific item, which can then be passe
 *   **Custom Message:** Builds a list of messages from scratch, ignoring the current chat context.
 *   **LLM Request:** Sends messages to an LLM. Can be a simple text response or a structured JSON/XML response if a Schema is provided. Supports a **Stream** option for simple text, which can call another flow for each token received (see `On Stream Trigger`).
 *   **Merge Messages:** Combines multiple lists of messages into a single list.
-*   **HTTP Request:** (Dangerous) Makes requests to any external API.
 
 #### **Character Nodes**
 
@@ -163,27 +164,30 @@ These nodes provide dropdowns to select a specific item, which can then be passe
 *   **Create Lorebook Entry:** Adds a new entry to a lorebook.
 *   **Edit Lorebook Entry:** Modifies an existing lorebook entry.
 
-#### **JSON & Schema Nodes**
+#### **JSON Nodes**
 
 *   **JSON:** A visual editor to construct a JSON object. Each key in the object gets its own output handle.
 *   **Schema:** A visual editor to define the *structure* of data you expect from an LLM. Connect this to an `LLM Request` node to force the AI to respond in a specific format.
 *   **Variable Schema:** Defines a schema to validate a single variable. Attach it to any `Get ... Variable` node to enforce the returned value's type.
 
-#### **Utility Nodes**
+#### **Data Processing Nodes**
 
-*   **Log:** Prints any connected data to your browser's developer console (F12). Essential for debugging.
-*   **Date/Time:** Gets the current date and time in various formats.
-*   **Handlebar:** A templating tool. Create a template like "Hello, {{name}}!" and provide an object to fill in the values.
-*   **Math:** Performs basic arithmetic operations (add, subtract, etc.).
 *   **Merge Objects:** Combines multiple objects into a single one. Keys from later inputs overwrite earlier ones.
-*   **Note:** A visual-only node for adding comments and documentation to your flow. It is ignored during execution.
-*   **Random:** Generates a random number in a range or picks a random item from an array.
 *   **Regex:** Applies a regular expression to find/replace text. Can use SillyTavern's built-in regex scripts or a custom one.
-*   **Run Slash Command:** Executes any built-in SillyTavern slash command.
-*   **Run Flow:** Triggers another flow, allowing for reusable logic.
 *   **String Tools:** A collection of functions to manipulate text (e.g., `toUpperCase`, `split`, `replace`).
 *   **Type Converter:** Converts data from one type to another (e.g., a string of text to a number).
+
+#### **Math & Logic Nodes**
+
+*   **Math:** Performs basic arithmetic operations (add, subtract, etc.).
+*   **Random:** Generates a random number in a range or picks a random item from an array.
+
+#### **System Nodes**
+
+*   **Run Slash Command:** Executes any built-in SillyTavern slash command.
+*   **Run Flow:** Triggers another flow, allowing for reusable logic.
 *   **Execute JS Code:** (Dangerous) Runs arbitrary JavaScript code.
+*   **HTTP Request:** (Dangerous) Makes requests to any external API.
 
 #### **Variables Nodes**
 
@@ -197,6 +201,13 @@ These nodes provide dropdowns to select a specific item, which can then be passe
 *   **Notification:** Displays a toast notification in the SillyTavern UI (info, success, warning, error).
 *   **Prompt User:** Shows a popup to get text input from the user during a flow run.
 *   **Confirm With User:** Shows a popup with "OK/Cancel" to get a yes/no confirmation from the user.
+
+#### **Utility Nodes**
+
+*   **Log:** Prints any connected data to your browser's developer console (F12). Essential for debugging.
+*   **Date/Time:** Gets the current date and time in various formats.
+*   **Handlebar:** A templating tool. Create a template like "Hello, {{name}}!" and provide an object to fill in the values.
+*   **Note:** A visual-only node for adding comments and documentation to your flow. It is ignored during execution.
 
 ### Simple Example: Reacting to a Keyword
 
