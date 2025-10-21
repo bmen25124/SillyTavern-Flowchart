@@ -123,7 +123,7 @@ export class FlowRunner {
   private flowQueue: {
     flowId: string;
     initialInput: Record<string, any>;
-    options: { startNodeId?: string; endNodeId?: string };
+    options: { startNodeId?: string; endNodeId?: string; activatedNodeId?: string };
   }[] = [];
 
   constructor() {
@@ -195,7 +195,7 @@ export class FlowRunner {
       messageObject: { id: messageId, ...message },
     };
 
-    this.executeFlow(flowId, initialInput, 0, { startNodeId: nodeId });
+    this.executeFlow(flowId, initialInput, 0, { activatedNodeId: nodeId });
   }
 
   private handleQrButtonClick(event: MouseEvent) {
@@ -205,7 +205,7 @@ export class FlowRunner {
     const { flowId, nodeId } = (button as HTMLElement).dataset;
     if (!flowId || !nodeId) return;
 
-    this.executeFlow(flowId, {}, 0, { startNodeId: nodeId });
+    this.executeFlow(flowId, {}, 0, { activatedNodeId: nodeId });
   }
 
   private setupEventListeners() {
@@ -374,7 +374,7 @@ export class FlowRunner {
     flowId: string,
     initialInput: Record<string, any>,
     depth = 0,
-    options: { startNodeId?: string; endNodeId?: string } = {},
+    options: { startNodeId?: string; endNodeId?: string; activatedNodeId?: string } = {},
     executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
@@ -406,7 +406,7 @@ export class FlowRunner {
     flowId: string,
     initialInput: Record<string, any>,
     depth: number,
-    options: { startNodeId?: string; endNodeId?: string } = {},
+    options: { startNodeId?: string; endNodeId?: string; activatedNodeId?: string } = {},
     executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
@@ -610,7 +610,7 @@ export class FlowRunner {
     }
 
     const initialInput = { ...processedArgs, unnamed: unnamedArgs || '' };
-    const report = await this._executeFlowInternal(flowId, initialInput, 0);
+    const report = await this._executeFlowInternal(flowId, initialInput, 0, { activatedNodeId: startNodeId });
 
     if (report?.error) {
       return `Flow Error: ${report.error.message}`;

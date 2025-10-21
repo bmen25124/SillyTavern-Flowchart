@@ -7,8 +7,23 @@ import { settingsManager } from './config.js';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { flowRunner } from './FlowRunner.js';
 
+import Handlebars from 'handlebars';
+
 import './styles/main.scss';
 import '@xyflow/react/dist/style.css';
+
+if (!Handlebars.helpers['slice']) {
+  Handlebars.registerHelper('slice', function (context, count) {
+    if (!Array.isArray(context)) return [];
+    return context.slice(count);
+  });
+}
+
+if (!Handlebars.helpers['add']) {
+  Handlebars.registerHelper('add', function (value1, value2) {
+    return value1 + value2;
+  });
+}
 
 function renderReactSettings() {
   const settingsContainer = document.getElementById('extensions_settings');

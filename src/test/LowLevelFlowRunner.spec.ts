@@ -86,7 +86,7 @@ describe('LowLevelFlowRunner', () => {
       ],
       edges: [
         { id: 'e1', source: 'start', target: 'error', sourceHandle: null, targetHandle: null },
-        { id: 'e2', source: 'error', target: 'end', sourceHandle: null, targetHandle: null },
+        { id: 'e2', source: 'error', target: 'end', sourceHandle: null, targetHandle: 'value' },
       ],
     };
 
@@ -211,73 +211,117 @@ describe('LowLevelFlowRunner', () => {
     runner['nodeExecutors'].delete('delayNode');
   });
 
-  // --- "Run To/From Here" Logic ---
-  describe('Run To/From Here', () => {
-    it("should only execute the ancestor path when using 'endNodeId' (Run To Here)", async () => {
-      const unwantedExecutor = jest.fn(async () => ({}));
-      runner['nodeExecutors'].set('unwantedNode', unwantedExecutor);
+  // --- "Run To Here" Logic ---
+  it("should only execute the ancestor path when using 'endNodeId' (Run To Here)", async () => {
+    const unwantedExecutor = jest.fn(async () => ({}));
+    runner['nodeExecutors'].set('unwantedNode', unwantedExecutor);
 
-      const flow: SpecFlow = {
-        nodes: [
-          { id: 'start', type: 'manualTriggerNode', data: {} },
-          { id: 'target-branch-node', type: 'stringNode', data: { value: 'A' } },
-          { id: 'target-node', type: 'stringNode', data: { value: 'B' } },
-          { id: 'unwanted-branch-node', type: 'unwantedNode', data: {} },
-        ],
-        edges: [
-          // Valid branch that should run
-          { id: 'e1', source: 'start', target: 'target-branch-node', sourceHandle: null, targetHandle: 'value' },
-          {
-            id: 'e2',
-            source: 'target-branch-node',
-            target: 'target-node',
-            sourceHandle: 'value',
-            targetHandle: 'value',
-          },
-          // Unrelated parallel branch that should NOT run
-          { id: 'e3', source: 'start', target: 'unwanted-branch-node', sourceHandle: null, targetHandle: null },
-        ],
-      };
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'start', type: 'manualTriggerNode', data: {} },
+        { id: 'target-branch-node', type: 'stringNode', data: { value: 'A' } },
+        { id: 'target-node', type: 'stringNode', data: { value: 'B' } },
+        { id: 'unwanted-branch-node', type: 'unwantedNode', data: {} },
+      ],
+      edges: [
+        // Valid branch that should run
+        { id: 'e1', source: 'start', target: 'target-branch-node', sourceHandle: null, targetHandle: 'value' },
+        {
+          id: 'e2',
+          source: 'target-branch-node',
+          target: 'target-node',
+          sourceHandle: 'value',
+          targetHandle: 'value',
+        },
+        // Unrelated parallel branch that should NOT run
+        { id: 'e3', source: 'start', target: 'unwanted-branch-node', sourceHandle: null, targetHandle: null },
+      ],
+    };
 
-      const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, undefined, {
-        endNodeId: 'target-node',
-      });
-
-      expect(report.error).toBeUndefined();
-      const executedIds = report.executedNodes.map((n) => n.nodeId);
-
-      expect(executedIds).toContain('start');
-      expect(executedIds).toContain('target-branch-node');
-      expect(executedIds).toContain('target-node'); // It runs the target node itself
-      expect(executedIds).not.toContain('unwanted-branch-node');
-      expect(unwantedExecutor).not.toHaveBeenCalled();
-
-      runner['nodeExecutors'].delete('unwantedNode');
+    const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, undefined, {
+      endNodeId: 'target-node',
     });
 
-    it("should only execute the downstream path when using 'startNodeId' (Run From Here)", async () => {
-      const flow: SpecFlow = {
-        nodes: [
-          { id: 'before', type: 'stringNode', data: { value: 'A' } },
-          { id: 'start-node', type: 'stringNode', data: { value: 'B' } },
-          { id: 'after', type: 'stringNode', data: { value: 'C' } },
-        ],
-        edges: [
-          { id: 'e1', source: 'before', target: 'start-node', sourceHandle: 'value', targetHandle: 'value' },
-          { id: 'e2', source: 'start-node', target: 'after', sourceHandle: 'value', targetHandle: 'value' },
-        ],
-      };
+    expect(report.error).toBeUndefined();
+    const executedIds = report.executedNodes.map((n) => n.nodeId);
 
+    expect(executedIds).toContain('start');
+    expect(executedIds).toContain('target-branch-node');
+    expect(executedIds).toContain('target-node'); // It runs the target node itself
+    expect(executedIds).not.toContain('unwanted-branch-node');
+    expect(unwantedExecutor).not.toHaveBeenCalled();
+
+    runner['nodeExecutors'].delete('unwantedNode');
+  });
+
+  // --- UI Trigger vs. "Run From Here" Logic ---
+  describe('UI Trigger vs. Run From Here', () => {
+    const flow: SpecFlow = {
+      nodes: [
+        { id: 'activated-trigger', type: 'manualTriggerNode', data: { payload: '{}' } },
+        { id: 'other-trigger', type: 'manualTriggerNode', data: { payload: '{}' } },
+        {
+          id: 'branch-a',
+          type: 'jsonNode',
+          data: { rootType: 'object', items: [{ id: 'a1', key: 'a_val', value: 'A', type: 'string' }] },
+        },
+        {
+          id: 'branch-b',
+          type: 'jsonNode',
+          data: { rootType: 'object', items: [{ id: 'b1', key: 'b_val', value: 'B', type: 'string' }] },
+        },
+        { id: 'merge', type: 'mergeObjectsNode', data: { inputCount: 2 } },
+      ],
+      edges: [
+        { id: 'e-a-merge', source: 'branch-a', target: 'merge', sourceHandle: 'result', targetHandle: 'object_0' },
+        { id: 'e-b-merge', source: 'branch-b', target: 'merge', sourceHandle: 'result', targetHandle: 'object_1' },
+      ],
+    };
+
+    it("should execute all necessary branches when using 'activatedNodeId' (UI Trigger)", async () => {
       const report = await runner.executeFlow(generateUUID(), flow, {}, dependencies, 0, undefined, {
-        startNodeId: 'start-node',
+        activatedNodeId: 'activated-trigger',
       });
 
       expect(report.error).toBeUndefined();
       const executedIds = report.executedNodes.map((n) => n.nodeId);
 
-      expect(executedIds).not.toContain('before');
-      expect(executedIds).toContain('start-node');
-      expect(executedIds).toContain('after');
+      expect(executedIds).toContain('activated-trigger');
+      expect(executedIds).not.toContain('other-trigger');
+      expect(executedIds).toContain('branch-a');
+      expect(executedIds).toContain('branch-b');
+      expect(executedIds).toContain('merge');
+
+      const mergeNodeReport = report.executedNodes.find((n) => n.nodeId === 'merge');
+      expect(mergeNodeReport?.input).toEqual({
+        object_0: { a_val: 'A' },
+        object_1: { b_val: 'B' },
+      });
+    });
+
+    it("should ONLY execute the downstream path when using 'startNodeId' (Run From Here)", async () => {
+      const runFromFlow: SpecFlow = {
+        nodes: [
+          { id: 'a', type: 'stringNode', data: { value: 'A' } },
+          { id: 'b', type: 'stringNode', data: { value: 'B' } },
+          { id: 'c', type: 'stringNode', data: { value: 'C' } },
+        ],
+        edges: [
+          { id: 'e-a-b', source: 'a', target: 'b', sourceHandle: 'value', targetHandle: 'value' },
+          { id: 'e-b-c', source: 'b', target: 'c', sourceHandle: 'value', targetHandle: 'value' },
+        ],
+      };
+
+      const report = await runner.executeFlow(generateUUID(), runFromFlow, {}, dependencies, 0, undefined, {
+        startNodeId: 'b',
+      });
+
+      expect(report.error).toBeUndefined();
+      const executedIds = report.executedNodes.map((n) => n.nodeId);
+
+      expect(executedIds).not.toContain('a');
+      expect(executedIds).toContain('b');
+      expect(executedIds).toContain('c');
     });
   });
 

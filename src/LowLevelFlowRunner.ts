@@ -19,6 +19,15 @@ export interface ExecutionReport {
   lastOutput?: any;
 }
 
+const triggerNodeTypes = new Set([
+  'triggerNode',
+  'slashCommandNode',
+  'menuTriggerNode',
+  'messageToolbarTriggerNode',
+  'quickReplyTriggerNode',
+  'manualTriggerNode',
+]);
+
 export class LowLevelFlowRunner {
   constructor(private nodeExecutors: Map<string, NodeExecutor>) {}
 
@@ -29,7 +38,7 @@ export class LowLevelFlowRunner {
     dependencies: FlowRunnerDependencies,
     depth: number,
     signal?: AbortSignal,
-    options: { startNodeId?: string; endNodeId?: string } = {},
+    options: { startNodeId?: string; endNodeId?: string; activatedNodeId?: string } = {},
     executionPath: string[] = [],
   ): Promise<ExecutionReport> {
     console.log(`[Flowchart] Executing flow (runId: ${runId}, depth: ${depth}) with args`, initialInput);
@@ -104,6 +113,11 @@ export class LowLevelFlowRunner {
         const nodeId = queue.shift()!;
         const node = nodesById.get(nodeId)!;
 
+        // If this is a UI-triggered run, skip any trigger node that wasn't the one activated.
+        if (options.activatedNodeId && triggerNodeTypes.has(node.type) && node.id !== options.activatedNodeId) {
+          continue;
+        }
+
         const definition = registrator.nodeDefinitionMap.get(node.type);
 
         if (definition?.isVisual) {
@@ -115,9 +129,20 @@ export class LowLevelFlowRunner {
           continue;
         }
 
-        const isRootNode = !edgesToExecute.some((e) => e.target === nodeId);
-        const isExplicitStart = nodeId === options.startNodeId;
-        const baseInput = isRootNode || isExplicitStart ? initialInput : {};
+        const isRootNode = inDegree[nodeId] === 0;
+        let baseInput = {};
+        if (options.activatedNodeId) {
+          if (nodeId === options.activatedNodeId) {
+            baseInput = initialInput;
+          }
+        } else if (options.startNodeId) {
+          if (nodeId === options.startNodeId) {
+            baseInput = initialInput;
+          }
+        } else if (isRootNode) {
+          baseInput = initialInput;
+        }
+
         const inputs = this.getNodeInputs(node, edgesToExecute, nodeOutputs, baseInput, nodesById, options.startNodeId);
 
         eventEmitter.emit('node:run:start', { runId, nodeId });

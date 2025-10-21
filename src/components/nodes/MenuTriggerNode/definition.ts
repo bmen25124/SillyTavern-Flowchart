@@ -51,7 +51,7 @@ export const menuTriggerNodeDefinition: NodeDefinition<MenuTriggerNodeData> = {
     button.innerHTML = `<div class="${menuData.icon} extensionsMenuExtensionButton"></div><span>${menuData.buttonText}</span>`;
 
     button.addEventListener('click', () => {
-      runner.executeFlow(flowId, {}, 0, { startNodeId: node.id });
+      runner.executeFlow(flowId, {}, 0, { activatedNodeId: node.id });
     });
 
     container.appendChild(button);
