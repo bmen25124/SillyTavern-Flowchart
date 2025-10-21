@@ -71,7 +71,6 @@ export const FlowManager: FC = () => {
         activeFlow.flow = getSpecFlow();
         activeFlow.flowVersion = CURRENT_FLOW_VERSION;
         settingsManager.saveSettings();
-        flowRunner.reinitialize();
       }
     }, 500);
     return () => {
@@ -157,8 +156,9 @@ export const FlowManager: FC = () => {
   }, [copySelection, paste, getNodes, screenToFlowPosition, undo, redo, fitView]);
 
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
-    () => validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false, activeFlowData?.id),
-    [nodes, edges, getSpecFlow, activeFlowData?.allowDangerousExecution],
+    () =>
+      validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false, activeFlowData?.id, settings.flows),
+    [nodes, edges, getSpecFlow, activeFlowData?.allowDangerousExecution, settings.flows],
   );
 
   const flowItems = useMemo(
@@ -240,7 +240,6 @@ export const FlowManager: FC = () => {
       }
 
       settingsManager.saveSettings();
-      flowRunner.reinitialize();
       forceUpdate();
     },
     [settings, forceUpdate],
@@ -540,7 +539,6 @@ export const FlowManager: FC = () => {
       if (!activeFlow) return;
       activeFlow.enabled = e.target.checked;
       settingsManager.saveSettings();
-      flowRunner.reinitialize();
       forceUpdate();
     },
     [settings, forceUpdate],

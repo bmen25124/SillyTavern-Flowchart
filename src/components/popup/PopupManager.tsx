@@ -3,6 +3,7 @@ import { Popup } from 'sillytavern-utils-lib/components';
 import { POPUP_TYPE } from 'sillytavern-utils-lib/types/popup';
 import { FlowchartDataPopup } from './FlowchartDataPopup.js';
 import { eventEmitter } from '../../events.js';
+import { flowRunner } from '../../FlowRunner.js';
 
 export const PopupManager = () => {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
@@ -11,7 +12,8 @@ export const PopupManager = () => {
   const openPopup = () => setIsPopupVisible(true);
   const closePopup = () => {
     setIsPopupVisible(false);
-    setIsFullscreen(false); // Reset to normal mode when closing
+    setIsFullscreen(false);
+    flowRunner.reinitialize();
   };
 
   const toggleFullscreen = () => setIsFullscreen(!isFullscreen);

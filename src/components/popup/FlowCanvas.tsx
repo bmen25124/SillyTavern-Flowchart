@@ -109,8 +109,8 @@ export const FlowCanvas: FC<FlowCanvasProps> = ({ invalidNodeIds, errorsByNodeId
 
         if (node.id === activeNodeId) {
           classNames.push('flow-node-executing');
-        } else if (isVisualizationVisible && nodeReports.has(node.id)) {
-          const report = nodeReports.get(node.id);
+        } else if (isVisualizationVisible && node.id in nodeReports) {
+          const report = nodeReports[node.id];
           classNames.push(report?.status === 'error' ? 'flow-node-error' : 'flow-node-success');
         }
 

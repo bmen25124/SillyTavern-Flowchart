@@ -26,7 +26,7 @@ export const BaseNode: FC<BaseNodeProps> = ({ id, title, children, selected, con
 
   const nodeLevelIssues = useMemo(() => validationIssues?.filter((iss) => !iss.fieldId) ?? [], [validationIssues]);
 
-  const report = nodeReports.get(id);
+  const report = nodeReports[id];
   const showReport = isVisualizationVisible && report;
 
   let statusClass = showReport ? `run-${report.status}` : '';

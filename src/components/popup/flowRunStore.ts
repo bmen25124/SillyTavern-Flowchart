@@ -11,7 +11,7 @@ export interface NodeReport {
 interface FlowRunState {
   runId: string | null;
   runStatus: 'idle' | 'running' | 'completed' | 'error';
-  nodeReports: Map<string, NodeReport>;
+  nodeReports: Record<string, NodeReport>;
   executionOrder: string[];
   isVisualizationVisible: boolean;
   activeNodeId: string | null;
@@ -30,13 +30,13 @@ export const useFlowRunStore = create<FlowRunState>()(
     (set) => ({
       runId: null,
       runStatus: 'idle',
-      nodeReports: new Map(),
+      nodeReports: {},
       executionOrder: [],
       isVisualizationVisible: false,
       activeNodeId: null,
 
       startRun: (runId) =>
-        set({ runId, runStatus: 'running', nodeReports: new Map(), activeNodeId: null, executionOrder: [] }),
+        set({ runId, runStatus: 'running', nodeReports: {}, activeNodeId: null, executionOrder: [] }),
 
       setActiveNode: (runId, nodeId) =>
         set((state) => {
@@ -47,9 +47,12 @@ export const useFlowRunStore = create<FlowRunState>()(
       addNodeReport: (runId, nodeId, report) =>
         set((state) => {
           if (state.runId !== runId) return {}; // Stale report, ignore
-          const newReports = new Map(state.nodeReports);
-          newReports.set(nodeId, report);
-          return { nodeReports: newReports };
+          return {
+            nodeReports: {
+              ...state.nodeReports,
+              [nodeId]: report,
+            },
+          };
         }),
 
       endRun: (runId, status, executedNodes = []) =>
@@ -69,7 +72,7 @@ export const useFlowRunStore = create<FlowRunState>()(
         set({
           runId: null,
           runStatus: 'idle',
-          nodeReports: new Map(),
+          nodeReports: {},
           isVisualizationVisible: false,
           activeNodeId: null,
           executionOrder: [],

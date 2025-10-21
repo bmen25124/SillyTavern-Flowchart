@@ -3,8 +3,9 @@ import { registrator } from './components/nodes/autogen-imports.js';
 import { ValidationIssue } from './components/nodes/definitions/types.js';
 import { IfNodeData } from './components/nodes/IfNode/definition.js';
 import { RunFlowNodeData } from './components/nodes/RunFlowNode/definition.js';
-import { settingsManager } from './config.js';
+import { FlowData } from './config.js';
 import { ForEachNodeData } from './components/nodes/ForEachNode/definition.js';
+import { SlashCommandNodeData } from './components/nodes/SlashCommandNode/definition.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -26,7 +27,7 @@ function detectCrossFlowCycle(
   startFlowId: string,
   node: SpecNode,
   path: string[],
-  allFlows: { id: string; name: string; flow: SpecFlow }[],
+  allFlows: FlowData[],
 ): string | null {
   if (node.type !== 'runFlowNode') {
     return null;
@@ -66,7 +67,12 @@ function detectCrossFlowCycle(
   return null;
 }
 
-export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, flowId?: string): ValidationResult => {
+export const validateFlow = (
+  flow: SpecFlow,
+  allowDangerousExecution: boolean,
+  flowId?: string,
+  allFlows: FlowData[] = [],
+): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();
   const invalidEdgeIds = new Set<string>();
@@ -88,7 +94,6 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
   }
 
   const nodeIds = new Set(flow.nodes.map((n) => n.id));
-  const allFlows = settingsManager.getSettings().flows;
 
   // 1. Validate each node's data schema, semantic rules, and dangerous permissions
   for (const node of flow.nodes) {
@@ -288,6 +293,34 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
         message: `Trigger nodes cannot have incoming connections.`,
         severity: 'error',
       });
+    }
+  }
+
+  // 5. Validate for global uniqueness (e.g., Slash Commands)
+  const commandNames = new Map<string, { flowId: string; nodeId: string }>();
+  for (const f of allFlows) {
+    if (!f.enabled) continue;
+    for (const node of f.flow.nodes) {
+      if (node.type === 'slashCommandNode' && !node.data.disabled) {
+        const commandData = node.data as SlashCommandNodeData;
+        const commandName = `flow-${commandData.commandName}`;
+        if (commandNames.has(commandName)) {
+          const original = commandNames.get(commandName)!;
+          const originalFlow = allFlows.find((flow) => flow.id === original.flowId);
+          // If the conflict is with a node in the *current* flow being validated, add an error.
+          if (f.id === flowId) {
+            addNodeError(node.id, node.type, {
+              fieldId: 'commandName',
+              message: `Command name "${commandData.commandName}" conflicts with a command in flow "${
+                originalFlow?.name ?? 'another flow'
+              }".`,
+              severity: 'error',
+            });
+          }
+        } else {
+          commandNames.set(commandName, { flowId: f.id, nodeId: node.id });
+        }
+      }
     }
   }
 
