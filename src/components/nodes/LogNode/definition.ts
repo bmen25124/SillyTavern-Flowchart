@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { LogNode } from './LogNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const LogNodeDataSchema = z.object({
   prefix: z.string().default(''),
@@ -23,7 +25,7 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
   type: 'logNode',
   label: 'Log',
   category: 'Utility',
-  component: LogNode,
+  component: DataDrivenNode,
   dataSchema: LogNodeDataSchema,
   currentVersion: 1,
   initialData: { prefix: '' },
@@ -31,10 +33,21 @@ export const logNodeDefinition: NodeDefinition<LogNodeData> = {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
       { id: 'value', type: FlowDataType.ANY },
+      { id: 'prefix', type: FlowDataType.STRING },
     ],
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'prefix',
+        label: 'Log Prefix',
+        component: STInput,
+        props: { placeholder: 'Prefix for the log message', type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(logNodeDefinition);
