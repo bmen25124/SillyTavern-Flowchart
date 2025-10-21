@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { GetCharacterNode } from './GetCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 
 export const GetCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().default(''),
@@ -44,7 +46,7 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
   type: 'getCharacterNode',
   label: 'Get Character',
   category: 'Character',
-  component: GetCharacterNode,
+  component: DataDrivenNode,
   dataSchema: GetCharacterNodeDataSchema,
   currentVersion: 1,
   initialData: { characterAvatar: '' },
@@ -67,6 +69,29 @@ export const getCharacterNodeDefinition: NodeDefinition<GetCharacterNodeData> = 
   },
   validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character is required.')),
   execute,
+  meta: {
+    fields: () => {
+      const { characters } = SillyTavern.getContext();
+      const characterOptions = characters.map((c: any) => ({ value: c.avatar, label: c.name }));
+      return [
+        createFieldConfig({
+          id: 'characterAvatar',
+          label: 'Character',
+          component: STFancyDropdown,
+          props: {
+            items: characterOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          getValueFromEvent: (e: string[]) => e[0],
+          formatValue: (value) => [value ?? ''],
+        }),
+      ];
+    },
+  },
 };
 
 registrator.register(getCharacterNodeDefinition);

@@ -756,3 +756,7 @@
   padding-top: 5px;
   border-top: 1px solid var(--SmartThemeBorderColor);
 }
+
+.react-flow__node-simpledisplaynode .node-output-section {
+  border-top: 1px solid var(--SmartThemeBorderColor);
+}

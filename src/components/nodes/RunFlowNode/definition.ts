@@ -4,11 +4,16 @@ import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
-import { RunFlowNode } from './RunFlowNode.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 import { createDynamicOutputHandlesForSchema } from '../../../utils/handle-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { settingsManager } from '../../../config.js';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
 
 export const RunFlowNodeDataSchema = z.object({
   flowId: z.string().optional(),
@@ -51,7 +56,7 @@ export const runFlowNodeDefinition: NodeDefinition<RunFlowNodeData> = {
   type: 'runFlowNode',
   label: 'Run Flow',
   category: 'System',
-  component: RunFlowNode,
+  component: DataDrivenNode,
   dataSchema: RunFlowNodeDataSchema,
   currentVersion: 2,
   initialData: { flowId: '', parameters: '{}' },
@@ -79,6 +84,45 @@ export const runFlowNodeDefinition: NodeDefinition<RunFlowNodeData> = {
     const propertyHandles = createDynamicOutputHandlesForSchema(schema);
 
     return { inputs: [], outputs: [resultHandle, ...propertyHandles] };
+  },
+  meta: {
+    fields: () => {
+      const settings = settingsManager.getSettings();
+      const flowOptions = Object.values(settings.flows).map(({ id, name }) => ({ value: id, label: name }));
+
+      return [
+        createFieldConfig({
+          id: 'flowId',
+          label: 'Flow to Run',
+          component: STFancyDropdown,
+          props: {
+            items: flowOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          getValueFromEvent: (e: string[]) => e[0],
+          formatValue: (value: string) => [value ?? ''],
+        }),
+        createFieldConfig({
+          id: 'parameters',
+          label: 'Parameters (JSON)',
+          component: CodeMirror,
+          props: {
+            height: '100px',
+            extensions: [javascript({})],
+            width: '100%',
+            theme: 'dark',
+            style: { cursor: 'text', marginTop: '5px' },
+          },
+          customChangeHandler: (value: string, { nodeId, updateNodeData }) => {
+            updateNodeData(nodeId, { parameters: value });
+          },
+        }),
+      ];
+    },
   },
 };
 

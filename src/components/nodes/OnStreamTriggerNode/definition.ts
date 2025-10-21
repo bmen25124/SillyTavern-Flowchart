@@ -3,7 +3,7 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { OnStreamTriggerNode } from './OnStreamTriggerNode.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 
 export const OnStreamTriggerNodeDataSchema = z.object({
   _version: z.number().optional(),
@@ -19,7 +19,7 @@ export const onStreamTriggerNodeDefinition: NodeDefinition<OnStreamTriggerNodeDa
   type: 'onStreamTriggerNode',
   label: 'On Stream Trigger',
   category: 'Trigger',
-  component: OnStreamTriggerNode,
+  component: SimpleDisplayNode,
   dataSchema: OnStreamTriggerNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -31,6 +31,9 @@ export const onStreamTriggerNodeDefinition: NodeDefinition<OnStreamTriggerNodeDa
     ],
   },
   execute,
+  meta: {
+    description: 'Starts a flow for each token from an LLM stream.',
+  },
 };
 
 registrator.register(onStreamTriggerNodeDefinition);

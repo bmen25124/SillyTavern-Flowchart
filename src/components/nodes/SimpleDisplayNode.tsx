@@ -11,8 +11,12 @@ export const SimpleDisplayNode: FC<NodeProps<Node<any>>> = ({ id, selected, type
 
   return (
     <BaseNode id={id} title={definition.label} selected={selected}>
-      <NodeHandleRenderer nodeId={id} definition={definition} type="input" />
-      <div style={{ padding: '10px 0', textAlign: 'center', color: '#aaa' }}>{definition.meta?.description}</div>
+      {definition.handles.inputs.length > 0 && <NodeHandleRenderer nodeId={id} definition={definition} type="input" />}
+
+      {definition.meta?.description && (
+        <div style={{ padding: '10px 0', textAlign: 'center', color: '#aaa' }}>{definition.meta.description}</div>
+      )}
+
       {definition.handles.outputs.length > 0 && (
         <div className="node-output-section">
           <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
