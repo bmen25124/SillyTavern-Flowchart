@@ -121,7 +121,7 @@ export const PickerNode: FC<PickerNodeProps> = ({ id, selected, type }) => {
         multiple={false}
         items={options}
         inputClasses="nodrag"
-        containerClasses="nodrag"
+        containerClasses="nodrag nowheel"
         closeOnSelect={true}
         enableSearch={true}
       />
