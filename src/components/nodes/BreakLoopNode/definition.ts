@@ -3,7 +3,7 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { BreakLoopNode } from './BreakLoopNode.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 import { BREAK_LOOP_SENTINEL } from '../ForEachNode/definition.js';
 
 export const BreakLoopNodeDataSchema = z.object({
@@ -19,7 +19,7 @@ export const breakLoopNodeDefinition: NodeDefinition<BreakLoopNodeData> = {
   type: 'breakLoopNode',
   label: 'Break Loop',
   category: 'Logic',
-  component: BreakLoopNode,
+  component: SimpleDisplayNode,
   dataSchema: BreakLoopNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -28,6 +28,9 @@ export const breakLoopNodeDefinition: NodeDefinition<BreakLoopNodeData> = {
     outputs: [], // This is a terminal node within the sub-flow
   },
   execute,
+  meta: {
+    description: 'Stops the parent "For Each" loop.',
+  },
 };
 
 registrator.register(breakLoopNodeDefinition);

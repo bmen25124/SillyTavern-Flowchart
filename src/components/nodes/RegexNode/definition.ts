@@ -2,10 +2,13 @@ import { z } from 'zod';
 import { Node, Edge } from '@xyflow/react';
 import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { RegexNode } from './RegexNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
 
 export const RegexNodeDataSchema = z.object({
   mode: z.enum(['sillytavern', 'custom']).default('sillytavern'),
@@ -63,7 +66,7 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
   type: 'regexNode',
   label: 'Regex',
   category: 'Data Processing',
-  component: RegexNode,
+  component: AsyncDataDrivenNode,
   dataSchema: RegexNodeDataSchema,
   currentVersion: 1,
   initialData: { mode: 'sillytavern', findRegex: '', replaceString: '', scriptId: '' },
@@ -131,6 +134,67 @@ export const regexNodeDefinition: NodeDefinition<RegexNodeData> = {
   getSuggestionBlueprints: ({ direction }) => {
     if (direction !== 'inputs') return [];
     return [{ id: 'mode-custom', labelSuffix: '(Custom Mode)', dataOverrides: { mode: 'custom' } }];
+  },
+  meta: {
+    fields: async (data: RegexNodeData) => {
+      const mode = data?.mode ?? 'sillytavern';
+      const commonFields = [
+        createFieldConfig({
+          id: 'string',
+          label: 'Input String',
+          component: STTextarea,
+          props: { rows: 3 },
+        }),
+        createFieldConfig({
+          id: 'mode',
+          label: 'Mode',
+          component: STSelect,
+          options: [
+            { value: 'sillytavern', label: 'SillyTavern' },
+            { value: 'custom', label: 'Custom' },
+          ],
+        }),
+      ];
+
+      const allRegexes: RegexScriptData[] = SillyTavern.getContext().extensionSettings.regex ?? [];
+      const regexOptions = allRegexes.map((r) => ({ value: r.id, label: r.scriptName }));
+
+      const modeSpecificFields =
+        mode === 'sillytavern'
+          ? [
+              createFieldConfig({
+                id: 'scriptId',
+                label: 'Regex Script',
+                component: STFancyDropdown,
+                props: {
+                  items: regexOptions,
+                  multiple: false,
+                  inputClasses: 'nodrag',
+                  containerClasses: 'nodrag nowheel',
+                  closeOnSelect: true,
+                  enableSearch: true,
+                },
+                getValueFromEvent: (e: string[]) => e[0],
+                formatValue: (value: string) => [value ?? ''],
+              }),
+            ]
+          : [
+              createFieldConfig({
+                id: 'findRegex',
+                label: 'Find (Regex)',
+                component: STTextarea,
+                props: { rows: 2 },
+              }),
+              createFieldConfig({
+                id: 'replaceString',
+                label: 'Replace',
+                component: STTextarea,
+                props: { rows: 2 },
+              }),
+            ];
+
+      return [...commonFields, ...modeSpecificFields];
+    },
   },
 };
 

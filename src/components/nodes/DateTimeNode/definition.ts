@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { DateTimeNode } from './DateTimeNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const DateTimeNodeDataSchema = z.object({
   format: z.string().optional(),
@@ -66,7 +68,7 @@ export const dateTimeNodeDefinition: NodeDefinition<DateTimeNodeData> = {
   type: 'dateTimeNode',
   label: 'Date/Time',
   category: 'Utility',
-  component: DateTimeNode,
+  component: DataDrivenNode,
   dataSchema: DateTimeNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -89,6 +91,16 @@ export const dateTimeNodeDefinition: NodeDefinition<DateTimeNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'format',
+        label: 'Format (Optional)',
+        component: STInput,
+        props: { placeholder: 'Default: ISO String', type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(dateTimeNodeDefinition);

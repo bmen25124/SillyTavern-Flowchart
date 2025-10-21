@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { GetChatMessageNode } from './GetChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const GetChatMessageNodeDataSchema = z.object({
   messageId: z.string().default('last'),
@@ -57,7 +59,7 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
   type: 'getChatMessageNode',
   label: 'Get Chat Message',
   category: 'Chat',
-  component: GetChatMessageNode,
+  component: DataDrivenNode,
   dataSchema: GetChatMessageNodeDataSchema,
   currentVersion: 1,
   initialData: { messageId: 'last' },
@@ -78,6 +80,16 @@ export const getChatMessageNodeDefinition: NodeDefinition<GetChatMessageNodeData
   },
   validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'messageId',
+        label: 'Message ID (e.g., last, first, 123)',
+        component: STInput,
+        props: { placeholder: 'last', type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(getChatMessageNodeDefinition);

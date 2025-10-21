@@ -39,13 +39,7 @@ export const StringToolsNode: FC<StringToolsNodeProps> = ({ id, selected, type }
         id: 'operation',
         label: 'Operation',
         component: STSelect,
-        props: {
-          children: allOperations.map((op) => (
-            <option key={op} value={op}>
-              {op}
-            </option>
-          )),
-        },
+        options: allOperations.map((op) => ({ value: op, label: op })),
       }),
     ];
 

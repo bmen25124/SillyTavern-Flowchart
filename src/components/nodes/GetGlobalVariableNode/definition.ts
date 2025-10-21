@@ -1,13 +1,15 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { GetGlobalVariableNode } from './GetGlobalVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const GetGlobalVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
@@ -37,7 +39,7 @@ export const getGlobalVariableNodeDefinition: NodeDefinition<GetGlobalVariableNo
   type: 'getGlobalVariableNode',
   label: 'Get Global Variable',
   category: 'Variables',
-  component: GetGlobalVariableNode,
+  component: DataDrivenNode,
   dataSchema: GetGlobalVariableNodeDataSchema,
   currentVersion: 2,
   initialData: { variableName: 'globalVar', defaultValue: undefined },
@@ -62,6 +64,16 @@ export const getGlobalVariableNodeDefinition: NodeDefinition<GetGlobalVariableNo
       inputs: [{ id: 'defaultValue', type: flowType, schema }],
       outputs: [{ id: 'value', type: flowType, schema }],
     };
+  },
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'variableName',
+        label: 'Variable Name',
+        component: STInput,
+        props: { type: 'text' },
+      }),
+    ],
   },
 };
 

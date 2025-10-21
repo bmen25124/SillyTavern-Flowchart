@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { CreateMessagesNode } from './CreateMessagesNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
+import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
+import React from 'react';
 
 export const CreateMessagesNodeDataSchema = z.object({
   profileId: z.string().optional(),
@@ -39,7 +43,7 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
   type: 'createMessagesNode',
   label: 'Create Messages',
   category: 'API Request',
-  component: CreateMessagesNode,
+  component: DataDrivenNode,
   dataSchema: CreateMessagesNodeDataSchema,
   currentVersion: 1,
   initialData: {
@@ -65,6 +69,61 @@ export const createMessagesNodeDefinition: NodeDefinition<CreateMessagesNodeData
   },
   validate: combineValidators(createRequiredFieldValidator('profileId', 'Connection Profile is required.')),
   execute,
+  meta: {
+    fields: (data: CreateMessagesNodeData) => [
+      createFieldConfig({
+        id: 'profileId',
+        label: 'Connection Profile',
+        component: STConnectionProfileSelect,
+        props: {
+          initialSelectedProfileId: data?.profileId,
+        },
+        customChangeHandler: (
+          profile: ConnectionProfile | undefined,
+          { nodeId, updateNodeData }: { nodeId: string; updateNodeData: (id: string, data: object) => void },
+        ) => {
+          updateNodeData(nodeId, { profileId: profile?.id || '' });
+        },
+      }),
+      createFieldConfig({
+        id: 'startMessageId',
+        label: 'Start Message ID (Optional)',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value === '' ? undefined : Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'endMessageId',
+        label: 'End Message ID (Optional)',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value === '' ? undefined : Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'ignoreCharacterFields',
+        label: 'Ignore Character Fields',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+      createFieldConfig({
+        id: 'ignoreAuthorNote',
+        label: 'Ignore Author Note',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+      createFieldConfig({
+        id: 'ignoreWorldInfo',
+        label: 'Ignore World Info',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+    ],
+  },
 };
 
 registrator.register(createMessagesNodeDefinition);

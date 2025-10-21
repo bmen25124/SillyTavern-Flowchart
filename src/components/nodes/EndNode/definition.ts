@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { EndNode } from './EndNode.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 import { FlowDataType } from '../../../flow-types.js';
 
 export const END_NODE_SENTINEL = Symbol('FlowTerminationSentinel');
@@ -20,7 +20,7 @@ export const endNodeDefinition: NodeDefinition<EndNodeData> = {
   type: 'endNode',
   label: 'End Flow',
   category: 'Logic',
-  component: EndNode,
+  component: SimpleDisplayNode,
   dataSchema: EndNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -29,6 +29,9 @@ export const endNodeDefinition: NodeDefinition<EndNodeData> = {
     outputs: [],
   },
   execute,
+  meta: {
+    description: 'Execution stops here.',
+  },
 };
 
 registrator.register(endNodeDefinition);

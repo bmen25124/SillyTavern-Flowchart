@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { SetGlobalVariableNode } from './SetGlobalVariableNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
@@ -10,6 +9,9 @@ import {
   createRequiredConnectionValidator,
   createRequiredFieldValidator,
 } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
 
 export const SetGlobalVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),
@@ -33,7 +35,7 @@ export const setGlobalVariableNodeDefinition: NodeDefinition<SetGlobalVariableNo
   type: 'setGlobalVariableNode',
   label: 'Set Global Variable',
   category: 'Variables',
-  component: SetGlobalVariableNode,
+  component: DataDrivenNode,
   dataSchema: SetGlobalVariableNodeDataSchema,
   currentVersion: 1,
   initialData: { variableName: 'globalVar' },
@@ -50,6 +52,16 @@ export const setGlobalVariableNodeDefinition: NodeDefinition<SetGlobalVariableNo
     createRequiredConnectionValidator('value', 'A value must be connected to set.'),
   ),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'variableName',
+        label: 'Variable Name',
+        component: STInput,
+        props: { type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(setGlobalVariableNodeDefinition);

@@ -4,8 +4,10 @@ import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
-import { PromptUserNode } from './PromptUserNode.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
 
 export const PromptUserNodeDataSchema = z.object({
   message: z.string().optional(),
@@ -31,7 +33,7 @@ export const promptUserNodeDefinition: NodeDefinition<PromptUserNodeData> = {
   type: 'promptUserNode',
   label: 'Prompt User',
   category: 'User Interaction',
-  component: PromptUserNode,
+  component: DataDrivenNode,
   dataSchema: PromptUserNodeDataSchema,
   currentVersion: 1,
   initialData: { message: 'Please enter a value:' },
@@ -48,6 +50,22 @@ export const promptUserNodeDefinition: NodeDefinition<PromptUserNodeData> = {
   },
   validate: combineValidators(createRequiredFieldValidator('message', 'Message is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'message',
+        label: 'Prompt Message',
+        component: STTextarea,
+        props: { rows: 3 },
+      }),
+      createFieldConfig({
+        id: 'defaultValue',
+        label: 'Default Value (Optional)',
+        component: STInput,
+        props: { type: 'text' },
+      }),
+    ],
+  },
 };
 
 registrator.register(promptUserNodeDefinition);

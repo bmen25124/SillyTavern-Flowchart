@@ -5,6 +5,7 @@ import { FlowDataType } from '../../../flow-types.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { SpecNode } from '../../../flow-spec.js';
 import type { FlowRunner } from '../../../FlowRunner.js';
+import { FieldConfig } from '../fieldConfig.js';
 
 export interface ValidationIssue {
   fieldId?: string; // The ID of the field/handle that is invalid.
@@ -68,7 +69,15 @@ export interface NodeDefinition<T extends Node<Record<string, unknown>, string |
    * Optional metadata that can be attached to the definition.
    * Useful for storing static data that the node's component might need.
    */
-  meta?: Record<string, any>;
+  meta?: {
+    fields?:
+      | FieldConfig[]
+      | ((data: T) => FieldConfig[])
+      | ((data: T) => Promise<FieldConfig[]>)
+      | (() => Promise<FieldConfig[]>);
+    description?: string;
+    [key: string]: any;
+  };
   /**
    * Optional function to perform semantic validation on the node's data and connections.
    * @returns An array of validation issues. An empty array means the node is valid.

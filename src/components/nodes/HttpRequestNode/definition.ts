@@ -5,7 +5,11 @@ import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
-import { HttpRequestNode } from './HttpRequestNode.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
 
 export const HttpRequestNodeDataSchema = z.object({
   url: z.string().optional(),
@@ -97,7 +101,7 @@ export const httpRequestNodeDefinition: NodeDefinition<HttpRequestNodeData> = {
   type: 'httpRequestNode',
   label: 'HTTP Request',
   category: 'System',
-  component: HttpRequestNode,
+  component: DataDrivenNode,
   dataSchema: HttpRequestNodeDataSchema,
   currentVersion: 1,
   initialData: { method: 'GET', url: 'https://api.example.com/data', headers: '{}', body: '{}' },
@@ -119,6 +123,47 @@ export const httpRequestNodeDefinition: NodeDefinition<HttpRequestNodeData> = {
   },
   validate: combineValidators(createRequiredFieldValidator('url', 'URL is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({ id: 'url', label: 'URL', component: STInput, props: { type: 'text' } }),
+      createFieldConfig({
+        id: 'method',
+        label: 'Method',
+        component: STSelect,
+        options: [
+          { value: 'GET', label: 'GET' },
+          { value: 'POST', label: 'POST' },
+          { value: 'PUT', label: 'PUT' },
+          { value: 'PATCH', label: 'PATCH' },
+          { value: 'DELETE', label: 'DELETE' },
+        ],
+      }),
+      createFieldConfig({
+        id: 'headers',
+        label: 'Headers (JSON)',
+        component: CodeMirror,
+        props: {
+          height: '100px',
+          extensions: [javascript({})],
+          theme: 'dark',
+          style: { cursor: 'text', marginTop: '5px' },
+        },
+        customChangeHandler: (value: string, { nodeId, updateNodeData }) => updateNodeData(nodeId, { headers: value }),
+      }),
+      createFieldConfig({
+        id: 'body',
+        label: 'Body (JSON)',
+        component: CodeMirror,
+        props: {
+          height: '100px',
+          extensions: [javascript({})],
+          theme: 'dark',
+          style: { cursor: 'text', marginTop: '5px' },
+        },
+        customChangeHandler: (value: string, { nodeId, updateNodeData }) => updateNodeData(nodeId, { body: value }),
+      }),
+    ],
+  },
 };
 
 registrator.register(httpRequestNodeDefinition);

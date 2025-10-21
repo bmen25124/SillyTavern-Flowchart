@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { EditCharacterNode } from './EditCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown, STTextarea } from 'sillytavern-utils-lib/components';
+import { DataDrivenNode } from '../DataDrivenNode.js';
 
 const CharacterFieldsSchema = {
   description: z.string().optional(),
@@ -84,7 +86,7 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
   type: 'editCharacterNode',
   label: 'Edit Character',
   category: 'Character',
-  component: EditCharacterNode,
+  component: DataDrivenNode,
   dataSchema: EditCharacterNodeDataSchema,
   currentVersion: 2,
   initialData: { characterAvatar: '' },
@@ -112,6 +114,60 @@ export const editCharacterNodeDefinition: NodeDefinition<EditCharacterNodeData> 
   },
   validate: combineValidators(createRequiredFieldValidator('characterAvatar', 'Character to Edit is required.')),
   execute,
+  meta: {
+    fields: () => {
+      const { characters } = SillyTavern.getContext();
+      const characterOptions = characters.map((c: any) => ({ value: c.avatar, label: c.name }));
+
+      return [
+        createFieldConfig({
+          id: 'characterAvatar',
+          label: 'Character to Edit',
+          component: STFancyDropdown,
+          props: {
+            items: characterOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          getValueFromEvent: (e: string[]) => e[0],
+          formatValue: (value: string) => [value ?? ''],
+        }),
+        createFieldConfig({
+          id: 'description',
+          label: 'Description',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'first_mes',
+          label: 'First Message',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'scenario',
+          label: 'Scenario',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'personality',
+          label: 'Personality',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'mes_example',
+          label: 'Message Examples',
+          component: STTextarea,
+          props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+      ];
+    },
+  },
 };
 
 registrator.register(editCharacterNodeDefinition);

@@ -2,10 +2,13 @@ import { z } from 'zod';
 import { Node, Edge } from '@xyflow/react';
 import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { RandomNode } from './RandomNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const RandomNodeDataSchema = z.object({
   mode: z.enum(['number', 'array']).optional(),
@@ -37,7 +40,7 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
   type: 'randomNode',
   label: 'Random',
   category: 'Math & Logic',
-  component: RandomNode,
+  component: DataDrivenNode,
   dataSchema: RandomNodeDataSchema,
   currentVersion: 1,
   initialData: { mode: 'number', min: 0, max: 100 },
@@ -81,6 +84,42 @@ export const randomNodeDefinition: NodeDefinition<RandomNodeData> = {
   getSuggestionBlueprints: ({ direction }) => {
     if (direction !== 'inputs' && direction !== 'outputs') return [];
     return [{ id: 'mode-array', labelSuffix: '(Array Mode)', dataOverrides: { mode: 'array' } }];
+  },
+  meta: {
+    fields: (data: RandomNodeData) => {
+      const mode = data?.mode ?? 'number';
+      const baseFields = [
+        createFieldConfig({
+          id: 'mode',
+          label: 'Mode',
+          component: STSelect,
+          options: [
+            { value: 'number', label: 'Number' },
+            { value: 'array', label: 'From Array' },
+          ],
+        }),
+      ];
+
+      if (mode === 'number') {
+        baseFields.push(
+          createFieldConfig({
+            id: 'min',
+            label: 'Min',
+            component: STInput,
+            props: { type: 'number' },
+            getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+          }),
+          createFieldConfig({
+            id: 'max',
+            label: 'Max',
+            component: STInput,
+            props: { type: 'number' },
+            getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+          }),
+        );
+      }
+      return baseFields;
+    },
   },
 };
 

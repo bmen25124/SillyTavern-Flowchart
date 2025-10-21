@@ -99,6 +99,19 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
             ...fieldConfig.props,
           };
 
+          // If the field config has an `options` array, render them as <option> elements.
+          if (fieldConfig.options) {
+            componentProps.children = (
+              <>
+                {fieldConfig.options.map((opt) => (
+                  <option key={String(opt.value)} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </>
+            );
+          }
+
           if (fieldConfig.props?.type === 'checkbox') {
             componentProps.checked = data[fieldConfig.id] ?? false;
           } else {

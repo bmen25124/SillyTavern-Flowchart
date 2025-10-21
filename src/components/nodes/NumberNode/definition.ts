@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { NumberNode } from './NumberNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const NumberNodeDataSchema = z.object({
   value: z.number(),
@@ -22,7 +25,7 @@ export const numberNodeDefinition: NodeDefinition<NumberNodeData> = {
   type: 'numberNode',
   label: 'Number',
   category: 'Input',
-  component: NumberNode,
+  component: DataDrivenNode,
   dataSchema: NumberNodeDataSchema,
   currentVersion: 1,
   initialData: { value: 123 },
@@ -37,6 +40,18 @@ export const numberNodeDefinition: NodeDefinition<NumberNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'value',
+        label: 'Value',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value === '' ? 0 : Number(e.target.value),
+      }),
+    ],
+  },
 };
 
 registrator.register(numberNodeDefinition);

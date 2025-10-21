@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { GetPromptNode } from './GetPromptNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { settingsManager } from '../../../config.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components';
 
 export const GetPromptNodeDataSchema = z.object({
   promptName: z.string().optional(),
@@ -31,7 +33,7 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
   type: 'getPromptNode',
   label: 'Get Prompt',
   category: 'User Interaction',
-  component: GetPromptNode,
+  component: DataDrivenNode,
   dataSchema: GetPromptNodeDataSchema,
   currentVersion: 1,
   initialData: { promptName: '' },
@@ -47,6 +49,30 @@ export const getPromptNodeDefinition: NodeDefinition<GetPromptNodeData> = {
   },
   validate: combineValidators(createRequiredFieldValidator('promptName', 'Prompt Name is required.')),
   execute,
+  meta: {
+    fields: () => {
+      const prompts = settingsManager.getSettings().prompts;
+      const promptOptions = Object.keys(prompts).map((name) => ({ value: name, label: name }));
+
+      return [
+        createFieldConfig({
+          id: 'promptName',
+          label: 'Prompt Name',
+          component: STFancyDropdown,
+          props: {
+            items: promptOptions,
+            multiple: false,
+            inputClasses: 'nodrag',
+            containerClasses: 'nodrag nowheel',
+            closeOnSelect: true,
+            enableSearch: true,
+          },
+          getValueFromEvent: (e: string[]) => e[0],
+          formatValue: (value) => [value ?? ''],
+        }),
+      ];
+    },
+  },
 };
 
 registrator.register(getPromptNodeDefinition);

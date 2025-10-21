@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { ProfileIdNode } from './ProfileIdNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STConnectionProfileSelect } from 'sillytavern-utils-lib/components';
+import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 
 export const ProfileIdNodeDataSchema = z.object({
   profileId: z.string().default(''),
@@ -27,7 +30,7 @@ export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {
   type: 'profileIdNode',
   label: 'Profile ID',
   category: 'Input',
-  component: ProfileIdNode,
+  component: DataDrivenNode,
   dataSchema: ProfileIdNodeDataSchema,
   currentVersion: 1,
   initialData: { profileId: '' },
@@ -42,6 +45,24 @@ export const profileIdNodeDefinition: NodeDefinition<ProfileIdNodeData> = {
     ],
   },
   execute,
+  meta: {
+    fields: (data: ProfileIdNodeData) => [
+      createFieldConfig({
+        id: 'profileId',
+        label: 'Connection Profile',
+        component: STConnectionProfileSelect,
+        props: {
+          initialSelectedProfileId: data?.profileId,
+        },
+        customChangeHandler: (
+          profile: ConnectionProfile | undefined,
+          { nodeId, updateNodeData }: { nodeId: string; updateNodeData: (id: string, data: object) => void },
+        ) => {
+          updateNodeData(nodeId, { profileId: profile?.id || '' });
+        },
+      }),
+    ],
+  },
 };
 
 registrator.register(profileIdNodeDefinition);

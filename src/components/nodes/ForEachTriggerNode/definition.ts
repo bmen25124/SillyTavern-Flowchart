@@ -3,9 +3,9 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { ForEachTriggerNode } from './ForEachTriggerNode.js';
 import { resolveSchemaFromHandle } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 
 export const ForEachTriggerNodeDataSchema = z.object({
   _version: z.number().optional(),
@@ -21,7 +21,7 @@ export const forEachTriggerNodeDefinition: NodeDefinition<ForEachTriggerNodeData
   type: 'forEachTriggerNode',
   label: 'For Each Trigger',
   category: 'Trigger',
-  component: ForEachTriggerNode,
+  component: SimpleDisplayNode,
   dataSchema: ForEachTriggerNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -48,6 +48,9 @@ export const forEachTriggerNodeDefinition: NodeDefinition<ForEachTriggerNodeData
         { id: 'index', type: FlowDataType.NUMBER, label: 'Index' },
       ],
     };
+  },
+  meta: {
+    description: 'Connect a Schema to provide a strong type for the `item` output.',
   },
 };
 

@@ -3,7 +3,7 @@ import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { GetChatInputNode } from './GetChatInputNode.js';
+import { SimpleDisplayNode } from '../SimpleDisplayNode.js';
 
 export const GetChatInputNodeDataSchema = z.object({
   _version: z.number().optional(),
@@ -19,7 +19,7 @@ export const getChatInputNodeDefinition: NodeDefinition<GetChatInputNodeData> = 
   type: 'getChatInputNode',
   label: 'Get Chat Input',
   category: 'Chat',
-  component: GetChatInputNode,
+  component: SimpleDisplayNode,
   dataSchema: GetChatInputNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -31,6 +31,9 @@ export const getChatInputNodeDefinition: NodeDefinition<GetChatInputNodeData> = 
     ],
   },
   execute,
+  meta: {
+    description: 'Outputs current input text.',
+  },
 };
 
 registrator.register(getChatInputNodeDefinition);

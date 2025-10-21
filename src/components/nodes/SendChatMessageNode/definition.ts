@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { SendChatMessageNode } from './SendChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 
 export const SendChatMessageNodeDataSchema = z.object({
   message: z.string().optional(),
@@ -33,7 +35,7 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
   type: 'sendChatMessageNode',
   label: 'Send Chat Message',
   category: 'Chat',
-  component: SendChatMessageNode,
+  component: DataDrivenNode,
   dataSchema: SendChatMessageNodeDataSchema,
   currentVersion: 1,
   initialData: { message: '', role: 'assistant' },
@@ -51,6 +53,22 @@ export const sendChatMessageNodeDefinition: NodeDefinition<SendChatMessageNodeDa
   },
   validate: combineValidators(createRequiredFieldValidator('message', 'Message Content is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({ id: 'message', label: 'Message Content', component: STTextarea, props: { rows: 3 } }),
+      createFieldConfig({
+        id: 'role',
+        label: 'Role',
+        component: STSelect,
+        options: [
+          { value: 'assistant', label: 'Assistant' },
+          { value: 'user', label: 'User' },
+          { value: 'system', label: 'System' },
+        ],
+      }),
+      createFieldConfig({ id: 'name', label: 'Name (Optional)', component: STInput, props: { type: 'text' } }),
+    ],
+  },
 };
 
 registrator.register(sendChatMessageNodeDefinition);

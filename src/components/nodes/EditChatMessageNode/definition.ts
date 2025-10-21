@@ -1,12 +1,15 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { EditChatMessageNode } from './EditChatMessageNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { ChatMessageSchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import React from 'react';
 
 export const EditChatMessageNodeDataSchema = z.object({
   messageId: z.number().optional(),
@@ -64,7 +67,7 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
   type: 'editChatMessageNode',
   label: 'Edit Chat Message',
   category: 'Chat',
-  component: EditChatMessageNode,
+  component: DataDrivenNode,
   dataSchema: EditChatMessageNodeDataSchema,
   currentVersion: 1,
   initialData: {},
@@ -84,6 +87,36 @@ export const editChatMessageNodeDefinition: NodeDefinition<EditChatMessageNodeDa
   },
   validate: combineValidators(createRequiredFieldValidator('messageId', 'Message ID is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'messageId',
+        label: 'Message ID',
+        component: STInput,
+        props: { type: 'number' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => Number(e.target.value),
+      }),
+      createFieldConfig({
+        id: 'message',
+        label: 'New Message Content',
+        component: STTextarea,
+        props: { rows: 2, placeholder: '(Optional) Leave blank to not change.' },
+      }),
+      createFieldConfig({
+        id: 'displayText',
+        label: 'Display Text',
+        component: STTextarea,
+        props: { rows: 2, placeholder: '(Optional) Overrides display text.' },
+      }),
+      createFieldConfig({
+        id: 'removeDisplayText',
+        label: 'Remove Display Text',
+        component: STInput,
+        props: { type: 'checkbox' },
+        getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
+      }),
+    ],
+  },
 };
 
 registrator.register(editChatMessageNodeDefinition);

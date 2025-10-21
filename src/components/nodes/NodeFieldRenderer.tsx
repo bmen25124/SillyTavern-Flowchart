@@ -46,6 +46,19 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
             ...field.props,
           };
 
+          // If the field config has an `options` array, render them as <option> elements.
+          if (field.options && componentProps.children === undefined) {
+            componentProps.children = (
+              <>
+                {field.options.map((opt) => (
+                  <option key={String(opt.value)} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </>
+            );
+          }
+
           // Handle 'checked' for checkboxes vs 'value' for other inputs.
           if (field.props?.type === 'checkbox') {
             componentProps.checked = data[field.id] ?? false;

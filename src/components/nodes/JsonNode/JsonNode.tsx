@@ -1,5 +1,5 @@
-import React, { FC, useMemo } from 'react';
-import { NodeProps, Node, Handle, Position, useEdges } from '@xyflow/react';
+import React, { FC } from 'react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { JsonNodeData, JsonNodeItem } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
@@ -9,6 +9,7 @@ import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { generateUUID } from '../../../utils/uuid.js';
 import { updateNested } from '../../../utils/nested-logic.js';
 import { FlowDataType, FlowDataTypeColors } from '../../../flow-types.js';
+import { useConnectedHandles } from '../../../hooks/useConnectedHandles.js';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -20,12 +21,9 @@ const JsonItemEditor: FC<{
   onUpdate: (path: number[], data: Partial<JsonNodeItem> | { value: any }) => void;
   onRemove: (path: number[]) => void;
   onAddChild: (path: number[]) => void;
-}> = ({ nodeId, item, path, parentType, onUpdate, onRemove, onAddChild }) => {
-  const allEdges = useEdges();
-  const isValueConnected = useMemo(
-    () => allEdges.some((edge) => edge.target === nodeId && edge.targetHandle === item.id),
-    [allEdges, nodeId, item.id],
-  );
+  connectedHandles: Set<string>;
+}> = ({ nodeId, item, path, parentType, onUpdate, onRemove, onAddChild, connectedHandles }) => {
+  const isValueConnected = connectedHandles.has(item.id);
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as JsonNodeItem['type'];
@@ -137,6 +135,7 @@ const JsonItemEditor: FC<{
               onUpdate={onUpdate}
               onRemove={onRemove}
               onAddChild={onAddChild}
+              connectedHandles={connectedHandles}
             />
           ))}
           <STButton onClick={() => onAddChild(path)} style={{ marginTop: '5px' }}>
@@ -152,6 +151,7 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as JsonNodeData;
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
+  const connectedHandles = useConnectedHandles(id);
 
   if (!data || !definition) return null;
 
@@ -211,12 +211,13 @@ export const JsonNode: FC<JsonNodeProps> = ({ id, selected, type }) => {
           onUpdate={handleUpdate}
           onRemove={handleRemove}
           onAddChild={handleAddChild}
+          connectedHandles={connectedHandles}
         />
       ))}
       <STButton className="nodrag" onClick={addRootItem} style={{ marginTop: '10px' }}>
         Add {data.rootType === 'object' ? 'Property' : 'Item'}
       </STButton>
-      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+      <div className="node-output-section">
         <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>
     </BaseNode>

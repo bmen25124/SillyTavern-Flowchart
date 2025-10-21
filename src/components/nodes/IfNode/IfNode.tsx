@@ -8,13 +8,13 @@ import { BaseNode } from '../BaseNode.js';
 import { IfNodeData, Condition, OPERATORS, Operator } from './definition.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { z } from 'zod';
-import { useIsConnected } from '../../../hooks/useIsConnected.js';
 import { schemaToText, flattenZodSchema } from '../../../utils/schema-inspector.js';
 import { ComboBoxInput } from '../../popup/ComboBoxInput.js';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { generateUUID } from '../../../utils/uuid.js';
+import { useConnectedHandles } from '../../../hooks/useConnectedHandles.js';
 
 const UNARY_OPERATORS: Operator[] = ['is_empty', 'is_not_empty'];
 
@@ -26,18 +26,22 @@ const ConditionEditor: FC<{
   isOnlyCondition: boolean;
   isInputAnObject: boolean;
   availableProperties: string[];
-}> = ({ nodeId, condition, onUpdate, onRemove, isOnlyCondition, isInputAnObject, availableProperties }) => {
-  const isValueConnected = useIsConnected(nodeId, `value_${condition.id}`);
+  connectedHandles: Set<string>;
+}> = ({
+  nodeId,
+  condition,
+  onUpdate,
+  onRemove,
+  isOnlyCondition,
+  isInputAnObject,
+  availableProperties,
+  connectedHandles,
+}) => {
+  const isValueConnected = connectedHandles.has(`value_${condition.id}`);
   const showValueInput = !UNARY_OPERATORS.includes(condition.operator);
 
   const toggleMode = () => {
-    if (condition.mode === 'advanced') {
-      onUpdate({
-        mode: 'simple',
-      });
-    } else {
-      onUpdate({ mode: 'advanced' });
-    }
+    onUpdate({ mode: condition.mode === 'simple' ? 'advanced' : 'simple' });
   };
 
   return (
@@ -136,6 +140,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected, type }) 
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
   const inputSchema = useInputSchema(id, 'value');
+  const connectedHandles = useConnectedHandles(id);
 
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
   const availableProperties = useMemo(() => {
@@ -198,6 +203,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected, type }) 
               isOnlyCondition={data.conditions.length === 1}
               isInputAnObject={isInputAnObject}
               availableProperties={availableProperties}
+              connectedHandles={connectedHandles}
             />
           </div>
         ))}
@@ -212,7 +218,7 @@ export const IfNode: FC<NodeProps<Node<IfNodeData>>> = ({ id, selected, type }) 
           </details>
         )}
 
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #555' }}>
+        <div className="node-output-section">
           <NodeHandleRenderer
             nodeId={id}
             definition={definition}

@@ -5,9 +5,11 @@ import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
-import { NotificationNode } from './NotificationNode.js';
 import { notify } from '../../../utils/notify.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 
 const NotificationTypeSchema = z.enum(['info', 'success', 'error', 'warning']);
 
@@ -39,7 +41,7 @@ export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = 
   type: 'notificationNode',
   label: 'Notification',
   category: 'User Interaction',
-  component: NotificationNode,
+  component: DataDrivenNode,
   dataSchema: NotificationNodeDataSchema,
   currentVersion: 1,
   initialData: { message: 'Hello!', notificationType: 'info' },
@@ -53,6 +55,27 @@ export const notificationNodeDefinition: NodeDefinition<NotificationNodeData> = 
   },
   validate: combineValidators(createRequiredFieldValidator('message', 'Message is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({
+        id: 'message',
+        label: 'Message',
+        component: STTextarea,
+        props: { rows: 3 },
+      }),
+      createFieldConfig({
+        id: 'notificationType',
+        label: 'Type',
+        component: STSelect,
+        options: [
+          { value: 'info', label: 'Info' },
+          { value: 'success', label: 'Success' },
+          { value: 'warning', label: 'Warning' },
+          { value: 'error', label: 'Error' },
+        ],
+      }),
+    ],
+  },
 };
 
 registrator.register(notificationNodeDefinition);

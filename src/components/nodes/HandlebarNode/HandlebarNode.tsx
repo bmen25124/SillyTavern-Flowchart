@@ -3,24 +3,14 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { HandlebarNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STTextarea } from 'sillytavern-utils-lib/components';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
-import { createFieldConfig } from '../fieldConfig.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
 import { schemaToText } from '../../../utils/schema-inspector.js';
 import { z } from 'zod';
 import { registrator } from '../autogen-imports.js';
+import { FieldConfig } from '../fieldConfig.js';
 
 export type HandlebarNodeProps = NodeProps<Node<HandlebarNodeData>>;
-
-const fields = [
-  createFieldConfig({
-    id: 'template',
-    label: 'Template',
-    component: STTextarea,
-    props: { rows: 4 },
-  }),
-];
 
 export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) => {
   const data = useFlowStore((state) => state.nodesMap.get(id)?.data) as HandlebarNodeData;
@@ -30,6 +20,9 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
   const isInputAnObject = useMemo(() => inputSchema instanceof z.ZodObject, [inputSchema]);
 
   if (!data || !definition) return null;
+
+  // Resolve fields from definition - this one is always synchronous.
+  const fields = (definition.meta?.fields as FieldConfig[]) ?? [];
 
   return (
     <BaseNode id={id} title="Handlebar Template" selected={selected}>
@@ -60,7 +53,7 @@ export const HandlebarNode: FC<HandlebarNodeProps> = ({ id, selected, type }) =>
           </div>
         )}
       </div>
-      <div style={{ marginTop: '10px', paddingTop: '5px', borderTop: '1px solid #555' }}>
+      <div className="node-output-section">
         <NodeHandleRenderer nodeId={id} definition={definition} type="output" />
       </div>
     </BaseNode>

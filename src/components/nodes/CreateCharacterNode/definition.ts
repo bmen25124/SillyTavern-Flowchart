@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
-import { CreateCharacterNode } from './CreateCharacterNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { FullExportData } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
+import { DataDrivenNode } from '../DataDrivenNode.js';
+import { createFieldConfig } from '../fieldConfig.js';
+import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
 
 const CharacterFieldsSchema = {
   name: z.string().optional(),
@@ -55,7 +57,7 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
   type: 'createCharacterNode',
   label: 'Create Character',
   category: 'Character',
-  component: CreateCharacterNode,
+  component: DataDrivenNode,
   dataSchema: CreateCharacterNodeDataSchema,
   currentVersion: 1,
   initialData: { name: 'New Character' },
@@ -77,6 +79,17 @@ export const createCharacterNodeDefinition: NodeDefinition<CreateCharacterNodeDa
   },
   validate: combineValidators(createRequiredFieldValidator('name', 'Name is required.')),
   execute,
+  meta: {
+    fields: [
+      createFieldConfig({ id: 'name', label: 'Name', component: STInput, props: { type: 'text' } }),
+      createFieldConfig({ id: 'description', label: 'Description', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({ id: 'first_mes', label: 'First Message', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({ id: 'scenario', label: 'Scenario', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({ id: 'personality', label: 'Personality', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({ id: 'mes_example', label: 'Message Examples', component: STTextarea, props: { rows: 2 } }),
+      createFieldConfig({ id: 'tags', label: 'Tags (comma-separated)', component: STInput, props: { type: 'text' } }),
+    ],
+  },
 };
 
 registrator.register(createCharacterNodeDefinition);

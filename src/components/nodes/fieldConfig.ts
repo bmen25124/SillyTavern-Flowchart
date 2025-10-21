@@ -8,6 +8,7 @@ export interface FieldConfig {
   label: string;
   component: React.ComponentType<any>;
   props?: Record<string, any>;
+  options?: { value: any; label: string }[]; // Added for select-like components
   getValueFromEvent?: (event: any) => any;
   customChangeHandler?: (
     event: any,
