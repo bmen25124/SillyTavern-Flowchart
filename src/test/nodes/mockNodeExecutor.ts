@@ -41,6 +41,7 @@ export const createMockContext = (
   executionVariables: new Map<string, any>(),
   depth: 0,
   executionPath: [],
+  runId: 'test-run-id',
   ...overrides,
 });
 

@@ -13,9 +13,9 @@ import './styles/main.scss';
 import '@xyflow/react/dist/style.css';
 
 if (!Handlebars.helpers['slice']) {
-  Handlebars.registerHelper('slice', function (context, count) {
+  Handlebars.registerHelper('slice', function (context, start, end) {
     if (!Array.isArray(context)) return [];
-    return context.slice(count);
+    return context.slice(start, end + 1);
   });
 }
 

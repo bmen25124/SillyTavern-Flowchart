@@ -54,6 +54,7 @@ export interface FlowRunnerDependencies {
     initialInput: Record<string, any>,
     depth: number,
     executionPath: string[],
+    runId: string,
   ) => Promise<ExecutionReport>;
   getChatInputValue: () => string;
   updateChatInputValue: (value: string) => void;
@@ -62,6 +63,7 @@ export interface FlowRunnerDependencies {
 }
 
 export type NodeExecutorContext = {
+  runId: string;
   flow: SpecFlow;
   dependencies: FlowRunnerDependencies;
   executionVariables: Map<string, any>;

@@ -155,8 +155,17 @@ export class FlowRunner {
       st_setGlobalVariable: (name, value) => st_setGlobalVariable(name, value),
       st_getGlobalVariable: (name) => st_getGlobalVariable(name),
       executeSlashCommandsWithOptions: (text) => SillyTavern.getContext().executeSlashCommandsWithOptions(text),
-      executeSubFlow: (flowId, initialInput, depth, executionPath) =>
-        this.executeFlow(flowId, initialInput, depth, {}, executionPath),
+      executeSubFlow: async (flowId, initialInput, depth, executionPath, runId) => {
+        const parentFlowId = this.currentlyExecutingFlowId;
+        eventEmitter.emit('subflow:run:start', { subFlowId: flowId, parentFlowId });
+
+        try {
+          const report = await this._executeFlowInternal(flowId, initialInput, depth, {}, executionPath, runId);
+          return report;
+        } finally {
+          eventEmitter.emit('subflow:run:end', { subFlowId: flowId, parentFlowId });
+        }
+      },
       getChatInputValue: () => {
         const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
         return textarea ? textarea.value : '';
@@ -408,6 +417,7 @@ export class FlowRunner {
     depth: number,
     options: { startNodeId?: string; endNodeId?: string; activatedNodeId?: string } = {},
     executionPath: string[] = [],
+    runId?: string,
   ): Promise<ExecutionReport> {
     const flowData = settingsManager.getSettings().flows.find((f) => f.id === flowId);
     if (!flowData) {
@@ -442,18 +452,19 @@ export class FlowRunner {
 
     const flow = flowData.flow;
     const newExecutionPath = [...executionPath, flowId];
+    const isTopLevel = depth === 0;
+    const currentRunId = runId || generateUUID();
 
-    if (depth === 0) {
+    if (isTopLevel) {
       this.abortController = new AbortController();
     }
     let report: ExecutionReport | undefined;
 
     try {
-      const runId = generateUUID();
-      if (depth === 0) eventEmitter.emit('flow:run:start', { runId });
+      if (isTopLevel) eventEmitter.emit('flow:run:start', { runId: currentRunId });
 
       report = await this.lowLevelRunner.executeFlow(
-        runId,
+        currentRunId,
         flow,
         initialInput,
         this.dependencies,
@@ -463,7 +474,7 @@ export class FlowRunner {
         newExecutionPath, // Pass the path down
       );
 
-      if (depth === 0) {
+      if (isTopLevel) {
         if (report.error) {
           const isAbort = report.error.message.includes('aborted');
           if (isAbort) {
@@ -471,9 +482,17 @@ export class FlowRunner {
           } else {
             notify('error', `Flow "${flowData.name}" failed: ${report.error.message}`, 'execution');
           }
-          eventEmitter.emit('flow:run:end', { runId, status: 'error', executedNodes: report.executedNodes });
+          eventEmitter.emit('flow:run:end', {
+            runId: currentRunId,
+            status: 'error',
+            executedNodes: report.executedNodes,
+          });
         } else {
-          eventEmitter.emit('flow:run:end', { runId, status: 'completed', executedNodes: report.executedNodes });
+          eventEmitter.emit('flow:run:end', {
+            runId: currentRunId,
+            status: 'completed',
+            executedNodes: report.executedNodes,
+          });
         }
 
         const sanitizedReport = sanitizeReportForHistory(report);
@@ -485,7 +504,7 @@ export class FlowRunner {
       console.error(`[Flowchart] Critical error during flow execution: ${error.message}`);
       report = { executedNodes: [], error: { nodeId: 'CRITICAL', message: error.message } };
     } finally {
-      if (depth === 0) {
+      if (isTopLevel) {
         this.abortController = null;
       }
     }

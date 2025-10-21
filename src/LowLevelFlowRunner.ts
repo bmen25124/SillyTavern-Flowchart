@@ -150,6 +150,7 @@ export class LowLevelFlowRunner {
 
         try {
           let outputFromExecutor = await this.executeNode(node, inputs, {
+            runId,
             flow,
             dependencies,
             executionVariables,

@@ -13,6 +13,8 @@ type EventMap = {
       executedNodes: { nodeId: string }[];
     },
   ];
+  'subflow:run:start': [{ subFlowId: string; parentFlowId: string | null }];
+  'subflow:run:end': [{ subFlowId: string; parentFlowId: string | null }];
 };
 
 type EventName = keyof EventMap;

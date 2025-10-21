@@ -28,7 +28,7 @@ export const LLMRequestNodeDataSchema = z.object({
 });
 export type LLMRequestNodeData = z.infer<typeof LLMRequestNodeDataSchema>;
 
-const execute: NodeExecutor = async (node, input, { dependencies, signal, depth, executionPath }) => {
+const execute: NodeExecutor = async (node, input, { dependencies, signal, depth, executionPath, runId }) => {
   const data = LLMRequestNodeDataSchema.parse(node.data);
   const profileId = resolveInput(input, data, 'profileId');
   const maxResponseToken = resolveInput(input, data, 'maxResponseToken');
@@ -60,7 +60,7 @@ const execute: NodeExecutor = async (node, input, { dependencies, signal, depth,
     if (stream && onStreamFlowId) {
       onStream = async (streamData: { chunk: string; fullText: string }) => {
         try {
-          await dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath);
+          await dependencies.executeSubFlow(onStreamFlowId, streamData, depth + 1, executionPath, runId);
         } catch (err) {
           console.error(`[Flowchart] Error in streaming sub-flow "${onStreamFlowId}":`, err);
           const flowName =

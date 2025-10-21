@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { getNodesBounds, getViewportForBounds, useReactFlow } from '@xyflow/react';
 import { toPng } from 'html-to-image';
@@ -16,6 +16,7 @@ import { CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
 import { notify } from '../../utils/notify.js';
 import { generateUUID } from '../../utils/uuid.js';
 import { SpecFlow } from '../../flow-spec.js';
+import { eventEmitter } from '../../events.js';
 
 const slugify = (text: string) =>
   text
@@ -34,6 +35,20 @@ export const FlowManager: FC = () => {
   const flowWrapperRef = useRef<HTMLDivElement>(null);
   const { isVisualizationVisible, runId, runStatus, toggleVisualization, clearRun } = useFlowRunStore();
   const activeFlowData = settings.flows.find((f) => f.id === settings.activeFlow);
+  const [viewStack, setViewStack] = useState<string[]>([]);
+
+  const handleSelectChange = useCallback(
+    (flowId?: string) => {
+      if (flowId && settings.flows.some((f) => f.id === flowId)) {
+        settings.activeFlow = flowId;
+        const flowData = settings.flows.find((f) => f.id === flowId)!.flow;
+        loadFlow(structuredClone(flowData));
+        useFlowStore.temporal.getState().clear();
+        forceUpdate();
+      }
+    },
+    [settings, loadFlow, forceUpdate],
+  );
 
   useEffect(() => {
     if (!settings.flows.find((f) => f.id === settings.activeFlow)) {
@@ -52,7 +67,7 @@ export const FlowManager: FC = () => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const activeFlow = settings.flows.find((f) => f.id === settings.activeFlow);
-      if (activeFlow) {
+      if (activeFlow && !viewStack.length) {
         activeFlow.flow = getSpecFlow();
         activeFlow.flowVersion = CURRENT_FLOW_VERSION;
         settingsManager.saveSettings();
@@ -62,7 +77,38 @@ export const FlowManager: FC = () => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [nodes, edges, settings.activeFlow, getSpecFlow]);
+  }, [nodes, edges, settings.activeFlow, getSpecFlow, viewStack.length]);
+
+  useEffect(() => {
+    const handleSubFlowStart = ({ subFlowId, parentFlowId }: { subFlowId: string; parentFlowId: string | null }) => {
+      if (parentFlowId) {
+        setViewStack((stack) => [...stack, parentFlowId]);
+      }
+      handleSelectChange(subFlowId);
+    };
+
+    const handleSubFlowEnd = () => {
+      setViewStack((stack) => {
+        if (stack.length > 0) {
+          const newStack = [...stack];
+          const lastParent = newStack.pop();
+          if (lastParent) {
+            handleSelectChange(lastParent);
+          }
+          return newStack;
+        }
+        return stack;
+      });
+    };
+
+    eventEmitter.on('subflow:run:start', handleSubFlowStart);
+    eventEmitter.on('subflow:run:end', handleSubFlowEnd);
+
+    return () => {
+      eventEmitter.off('subflow:run:start', handleSubFlowStart);
+      eventEmitter.off('subflow:run:end', handleSubFlowEnd);
+    };
+  }, [handleSelectChange]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -118,19 +164,6 @@ export const FlowManager: FC = () => {
   const flowItems = useMemo(
     () => settings.flows.map((flow) => ({ value: flow.id, label: flow.name })),
     [settings.flows],
-  );
-
-  const handleSelectChange = useCallback(
-    (flowId?: string) => {
-      if (flowId && settings.flows.some((f) => f.id === flowId)) {
-        settings.activeFlow = flowId;
-        const flowData = settings.flows.find((f) => f.id === flowId)!.flow;
-        loadFlow(structuredClone(flowData));
-        useFlowStore.temporal.getState().clear();
-        forceUpdate();
-      }
-    },
-    [settings, loadFlow, forceUpdate],
   );
 
   const handleCreateFlow = useCallback(
