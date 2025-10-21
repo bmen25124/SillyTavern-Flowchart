@@ -201,7 +201,7 @@ export class FlowRunner {
     const initialInput = {
       messageId: messageId,
       messageContent: message.mes,
-      messageObject: { id: messageId, ...message },
+      messageObject: { ...message },
     };
 
     this.executeFlow(flowId, initialInput, 0, { activatedNodeId: nodeId });

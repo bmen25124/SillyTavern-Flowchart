@@ -55,6 +55,9 @@ export function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
       case 'object':
         zodType = buildZodSchemaFromFields(definition.fields || []);
         break;
+      case 'anyObject':
+        zodType = z.record(z.string(), z.any());
+        break;
       case 'array':
         if (definition.items) {
           zodType = z.array(buildZodSchema(definition.items));

@@ -69,7 +69,8 @@ export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, 
             <option value="string">string</option>
             <option value="number">number</option>
             <option value="boolean">boolean</option>
-            <option value="object">object</option>
+            <option value="object">object (structured)</option>
+            <option value="anyObject">object (any)</option>
             <option value="array">array</option>
             <option value="enum">enum</option>
           </optgroup>

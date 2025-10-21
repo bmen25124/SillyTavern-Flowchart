@@ -6,16 +6,16 @@ import { SchemaNode } from './SchemaNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
 import { buildZodSchema } from '../../../utils/schema-builder.js';
-import { WIEntrySchema, ChatMessageSchemaWithoutId } from '../../../schemas.js';
+import { WIEntrySchema, ChatMessageSchema } from '../../../schemas.js';
 
 // A map of available pre-defined schemas. Easy to extend.
 const PREDEFINED_SCHEMAS = {
-  ChatMessage: ChatMessageSchemaWithoutId,
+  ChatMessage: ChatMessageSchema,
   WIEntry: WIEntrySchema,
 } as const;
 
 // Define all possible schema types for the dropdown and validation.
-const PRIMITIVE_TYPES = ['string', 'number', 'boolean', 'object', 'array', 'enum'] as const;
+const PRIMITIVE_TYPES = ['string', 'number', 'boolean', 'object', 'anyObject', 'array', 'enum'] as const;
 const ALL_SCHEMA_TYPES = [...PRIMITIVE_TYPES, ...Object.keys(PREDEFINED_SCHEMAS)] as [string, ...string[]];
 const SchemaTypeEnum = z.enum(ALL_SCHEMA_TYPES);
 

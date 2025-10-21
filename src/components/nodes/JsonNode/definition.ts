@@ -96,7 +96,11 @@ function getItemHandles(items: JsonNodeItem[]): HandleSpec[] {
         handles.push({ id: item.id, type: FlowDataType.BOOLEAN });
         break;
       case 'object':
+        handles.push({ id: item.id, type: FlowDataType.OBJECT, schema: jsonItemToZod(item) });
+        handles.push(...getItemHandles(item.value as JsonNodeItem[]));
+        break;
       case 'array':
+        handles.push({ id: item.id, type: FlowDataType.ARRAY, schema: jsonItemToZod(item) });
         handles.push(...getItemHandles(item.value as JsonNodeItem[]));
         break;
     }
@@ -166,6 +170,10 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
             return FlowDataType.NUMBER;
           case 'boolean':
             return FlowDataType.BOOLEAN;
+          case 'object':
+            return FlowDataType.OBJECT;
+          case 'array':
+            return FlowDataType.ARRAY;
         }
       }
     }

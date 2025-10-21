@@ -8,6 +8,7 @@ import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { generateUUID } from '../../../utils/uuid.js';
 import { updateNested } from '../../../utils/nested-logic.js';
+import { FlowDataType, FlowDataTypeColors } from '../../../flow-types.js';
 
 export type JsonNodeProps = NodeProps<Node<JsonNodeData>>;
 
@@ -47,20 +48,26 @@ const JsonItemEditor: FC<{
     onUpdate(path, { type: newType, value: newValue });
   };
 
+  const handleType = {
+    string: FlowDataType.STRING,
+    number: FlowDataType.NUMBER,
+    boolean: FlowDataType.BOOLEAN,
+    object: FlowDataType.OBJECT,
+    array: FlowDataType.ARRAY,
+  }[item.type];
+
   const renderValueInput = () => {
-    let inputComponent;
     switch (item.type) {
       case 'string':
-        inputComponent = (
+        return (
           <STInput
             className="nodrag"
             value={item.value as string}
             onChange={(e) => onUpdate(path, { value: e.target.value })}
           />
         );
-        break;
       case 'number':
-        inputComponent = (
+        return (
           <STInput
             className="nodrag"
             type="number"
@@ -68,9 +75,8 @@ const JsonItemEditor: FC<{
             onChange={(e) => onUpdate(path, { value: Number(e.target.value) })}
           />
         );
-        break;
       case 'boolean':
-        inputComponent = (
+        return (
           <STSelect
             className="nodrag"
             value={String(item.value)}
@@ -80,26 +86,9 @@ const JsonItemEditor: FC<{
             <option value="false">false</option>
           </STSelect>
         );
-        break;
       default:
         return null;
     }
-
-    return (
-      <div style={{ position: 'relative' }}>
-        <Handle
-          type="target"
-          position={Position.Left}
-          id={item.id}
-          style={{ top: '50%', transform: 'translateY(-50%)' }}
-        />
-        {isValueConnected ? (
-          <span style={{ marginLeft: '15px', color: '#888', fontStyle: 'italic' }}>Value from connection</span>
-        ) : (
-          inputComponent
-        )}
-      </div>
-    );
   };
 
   return (
@@ -122,9 +111,21 @@ const JsonItemEditor: FC<{
         </STSelect>
         <STButton onClick={() => onRemove(path)}>✕</STButton>
       </div>
-      <div style={{ marginTop: '5px' }}>{renderValueInput()}</div>
+      <div style={{ marginTop: '5px', position: 'relative' }}>
+        <Handle
+          type="target"
+          position={Position.Left}
+          id={item.id}
+          style={{ top: '50%', transform: 'translateY(-50%)', backgroundColor: FlowDataTypeColors[handleType] }}
+        />
+        {isValueConnected ? (
+          <span style={{ marginLeft: '15px', color: '#888', fontStyle: 'italic' }}>Value from connection</span>
+        ) : (
+          renderValueInput()
+        )}
+      </div>
 
-      {(item.type === 'object' || item.type === 'array') && (
+      {(item.type === 'object' || item.type === 'array') && !isValueConnected && (
         <div style={{ marginLeft: '10px', borderLeft: '1px solid #444', paddingLeft: '5px' }}>
           {(item.value as JsonNodeItem[]).map((child, i) => (
             <JsonItemEditor

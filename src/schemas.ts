@@ -10,11 +10,8 @@ export const WIEntrySchema = z.object({
 export const WIEntryListSchema = z.array(WIEntrySchema);
 
 export const ChatMessageSchema = z.object({
-  id: z.number().describe('The index of the message in the chat.'),
   name: z.string().describe('The name of the sender.'),
   mes: z.string().describe('The content of the message.'),
   is_user: z.boolean().describe('True if the message is from the user.'),
   is_system: z.boolean().default(false).describe('True if the message is a system message (hidden from LLM context).'),
 });
-
-export const ChatMessageSchemaWithoutId = ChatMessageSchema.omit({ id: true });
