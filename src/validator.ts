@@ -70,8 +70,8 @@ function detectCrossFlowCycle(
 export const validateFlow = (
   flow: SpecFlow,
   allowDangerousExecution: boolean,
+  allFlows: FlowData[],
   flowId?: string,
-  allFlows: FlowData[] = [],
 ): ValidationResult => {
   const errors: string[] = [];
   const invalidNodeIds = new Set<string>();

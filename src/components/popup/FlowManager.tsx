@@ -157,7 +157,7 @@ export const FlowManager: FC = () => {
 
   const { isValid, errors, invalidNodeIds, errorsByNodeId } = useMemo(
     () =>
-      validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false, activeFlowData?.id, settings.flows),
+      validateFlow(getSpecFlow(), activeFlowData?.allowDangerousExecution ?? false, settings.flows, activeFlowData?.id),
     [nodes, edges, getSpecFlow, activeFlowData?.allowDangerousExecution, settings.flows],
   );
 

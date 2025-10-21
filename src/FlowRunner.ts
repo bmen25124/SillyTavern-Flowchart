@@ -277,7 +277,7 @@ export class FlowRunner {
     const enabledFlows = Object.values(settings.flows).filter((flow) => flow.enabled);
 
     for (const { id: flowId, name, flow, allowDangerousExecution } of enabledFlows) {
-      const { isValid, errors } = validateFlow(flow, allowDangerousExecution, flowId);
+      const { isValid, errors } = validateFlow(flow, allowDangerousExecution, settings.flows, flowId);
       if (!isValid) {
         console.warn(`[Flowchart] Flow "${name}" (${flowId}) is invalid and will not be run. Errors:`, errors);
         continue;
@@ -442,7 +442,12 @@ export class FlowRunner {
       return { executedNodes: [], error: { nodeId: 'N/A', message: errorMsg } };
     }
 
-    const { isValid, errors } = validateFlow(flowData.flow, flowData.allowDangerousExecution, flowId);
+    const { isValid, errors } = validateFlow(
+      flowData.flow,
+      flowData.allowDangerousExecution,
+      settingsManager.getSettings().flows,
+      flowId,
+    );
     if (!isValid) {
       const errorMessage = `Flow "${flowData.name}" is invalid and cannot be run. Errors: ${errors.join(', ')}`;
       notify('error', errorMessage, 'execution');

@@ -82,7 +82,7 @@ describe('validateFlow', () => {
       ],
       edges: [],
     };
-    const { isValid, errors } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(true);
     expect(errors).toHaveLength(0);
   });
@@ -100,7 +100,7 @@ describe('validateFlow', () => {
       ],
       edges: [{ id: 'e1', source: 'other', target: 'start', sourceHandle: null, targetHandle: null }],
     };
-    const { isValid, errors } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [triggerNode]: Trigger nodes cannot have incoming connections.');
   });
@@ -118,7 +118,7 @@ describe('validateFlow', () => {
         { id: 'e3', source: 'c', target: 'a', sourceHandle: null, targetHandle: null },
       ],
     };
-    const { isValid, errors } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain('Flow has a cycle (circular dependency).');
   });
@@ -129,7 +129,7 @@ describe('validateFlow', () => {
       edges: [],
     };
 
-    const { isValid, errors, invalidNodeIds } = validateFlow(flowWithBadType, true, generateUUID(), mockAllFlows);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flowWithBadType, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors[0]).toContain('Node [stringNode]: Invalid input: expected string, received object');
     expect(invalidNodeIds.has('a')).toBe(true);
@@ -140,7 +140,7 @@ describe('validateFlow', () => {
       nodes: [{ id: 'a', type: 'stringNode', data: { value: 'hello' } }],
       edges: [{ id: 'e1', source: 'a', target: 'b', sourceHandle: null, targetHandle: null }],
     };
-    const { isValid, errors, invalidEdgeIds } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors, invalidEdgeIds } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain('Edge [e1]: Target node "b" not found.');
     expect(invalidEdgeIds.has('e1')).toBe(true);
@@ -151,7 +151,7 @@ describe('validateFlow', () => {
       nodes: [{ id: 'a', type: 'unknownNodeType', data: {} }],
       edges: [],
     };
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [unknownNodeType]: Unknown node type "unknownNodeType".');
     expect(invalidNodeIds.has('a')).toBe(true);
@@ -168,7 +168,7 @@ describe('ManualTriggerNode validation', () => {
       ],
       edges: [{ id: 'e1', source: 'schema', target: 'trigger', sourceHandle: 'result', targetHandle: 'schema' }],
     };
-    const { isValid, errors } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(true);
     expect(errors).toHaveLength(0);
   });
@@ -181,7 +181,7 @@ describe('ManualTriggerNode validation', () => {
       ],
       edges: [{ id: 'e1', source: 'string', target: 'trigger', sourceHandle: 'value', targetHandle: 'any_other' }],
     };
-    const { isValid, errors } = validateFlow(flow, true, generateUUID(), mockAllFlows);
+    const { isValid, errors } = validateFlow(flow, true, mockAllFlows, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain(
       `Node [manualTriggerNode]: This trigger can only accept incoming connections on the 'schema' handle.`,
@@ -208,7 +208,7 @@ describe('runFlowNode validation', () => {
     ];
     (settingsManager.getSettings as jest.Mock).mockReturnValue({ flows: mockAllFlows });
 
-    const { isValid, errors } = validateFlow(flow1Spec, true, 'flow1', mockAllFlows);
+    const { isValid, errors } = validateFlow(flow1Spec, true, mockAllFlows, 'flow1');
     expect(isValid).toBe(true);
     expect(errors).toHaveLength(0);
   });
@@ -223,7 +223,7 @@ describe('runFlowNode validation', () => {
     ];
     (settingsManager.getSettings as jest.Mock).mockReturnValue({ flows: mockAllFlows });
 
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, 'flow1', mockAllFlows);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, mockAllFlows, 'flow1');
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [runFlowNode]: Targets a non-existent flow.');
     expect(invalidNodeIds.has('a')).toBe(true);
@@ -247,7 +247,7 @@ describe('runFlowNode validation', () => {
     ];
     (settingsManager.getSettings as jest.Mock).mockReturnValue({ flows: mockAllFlows });
 
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, 'flow1', mockAllFlows);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, mockAllFlows, 'flow1');
     expect(isValid).toBe(false);
     expect(errors).toContain('Node [runFlowNode]: Targets disabled flow: "Disabled Flow".');
     expect(invalidNodeIds.has('a')).toBe(true);
@@ -268,7 +268,7 @@ describe('runFlowNode validation', () => {
     ];
     (settingsManager.getSettings as jest.Mock).mockReturnValue({ flows: mockAllFlows });
 
-    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, 'flow1', mockAllFlows);
+    const { isValid, errors, invalidNodeIds } = validateFlow(flow1Spec, true, mockAllFlows, 'flow1');
     expect(isValid).toBe(false);
     expect(errors[0]).toContain('Circular sub-flow reference detected:');
     expect(invalidNodeIds.has('a')).toBe(true);
