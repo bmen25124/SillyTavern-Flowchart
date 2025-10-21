@@ -20,7 +20,18 @@ export const ForEachNode: FC<ForEachNodeProps> = ({ id, selected, type }) => {
   const flowOptions = useMemo(
     () =>
       Object.values(flows)
-        .filter((flow) => flow.id !== activeFlow) // Prevent recursive loops on the same flow
+        .filter((flow) => {
+          if (flow.id === activeFlow) return false; // Prevent recursive loops on the same flow
+
+          // A valid sub-flow for "For Each" should start with a trigger that can accept loop variables.
+          const hasCompatibleTrigger = flow.flow.nodes.some(
+            (node) =>
+              (node.type === 'forEachTriggerNode' || node.type === 'manualTriggerNode') &&
+              !flow.flow.edges.some((edge) => edge.target === node.id),
+          );
+
+          return hasCompatibleTrigger;
+        })
         .map(({ id, name }) => ({ value: id, label: name })),
     [flows, activeFlow],
   );

@@ -4,6 +4,7 @@ import { ValidationIssue } from './components/nodes/definitions/types.js';
 import { IfNodeData } from './components/nodes/IfNode/definition.js';
 import { RunFlowNodeData } from './components/nodes/RunFlowNode/definition.js';
 import { settingsManager } from './config.js';
+import { ForEachNodeData } from './components/nodes/ForEachNode/definition.js';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -161,6 +162,43 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
           }
         }
       }
+
+      if (node.type === 'forEachNode') {
+        const forEachData = node.data as ForEachNodeData;
+        const targetFlowId = forEachData.flowId;
+
+        if (targetFlowId) {
+          const targetFlowData = allFlows.find((f) => f.id === targetFlowId);
+
+          if (!targetFlowData) {
+            addNodeError(node.id, node.type, {
+              fieldId: 'flowId',
+              message: `Targets a non-existent flow.`,
+              severity: 'error',
+            });
+          } else if (!targetFlowData.enabled) {
+            addNodeError(node.id, node.type, {
+              fieldId: 'flowId',
+              message: `Targets disabled flow: "${targetFlowData.name}".`,
+              severity: 'error',
+            });
+          } else {
+            // Check for compatible trigger
+            const hasCompatibleTrigger = targetFlowData.flow.nodes.some(
+              (n) =>
+                (n.type === 'forEachTriggerNode' || n.type === 'manualTriggerNode') &&
+                !targetFlowData.flow.edges.some((e) => e.target === n.id),
+            );
+            if (!hasCompatibleTrigger) {
+              addNodeError(node.id, node.type, {
+                fieldId: 'flowId',
+                message: 'Selected flow must start with a "For Each Trigger" or "Manual / Sub-Flow Trigger".',
+                severity: 'error',
+              });
+            }
+          }
+        }
+      }
     } else if (node.type && !registrator.nodeDefinitionMap.has(node.type)) {
       addNodeError(node.id, node.type, { message: `Unknown node type "${node.type}".`, severity: 'error' });
     }
@@ -225,6 +263,7 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
     'messageToolbarTriggerNode',
     'quickReplyTriggerNode',
     'manualTriggerNode',
+    'forEachTriggerNode',
   ]);
 
   for (const node of flow.nodes) {
@@ -233,12 +272,12 @@ export const validateFlow = (flow: SpecFlow, allowDangerousExecution: boolean, f
     const incomingEdges = flow.edges.filter((e) => e.target === node.id);
     if (incomingEdges.length === 0) continue;
 
-    if (node.type === 'manualTriggerNode') {
-      // ManualTriggerNode can have an incoming connection, but ONLY to the 'schema' handle.
+    if (node.type === 'manualTriggerNode' || node.type === 'forEachTriggerNode') {
+      // These triggers can have an incoming connection, but ONLY to the 'schema' handle.
       for (const edge of incomingEdges) {
         if (edge.targetHandle !== 'schema') {
           addNodeError(node.id, node.type, {
-            message: `Manual Triggers can only accept incoming connections on the 'schema' handle for sub-flow definitions.`,
+            message: `This trigger can only accept incoming connections on the 'schema' handle.`,
             severity: 'error',
           });
         }

@@ -180,7 +180,7 @@ describe('ManualTriggerNode validation', () => {
     const { isValid, errors } = validateFlow(flow, true, generateUUID());
     expect(isValid).toBe(false);
     expect(errors).toContain(
-      `Node [manualTriggerNode]: Manual Triggers can only accept incoming connections on the 'schema' handle for sub-flow definitions.`,
+      `Node [manualTriggerNode]: This trigger can only accept incoming connections on the 'schema' handle.`,
     );
   });
 });
