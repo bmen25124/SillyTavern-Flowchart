@@ -80,6 +80,16 @@ There are two types of connections:
 
 In short: named handles are for *what* a node does; the `main` handle is for *when* it does it.
 
+#### Loops with "For Each"
+
+Because flows don't allow circular connections, loops are handled by using a `For Each` node in combination with a separate "sub-flow" that acts as the loop body.
+
+1.  **Main Flow:** In your main flow, you'll have a node that outputs an array (e.g., `Get Chat Messages` or `Array Tools`). You connect this array to the `array` input of a `For Each` node.
+2.  **Loop Body Flow:** You create a *second, separate flow*. This flow **must** start with a `Manual / Sub-Flow Trigger`.
+3.  **Connecting Them:** In your main flow, select your "Loop Body Flow" in the dropdown on the `For Each` node.
+4.  **Loop Variables:** The `Manual / Sub-Flow Trigger` in your loop body flow will now output two special variables for each iteration: `item` (the current element from the array) and `index` (its position in the array).
+5.  **Controlling the Loop:** Inside your loop body flow, you can use an `If` node to decide whether to use a `Break Loop` node (to stop the entire loop) or a `Continue Loop` node (to immediately skip to the next item).
+
 ### Dangerous Nodes
 
 Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They can run arbitrary code or communicate with external services. The `If` node is also considered dangerous when using "Advanced Code Editor" mode. For security, these nodes will not run unless you explicitly enable the **"Allow Dangerous"** toggle for that specific flow in the toolbar. Only enable this for flows you have created yourself or fully trust.
@@ -98,7 +108,7 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 #### **Trigger Nodes**
 
 *   **Event Trigger:** Starts a flow when a SillyTavern event occurs (e.g., a user message is sent). This is the primary way to create automations. For a full list of events, see the [Event Documentation](EVENT_DOCUMENTATION.md).
-*   **Manual / Sub-Flow Trigger:** Starts a flow when you click the "Run" button in the editor. Also serves as the entry point when a flow is run by a `Run Flow` node.
+*   **Manual / Sub-Flow Trigger:** Starts a flow when you click the "Run" button. Also serves as the entry point when a flow is run by a `Run Flow` or `For Each` node, receiving parameters like `item` and `index` as outputs.
 *   **Slash Command:** Creates a new `/flow-<name>` slash command that triggers the flow and passes arguments to its output handles.
 *   **Menu Trigger:** Adds a custom button to the main "Extensions" menu that triggers the flow when clicked.
 *   **Message Toolbar Trigger:** Adds a custom button to the toolbar on every chat message.
@@ -108,6 +118,9 @@ Some nodes, like `Execute JS Code` and `HTTP Request`, can be dangerous. They ca
 #### **Logic Nodes**
 
 *   **If:** Directs the flow based on one or more conditions. If a condition is true, the flow continues from that condition's output. If none are true, it continues from the "Else" output.
+*   **For Each:** Iterates over an array. For each item, it executes a selected sub-flow, passing the `item` and its `index` as inputs.
+*   **Break Loop:** When placed in a sub-flow called by a `For Each` node, it immediately stops the loop.
+*   **Continue Loop:** When placed in a sub-flow, it stops the current iteration and moves to the next item in the loop.
 *   **End Flow:** Immediately stops the flow's execution.
 
 #### **Input Nodes**
@@ -136,7 +149,8 @@ These nodes provide dropdowns to select a specific item, which can then be passe
 #### **Chat Nodes**
 
 *   **Send Chat Message:** Sends a new message to the current chat as the user, assistant, or system.
-*   **Get Chat Message:** Retrieves details of a specific message from the chat history.
+*   **Get Chat Message:** Retrieves details of a specific message from the chat history by its index.
+*   **Get Chat Messages:** Retrieves a range of messages from the current chat history (e.g., from first to last, or from index 5 to 10).
 *   **Edit Chat Message:** Modifies the content of an existing message.
 *   **Remove Chat Message:** Deletes a message from the chat history.
 *   **Hide/Show Message (Context):** Toggles whether a message or range of messages is included in the LLM's context. Does not affect visibility in the UI.
@@ -172,6 +186,7 @@ These nodes provide dropdowns to select a specific item, which can then be passe
 
 #### **Data Processing Nodes**
 
+*   **Array Tools:** A collection of functions to manipulate arrays (e.g., get length, get item by index, slice, push, reverse).
 *   **Merge Objects:** Combines multiple objects into a single one. Keys from later inputs overwrite earlier ones.
 *   **Regex:** Applies a regular expression to find/replace text. Can use SillyTavern's built-in regex scripts or a custom one.
 *   **String Tools:** A collection of functions to manipulate text (e.g., `toUpperCase`, `split`, `replace`).

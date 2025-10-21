@@ -15,8 +15,9 @@ import { temporal } from 'zundo';
 import { SpecEdge, SpecFlow, SpecNode } from '../../flow-spec.js';
 import { runMigrations } from '../../migrations.js';
 import { migrateFlowFormat, CURRENT_FLOW_VERSION } from '../../flow-migrations.js';
-import { registrator } from '../nodes/autogen-imports.js';
 import { generateUUID } from '../../utils/uuid.js';
+import { areFlowDataTypesCompatible } from '../../flow-types.js';
+import { getHandleSpec } from '../../utils/handle-logic.js';
 
 type Clipboard = {
   nodes: Node[];
@@ -77,24 +78,6 @@ const fromSpecEdge = (specEdge: SpecEdge): Edge => ({
   targetHandle: specEdge.targetHandle,
 });
 
-const getValidHandleIds = (node: Node, direction: 'input' | 'output', allNodes: Node[], allEdges: Edge[]) => {
-  const ids = new Set<string | null>();
-  if (!node.type) return ids;
-
-  const definition = registrator.nodeDefinitionMap.get(node.type);
-  if (!definition) return ids;
-
-  const staticHandles = direction === 'input' ? definition.handles.inputs : definition.handles.outputs;
-  staticHandles.forEach((h) => ids.add(h.id));
-
-  if (definition.getDynamicHandles) {
-    const dynamicHandles = definition.getDynamicHandles(node, allNodes, allEdges);
-    const handles = direction === 'input' ? dynamicHandles.inputs : dynamicHandles.outputs;
-    handles.forEach((h) => ids.add(h.id));
-  }
-  return ids;
-};
-
 const cleanupEdges = (nodes: Node[], edges: Edge[]): Edge[] => {
   const nodesMap = new Map(nodes.map((n) => [n.id, n]));
 
@@ -102,19 +85,20 @@ const cleanupEdges = (nodes: Node[], edges: Edge[]): Edge[] => {
     const sourceNode = nodesMap.get(edge.source);
     const targetNode = nodesMap.get(edge.target);
 
-    if (!sourceNode || !targetNode) return false;
-
-    const sourceHandleIds = getValidHandleIds(sourceNode, 'output', nodes, edges);
-    if (!sourceHandleIds.has(edge.sourceHandle ?? null)) {
+    if (!sourceNode || !targetNode) {
       return false;
     }
 
-    const targetHandleIds = getValidHandleIds(targetNode, 'input', nodes, edges);
-    if (!targetHandleIds.has(edge.targetHandle ?? null)) {
+    // We get the full spec for each handle and check their type compatibility.
+    const sourceHandleSpec = getHandleSpec(sourceNode, edge.sourceHandle ?? null, 'output', nodes, edges);
+    const targetHandleSpec = getHandleSpec(targetNode, edge.targetHandle ?? null, 'input', nodes, edges);
+
+    if (!sourceHandleSpec || !targetHandleSpec) {
+      // If either handle dynamically disappeared, the edge is invalid.
       return false;
     }
 
-    return true;
+    return areFlowDataTypesCompatible(sourceHandleSpec.type, targetHandleSpec.type);
   });
 };
 

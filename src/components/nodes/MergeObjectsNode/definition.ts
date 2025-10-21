@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition } from '../definitions/types.js';
+import { NodeDefinition, HandleSpec } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { MergeObjectsNode } from './MergeObjectsNode.js';
 import { registrator } from '../registrator.js';
@@ -46,7 +46,7 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(MERGE_OBJECTS_HANDLE_PREFIX) ?? false,
   getDynamicHandles: (node, allNodes: Node[], allEdges: Edge[]) => {
     // Generate dynamic inputs
-    const inputs = [];
+    const inputs: HandleSpec[] = [];
     for (let i = 0; i < node.data.inputCount; i++) {
       inputs.push({ id: `${MERGE_OBJECTS_HANDLE_PREFIX}${i}`, type: FlowDataType.OBJECT });
     }
@@ -69,7 +69,7 @@ export const mergeObjectsNodeDefinition: NodeDefinition<MergeObjectsNodeData> = 
       }
     }
 
-    const outputs = [{ id: 'result', type: FlowDataType.OBJECT, schema: mergedSchema }];
+    const outputs: HandleSpec[] = [{ id: 'result', type: FlowDataType.OBJECT, schema: mergedSchema }];
 
     return { inputs, outputs };
   },

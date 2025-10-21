@@ -1,14 +1,13 @@
 import { z } from 'zod';
-import { Node } from '@xyflow/react';
+import { Node, Edge } from '@xyflow/react';
 import { NodeDefinition, ValidationIssue, HandleSpec } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { JsonNode } from './JsonNode.js';
 import { registrator } from '../registrator.js';
 import { NodeExecutor } from '../../../NodeExecutor.js';
-import { inferSchemaFromJsonNode, jsonItemToZod } from '../../../utils/schema-builder.js';
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
+import { getHandleSpec } from '../../../utils/handle-logic.js';
 
-// ... (schemas remain the same, so they are omitted for brevity)
 // Recursive types and schema for JsonNode
 const baseJsonNodeItemSchema = z.object({
   id: z.string(),
@@ -96,11 +95,11 @@ function getItemHandles(items: JsonNodeItem[]): HandleSpec[] {
         handles.push({ id: item.id, type: FlowDataType.BOOLEAN });
         break;
       case 'object':
-        handles.push({ id: item.id, type: FlowDataType.OBJECT, schema: jsonItemToZod(item) });
+        handles.push({ id: item.id, type: FlowDataType.OBJECT });
         handles.push(...getItemHandles(item.value as JsonNodeItem[]));
         break;
       case 'array':
-        handles.push({ id: item.id, type: FlowDataType.ARRAY, schema: jsonItemToZod(item) });
+        handles.push({ id: item.id, type: FlowDataType.ARRAY });
         handles.push(...getItemHandles(item.value as JsonNodeItem[]));
         break;
     }
@@ -117,6 +116,50 @@ function findItemById(items: JsonNodeItem[], id: string): JsonNodeItem | null {
     }
   }
   return null;
+}
+
+/**
+ * Recursively builds a Zod schema for a JsonNodeItem, prioritizing connected input schemas.
+ */
+function buildSchemaForItem(item: JsonNodeItem, nodeId: string, allNodes: Node[], allEdges: Edge[]): z.ZodType {
+  // 1. Check if this item's input handle is connected
+  const edge = allEdges.find((e) => e.target === nodeId && e.targetHandle === item.id);
+  if (edge) {
+    const sourceNode = allNodes.find((n) => n.id === edge.source);
+    if (sourceNode) {
+      const sourceSpec = getHandleSpec(sourceNode, edge.sourceHandle || null, 'output', allNodes, allEdges);
+      // If the connected source provides a schema, use it directly. This is the override.
+      if (sourceSpec?.schema) {
+        return sourceSpec.schema;
+      }
+    }
+  }
+
+  // 2. If not connected, build schema based on the item's own type and children.
+  switch (item.type) {
+    case 'string':
+      return z.string();
+    case 'number':
+      return z.number();
+    case 'boolean':
+      return z.boolean();
+    case 'object': {
+      const shape: Record<string, z.ZodType> = {};
+      (item.value as JsonNodeItem[]).forEach((child) => {
+        if (child.key) {
+          shape[child.key] = buildSchemaForItem(child, nodeId, allNodes, allEdges);
+        }
+      });
+      return z.object(shape);
+    }
+    case 'array': {
+      const firstChild = (item.value as JsonNodeItem[])?.[0];
+      const itemSchema = firstChild ? buildSchemaForItem(firstChild, nodeId, allNodes, allEdges) : z.any();
+      return z.array(itemSchema);
+    }
+    default:
+      return z.any();
+  }
 }
 
 export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
@@ -139,24 +182,36 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
     return validateItems(node.data.items);
   },
   execute,
-  getDynamicHandles: (node) => {
-    const data = node.data;
+  getDynamicHandles: (node, allNodes, allEdges) => {
+    const data = node.data as JsonNodeData;
     const inputs = getItemHandles(data.items);
-    const fullSchema = inferSchemaFromJsonNode(data);
-    const resultType = zodTypeToFlowType(fullSchema);
-    const outputs = [{ id: 'result', type: resultType, schema: fullSchema }];
 
-    if (data.rootType === 'object') {
-      for (const item of data.items) {
-        if (!item.key) continue;
-        const itemSchema = jsonItemToZod(item);
-        outputs.push({
-          id: item.key,
-          type: zodTypeToFlowType(itemSchema),
-          schema: itemSchema,
-        });
-      }
+    // Build the complete output schema by recursively inspecting items and their connections
+    const rootSchema =
+      data.rootType === 'array'
+        ? z.array(data.items.length > 0 ? buildSchemaForItem(data.items[0], node.id, allNodes, allEdges) : z.any())
+        : z.object(
+            Object.fromEntries(
+              data.items.map((item) => [item.key, buildSchemaForItem(item, node.id, allNodes, allEdges)]),
+            ),
+          );
+
+    const outputs: HandleSpec[] = [{ id: 'result', type: zodTypeToFlowType(rootSchema), schema: rootSchema }];
+
+    if (data.rootType === 'object' && rootSchema instanceof z.ZodObject) {
+      data.items.forEach((item) => {
+        if (!item.key) return;
+        const itemSchema = rootSchema.shape[item.key];
+        if (itemSchema) {
+          outputs.push({
+            id: item.key,
+            type: zodTypeToFlowType(itemSchema),
+            schema: itemSchema,
+          });
+        }
+      });
     }
+
     return { inputs, outputs };
   },
   getHandleType: ({ handleId, handleDirection, node }) => {
@@ -174,18 +229,6 @@ export const jsonNodeDefinition: NodeDefinition<JsonNodeData> = {
             return FlowDataType.OBJECT;
           case 'array':
             return FlowDataType.ARRAY;
-        }
-      }
-    }
-    if (handleDirection === 'output') {
-      const data = node.data as JsonNodeData;
-      if (handleId === 'result') {
-        return data.rootType === 'array' ? FlowDataType.ARRAY : FlowDataType.OBJECT;
-      }
-      if (data.rootType === 'object') {
-        const item = data.items.find((item) => item.key === handleId);
-        if (item) {
-          return zodTypeToFlowType(jsonItemToZod(item));
         }
       }
     }

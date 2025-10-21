@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Node, Edge } from '@xyflow/react';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition, ValidationIssue, HandleSpec } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { StringToolsNode } from './StringToolsNode.js';
 import { registrator } from '../registrator.js';
@@ -194,7 +194,7 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
   isDynamicHandle: (handleId: string | null) => handleId?.startsWith(STRING_TOOLS_MERGE_HANDLE_PREFIX) ?? false,
   getDynamicHandles: (node) => {
     const { data } = node;
-    const inputs = [];
+    const inputs: HandleSpec[] = [];
     let resultType: FlowDataType = FlowDataType.ANY;
 
     switch (data.operation) {
@@ -246,7 +246,7 @@ export const stringToolsNodeDefinition: NodeDefinition<StringToolsNodeData> = {
         break;
     }
 
-    const outputs = [{ id: 'result', type: resultType }];
+    const outputs: HandleSpec[] = [{ id: 'result', type: resultType }];
     return { inputs, outputs };
   },
   getSuggestionBlueprints: ({ direction }) => {

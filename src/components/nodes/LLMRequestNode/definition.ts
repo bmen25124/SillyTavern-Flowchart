@@ -1,6 +1,6 @@
 import { Node, Edge } from '@xyflow/react';
 import { z } from 'zod';
-import { NodeDefinition, ValidationIssue } from '../definitions/types.js';
+import { NodeDefinition, ValidationIssue, HandleSpec } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { LLMRequestNode } from './LLMRequestNode.js';
 import { registrator } from '../registrator.js';
@@ -136,7 +136,7 @@ export const llmRequestNodeDefinition: NodeDefinition<LLMRequestNodeData> = {
     const isSchemaConnected = allEdges.some((edge) => edge.target === node.id && edge.targetHandle === 'schema');
     const isStreaming = node.data.stream;
 
-    const dynamicInputs = [];
+    const dynamicInputs: HandleSpec[] = [];
     if (isSchemaConnected) {
       dynamicInputs.push({ id: 'schemaName', type: FlowDataType.STRING });
       dynamicInputs.push({ id: 'promptEngineeringMode', type: FlowDataType.STRING });
