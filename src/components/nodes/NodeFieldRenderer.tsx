@@ -1,8 +1,9 @@
 import React, { FC } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { z } from 'zod';
 import { useConnectedHandles } from '../../hooks/useConnectedHandles.js';
 import { FieldConfig } from './fieldConfig.js';
-import { registrator } from './autogen-imports.js';
+import { registrator } from './registrator.js';
 import { FlowDataType, FlowDataTypeColors, getConvertibleFlowDataTypes } from '../../flow-types.js';
 
 interface NodeFieldRendererProps {
@@ -24,6 +25,13 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
           const isConnected = connectedHandles.has(field.id);
           const handleSpec = definition?.handles.inputs.find((h) => h.id === field.id);
           const handleType = handleSpec?.type ?? FlowDataType.ANY;
+
+          const isOptional =
+            handleSpec?.schema instanceof z.ZodOptional ||
+            (handleSpec?.schema &&
+              typeof (handleSpec.schema as any).isOptional === 'function' &&
+              (handleSpec.schema as any).isOptional());
+          const typeLabel = isOptional ? `${handleType}?` : handleType;
 
           let handleTitle = `Type: ${handleType}`;
           const convertibleTypes = getConvertibleFlowDataTypes(handleType);
@@ -80,7 +88,7 @@ export const NodeFieldRenderer: FC<NodeFieldRendererProps> = React.memo(
                 }}
               />
               <label style={{ marginLeft: '10px' }}>{field.label}</label>
-              <span className="handle-label">({handleType})</span>
+              <span className="handle-label">({typeLabel})</span>
 
               {!isConnected && React.createElement(field.component, componentProps)}
             </div>

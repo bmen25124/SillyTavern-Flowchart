@@ -1,5 +1,6 @@
 import { FC, useMemo } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { z } from 'zod';
 import { NodeDefinition, HandleSpec, ValidationIssue } from './definitions/types.js';
 import { FlowDataTypeColors } from '../../flow-types.js';
 import { schemaToText } from '../../utils/schema-inspector.js';
@@ -66,6 +67,14 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
         const showStaticInput = fieldConfig && !isConnected;
         const validationIssue = validationIssues.find((iss) => iss.fieldId === handle.id);
 
+        const isOptional =
+          handle.schema instanceof z.ZodOptional ||
+          (handle.schema &&
+            typeof (handle.schema as any).isOptional === 'function' &&
+            (handle.schema as any).isOptional());
+
+        const typeLabel = isOptional ? `${handle.type}?` : handle.type;
+
         const handleComponent = (
           <Handle
             type={type === 'input' ? 'target' : 'source'}
@@ -127,7 +136,7 @@ export const NodeHandleRenderer: FC<NodeHandleRendererProps> = ({
         const labelAndType = (
           <>
             <label style={{ margin: '0 10px', textTransform: 'capitalize' }}>{labelComponent}</label>
-            <span className="handle-label">({handle.type})</span>
+            <span className="handle-label">({typeLabel})</span>
           </>
         );
 

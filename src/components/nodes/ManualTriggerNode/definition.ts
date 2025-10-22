@@ -16,8 +16,24 @@ export const ManualTriggerNodeDataSchema = z.object({
 export type ManualTriggerNodeData = z.infer<typeof ManualTriggerNodeDataSchema>;
 
 const execute: NodeExecutor = async (node, input) => {
+  // Check if a schema is provided in the input
+  const schema = input.schema;
+
   // If called as a sub-flow, `input` will contain the parameters.
   if (Object.keys(input).length > 0) {
+    // If a schema is provided, parse the input against it
+    if (schema) {
+      try {
+        const parsedInput = schema.parse(input);
+        if (typeof parsedInput === 'object' && parsedInput !== null && !Array.isArray(parsedInput)) {
+          return { result: parsedInput, ...parsedInput };
+        }
+        return { result: parsedInput };
+      } catch (e: any) {
+        throw new Error(`Input does not match provided schema: ${e.message}`);
+      }
+    }
+
     if (typeof input === 'object' && input !== null) {
       return { ...input, result: input };
     }
@@ -28,6 +44,20 @@ const execute: NodeExecutor = async (node, input) => {
   const data = ManualTriggerNodeDataSchema.parse(node.data);
   try {
     const payload = JSON.parse(data.payload);
+
+    // If a schema is provided, parse the payload against it
+    if (schema) {
+      try {
+        const parsedPayload = schema.parse(payload);
+        if (typeof parsedPayload === 'object' && parsedPayload !== null && !Array.isArray(parsedPayload)) {
+          return { result: parsedPayload, ...parsedPayload };
+        }
+        return { result: parsedPayload };
+      } catch (e: any) {
+        throw new Error(`Payload does not match provided schema: ${e.message}`);
+      }
+    }
+
     if (typeof payload === 'object' && payload !== null && !Array.isArray(payload)) {
       return { result: payload, ...payload };
     }

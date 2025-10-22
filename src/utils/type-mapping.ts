@@ -1,12 +1,32 @@
 import { z } from 'zod';
 import { FlowDataType } from '../flow-types.js';
 
+function resolveType(schema: z.ZodType): z.ZodType {
+  let currentSchema: z.ZodType = schema;
+
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
+    if ('unwrap' in currentSchema && typeof currentSchema.unwrap === 'function') {
+      currentSchema = currentSchema.unwrap();
+    }
+    if ('innerType' in currentSchema && typeof currentSchema.innerType === 'function') {
+      currentSchema = currentSchema.innerType();
+    }
+    return resolveType(currentSchema);
+  }
+
+  return currentSchema;
+}
+
 export function zodTypeToFlowType(type: z.ZodType): FlowDataType {
-  if (type instanceof z.ZodNumber) return FlowDataType.NUMBER;
-  if (type instanceof z.ZodString) return FlowDataType.STRING;
-  if (type instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
-  if (type instanceof z.ZodArray) return FlowDataType.ARRAY;
-  if (type instanceof z.ZodObject || type instanceof z.ZodEnum) return FlowDataType.OBJECT;
+  const coreType = resolveType(type);
+
+  if (coreType instanceof z.ZodString) return FlowDataType.STRING;
+  if (coreType instanceof z.ZodNumber) return FlowDataType.NUMBER;
+  if (coreType instanceof z.ZodBoolean) return FlowDataType.BOOLEAN;
+  if (coreType instanceof z.ZodObject) return FlowDataType.OBJECT;
+  if (coreType instanceof z.ZodEnum) return FlowDataType.OBJECT;
+  if (coreType instanceof z.ZodArray) return FlowDataType.ARRAY;
+
   return FlowDataType.ANY;
 }
 
