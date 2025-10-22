@@ -59,7 +59,7 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
   };
 
   const handleAddChild = (path: (string | number)[]) => {
-    const newField = { id: generateUUID(), name: 'field', type: 'string' as const };
+    const newField = { id: generateUUID(), name: 'field', type: 'string' as const, required: true };
     const updatedDefinition = updateNested(rootDefinition, [...path, 'fields'], (items: any[]) => [
       ...(items || []),
       newField,
@@ -69,7 +69,7 @@ export const VariableSchemaNode: FC<VariableSchemaNodeProps> = ({ id, selected, 
 
   const ensureObjectRoot = () => {
     if (rootDefinition.type !== 'object') {
-      updateNodeData(id, { definition: { type: 'object', fields: [] } });
+      updateNodeData(id, { definition: { type: 'object', fields: [], required: true } });
     }
   };
 

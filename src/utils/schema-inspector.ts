@@ -9,9 +9,13 @@ export function schemaToText(schema: z.ZodType, indent = 0): string {
     if (Object.keys(shape).length === 0) return '{}';
     const entries = Object.entries(shape)
       .map(([key, value]) => {
+        // Check if the field is optional
+        const isOptional =
+          value instanceof z.ZodOptional || (typeof value.isOptional === 'function' && value.isOptional());
+        const optionalMarker = isOptional ? '?' : '';
         const description = value.description ? ` // ${value.description}` : '';
         // Recursively call for the value, with increased indentation
-        return `${indentation}  ${key}: ${schemaToText(value, indent + 1)}${description}`;
+        return `${indentation}  ${key}${optionalMarker}: ${schemaToText(value, indent + 1)}${description}`;
       })
       .join('\n');
     return `{\n${entries}\n${indentation}}`;
@@ -35,6 +39,11 @@ export function schemaToText(schema: z.ZodType, indent = 0): string {
   if (schema instanceof z.ZodEnum) return 'enum';
 
   // 2. Handle wrapper types by recursively calling with the inner schema
+  if (schema instanceof z.ZodOptional) {
+    const innerSchema = schema._def.innerType as z.ZodType;
+    return `${schemaToText(innerSchema, indent)}`;
+  }
+
   if ('unwrap' in schema && typeof (schema as any).unwrap === 'function') {
     return schemaToText((schema as any).unwrap(), indent);
   }

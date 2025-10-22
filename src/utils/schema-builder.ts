@@ -70,6 +70,11 @@ export function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
     }
   }
 
+  // Apply required/optional based on the required property
+  if (definition.required === false) {
+    zodType = zodType.optional();
+  }
+
   if (definition.description) {
     return zodType.describe(definition.description);
   }
@@ -79,7 +84,14 @@ export function buildZodSchema(definition: SchemaTypeDefinition): z.ZodTypeAny {
 export function buildZodSchemaFromFields(fields: FieldDefinition[]): z.ZodObject<any> {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const field of fields) {
-    shape[field.name] = buildZodSchema(field);
+    let fieldSchema = buildZodSchema(field);
+
+    // Apply required/optional based on the required property for fields
+    if (field.required === false) {
+      fieldSchema = fieldSchema.optional();
+    }
+
+    shape[field.name] = fieldSchema;
   }
   return z.object(shape);
 }

@@ -23,11 +23,13 @@ const SchemaTypeEnum = z.enum(ALL_SCHEMA_TYPES);
 export type FieldDefinition = {
   id: string;
   name: string;
+  required?: boolean;
 } & SchemaTypeDefinition;
 
 export type SchemaTypeDefinition = {
   type: z.infer<typeof SchemaTypeEnum>;
   description?: string;
+  required?: boolean;
   fields?: FieldDefinition[]; // For 'object'
   items?: SchemaTypeDefinition; // For 'array'
   values?: string[]; // For 'enum'
@@ -38,6 +40,7 @@ export const SchemaTypeDefinitionSchema: z.ZodType<SchemaTypeDefinition> = z.laz
   z.object({
     type: SchemaTypeEnum,
     description: z.string().optional(),
+    required: z.boolean().optional().default(true),
     fields: z.array(FieldDefinitionSchema).optional(),
     items: SchemaTypeDefinitionSchema.optional(),
     values: z.array(z.string()).optional(),
@@ -50,6 +53,7 @@ export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
     name: z.string(),
     type: SchemaTypeEnum,
     description: z.string().optional(),
+    required: z.boolean().optional().default(true),
     fields: z.array(z.lazy(() => FieldDefinitionSchema)).optional(),
     items: z.lazy(() => SchemaTypeDefinitionSchema).optional(),
     values: z.array(z.string()).optional(),
@@ -109,7 +113,7 @@ export const schemaNodeDefinition: NodeDefinition<SchemaNodeData> = {
   category: 'JSON',
   component: SchemaNode,
   dataSchema: SchemaNodeDataSchema,
-  currentVersion: 2,
+  currentVersion: 3,
   initialData: { fields: [], mode: 'custom' },
   handles: {
     inputs: [],

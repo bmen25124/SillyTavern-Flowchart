@@ -68,7 +68,7 @@ MIGRATION_REGISTRY['manualTriggerNode'] = {
   },
 };
 
-// SchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'. v3 expands types.
+// SchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'. v3 adds required field.
 MIGRATION_REGISTRY['schemaNode'] = {
   1: {
     node: (data) => ({
@@ -78,9 +78,28 @@ MIGRATION_REGISTRY['schemaNode'] = {
       _version: 2,
     }),
   },
+  2: {
+    node: (data: any) => {
+      // Add required: true to all existing fields for backward compatibility
+      const addRequiredToFields = (fields: any[]): any[] => {
+        return fields.map((field: any) => ({
+          ...field,
+          required: field.required ?? true, // Default to true for backward compatibility
+          ...(field.fields ? { fields: addRequiredToFields(field.fields) } : {}),
+          ...(field.items ? { items: addRequiredToFields([field.items])[0] } : {}),
+        }));
+      };
+
+      return {
+        ...data,
+        fields: data.fields ? addRequiredToFields(data.fields) : [],
+        _version: 3,
+      };
+    },
+  },
 };
 
-// VariableSchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'.
+// VariableSchemaNode from v1 to v2 adds 'mode' and 'selectedSchema'. v3 adds required field.
 MIGRATION_REGISTRY['variableSchemaNode'] = {
   1: {
     node: (data) => ({
@@ -88,6 +107,40 @@ MIGRATION_REGISTRY['variableSchemaNode'] = {
       mode: 'custom',
       _version: 2,
     }),
+  },
+  2: {
+    node: (data: any) => {
+      // Add required: true to all existing schema definitions for backward compatibility
+      const addRequiredToDefinition = (definition: any): any => {
+        if (!definition) return definition;
+
+        const updatedDefinition: any = {
+          ...definition,
+          required: definition.required ?? true, // Default to true for backward compatibility
+        };
+
+        if (updatedDefinition.fields) {
+          updatedDefinition.fields = updatedDefinition.fields.map((field: any) => ({
+            ...field,
+            required: field.required ?? true, // Default to true for backward compatibility
+            ...(field.fields ? { fields: field.fields.map(addRequiredToDefinition) } : {}),
+            ...(field.items ? { items: addRequiredToDefinition(field.items) } : {}),
+          }));
+        }
+
+        if (updatedDefinition.items) {
+          updatedDefinition.items = addRequiredToDefinition(updatedDefinition.items);
+        }
+
+        return updatedDefinition;
+      };
+
+      return {
+        ...data,
+        definition: data.definition ? addRequiredToDefinition(data.definition) : undefined,
+        _version: 3,
+      };
+    },
   },
 };
 

@@ -20,7 +20,7 @@ type FieldEditorProps = {
 };
 
 export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, onRemove, onAddChild }) => {
-  const { name } = definition as FieldDefinition;
+  const { name, required } = definition as FieldDefinition;
   const { type, description, values, fields, items } = definition;
   const availableSchemas = (schemaNodeDefinition.meta as any)?.schemas ?? {};
   const isPredefined = Object.keys(availableSchemas).includes(type);
@@ -82,6 +82,18 @@ export const FieldEditor: FC<FieldEditorProps> = ({ definition, path, onUpdate, 
             ))}
           </optgroup>
         </STSelect>
+        {name !== undefined && (
+          <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+            <input
+              type="checkbox"
+              checked={required ?? false}
+              onChange={(e) => onUpdate(path, { required: e.target.checked })}
+              className="nodrag"
+              style={{ marginRight: '3px' }}
+            />
+            Req
+          </label>
+        )}
         {onRemove && <STButton onClick={() => onRemove(path)}>✕</STButton>}
       </div>
       {!isPredefined && (
@@ -174,7 +186,7 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   };
 
   const handleAddChild = (path: (string | number)[]) => {
-    const newField: FieldDefinition = { id: generateUUID(), name: 'newField', type: 'string' };
+    const newField: FieldDefinition = { id: generateUUID(), name: 'newField', type: 'string', required: true };
     const newRoot = updateNested({ fields: data.fields }, ['fields', ...path, 'fields'], (items: any[]) => [
       ...(items || []),
       newField,
@@ -183,7 +195,7 @@ export const SchemaNode: FC<SchemaNodeProps> = ({ id, selected, type }) => {
   };
 
   const addRootField = () => {
-    const newField = { id: generateUUID(), name: 'newField', type: 'string' as const };
+    const newField = { id: generateUUID(), name: 'newField', type: 'string' as const, required: true };
     updateNodeData(id, { fields: [...(data.fields || []), newField] });
   };
 

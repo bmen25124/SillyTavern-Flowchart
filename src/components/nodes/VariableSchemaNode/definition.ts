@@ -45,7 +45,7 @@ export const variableSchemaNodeDefinition: NodeDefinition<VariableSchemaNodeData
   category: 'Variables',
   component: VariableSchemaNode,
   dataSchema: VariableSchemaNodeDataSchema,
-  currentVersion: 2,
+  currentVersion: 3,
   initialData: { definition: { type: 'string' }, mode: 'custom' },
   handles: {
     inputs: [],
