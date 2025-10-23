@@ -102,6 +102,9 @@ export const pickerNodeDefinition: NodeDefinition<PickerNodeData> = {
     outputs: [{ id: 'main', type: FlowDataType.ANY }],
   },
   validate: (node: Node<PickerNodeData>, edges: Edge[]): ValidationIssue[] => {
+    if (node.data.pickerType === 'character' && edges.some((edge) => edge.sourceHandle === 'activeAvatar')) {
+      return [];
+    }
     return combineValidators(validateValue)(node, edges);
   },
   execute,
