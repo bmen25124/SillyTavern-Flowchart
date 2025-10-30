@@ -113,8 +113,7 @@ export class FlowRunner {
   private registeredStaticCommands: string[] = [];
   private lowLevelRunner: LowLevelFlowRunner;
   private isListeningToEvents: boolean = false;
-  private isToolbarListenerAttached: boolean = false;
-  private isQrBarListenerAttached: boolean = false;
+  private areDomListenersAttached: boolean = false;
   private abortController: AbortController | null = null;
   private dependencies: FlowRunnerDependencies;
 
@@ -230,17 +229,10 @@ export class FlowRunner {
       useFlowRunStore.getState().endRun(runId, status, executedNodes),
     );
 
-    if (!this.isToolbarListenerAttached) {
+    if (!this.areDomListenersAttached) {
       document.addEventListener('click', this.handleMessageToolbarClick.bind(this));
-      this.isToolbarListenerAttached = true;
-    }
-
-    if (!this.isQrBarListenerAttached) {
-      (document.querySelector('#qr--bar') as HTMLElement)?.addEventListener(
-        'click',
-        this.handleQrButtonClick.bind(this),
-      );
-      this.isQrBarListenerAttached = true;
+      document.addEventListener('click', this.handleQrButtonClick.bind(this));
+      this.areDomListenersAttached = true;
     }
 
     // Add static listener for chat changes to re-render UI elements
