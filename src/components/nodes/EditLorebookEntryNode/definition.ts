@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import React from 'react';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
@@ -7,7 +8,7 @@ import { WIEntrySchema } from '../../../schemas.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown, STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
@@ -18,6 +19,7 @@ export const EditLorebookEntryNodeDataSchema = z.object({
   key: z.string().optional(),
   content: z.string().optional(),
   comment: z.string().optional(),
+  disable: z.boolean().optional(),
   _version: z.number().optional(),
 });
 export type EditLorebookEntryNodeData = z.infer<typeof EditLorebookEntryNodeDataSchema>;
@@ -64,6 +66,18 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     }
   });
 
+  const disableValue = resolveInput(input, data, 'disable');
+  const isDisableConnected = input.disable !== undefined;
+
+  // We update if it's connected, or if it's a static value that has been set (is not undefined).
+  if (isDisableConnected || data.disable !== undefined) {
+    const newDisableState = Boolean(disableValue);
+    if (entryToEdit.disable !== newDisableState) {
+      entryToEdit.disable = newDisableState;
+      anyChanges = true;
+    }
+  }
+
   if (!anyChanges) {
     return { result: structuredClone(entryToEdit) };
   }
@@ -83,7 +97,7 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
   component: AsyncDataDrivenNode,
   dataSchema: EditLorebookEntryNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: '', entryUid: undefined },
+  initialData: { worldName: '', entryUid: undefined, disable: undefined },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -92,6 +106,7 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
+      { id: 'disable', type: FlowDataType.BOOLEAN },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -166,6 +181,19 @@ export const editLorebookEntryNodeDefinition: NodeDefinition<EditLorebookEntryNo
           label: 'New Content',
           component: STTextarea,
           props: { rows: 2, placeholder: 'Leave blank to not change' },
+        }),
+        createFieldConfig({
+          id: 'disable',
+          label: 'New Status',
+          component: STSelect,
+          options: [
+            { value: '', label: "Don't Change" },
+            { value: 'false', label: 'Enabled' },
+            { value: 'true', label: 'Disabled' },
+          ],
+          getValueFromEvent: (e: React.ChangeEvent<HTMLSelectElement>) =>
+            e.target.value === '' ? undefined : e.target.value === 'true',
+          formatValue: (value: boolean) => (value === undefined ? '' : String(value)),
         }),
       ];
     },

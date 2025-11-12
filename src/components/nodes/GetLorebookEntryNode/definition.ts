@@ -33,7 +33,13 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
   const entry = world.find((e) => e.uid === entryUid);
   if (!entry) throw new Error(`Entry with UID "${entryUid}" not found in "${worldName}".`);
 
-  return { entry, key: entry.key.join(', '), content: entry.content, comment: entry.comment };
+  return {
+    entry,
+    key: entry.key.join(', '),
+    content: entry.content,
+    comment: entry.comment,
+    disable: entry.disable,
+  };
 };
 
 export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNodeData> = {
@@ -56,6 +62,7 @@ export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNode
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
+      { id: 'disable', type: FlowDataType.BOOLEAN },
     ],
   },
   validate: combineValidators(
@@ -91,7 +98,7 @@ export const getLorebookEntryNodeDefinition: NodeDefinition<GetLorebookEntryNode
           customChangeHandler: (e: string[], { nodeId, updateNodeData }) => {
             updateNodeData(nodeId, { worldName: e[0], entryUid: undefined });
           },
-          formatValue: (value) => [value ?? ''],
+          formatValue: (value: string) => [value ?? ''],
         }),
         createFieldConfig({
           id: 'entryUid',

@@ -5,6 +5,7 @@ export const WIEntrySchema = z.object({
   key: z.array(z.string()).describe('The trigger words for the WI entry.'),
   content: z.string().describe('The content of the WI entry.'),
   comment: z.string().describe('The comment for the WI entry. It works like a title.'),
+  disable: z.boolean().optional().describe('Whether the entry is disabled.'),
 });
 
 export const WIEntryListSchema = z.array(WIEntrySchema);

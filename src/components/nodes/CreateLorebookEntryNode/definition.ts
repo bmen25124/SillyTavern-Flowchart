@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import React from 'react';
 import { NodeDefinition } from '../definitions/types.js';
 import { FlowDataType } from '../../../flow-types.js';
 import { registrator } from '../registrator.js';
@@ -8,7 +9,7 @@ import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown, STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 
@@ -17,6 +18,7 @@ export const CreateLorebookEntryNodeDataSchema = z.object({
   key: z.string().optional(), // comma-separated
   content: z.string().optional(),
   comment: z.string().optional(),
+  disable: z.boolean().optional(),
   _version: z.number().optional(),
 });
 export type CreateLorebookEntryNodeData = z.infer<typeof CreateLorebookEntryNodeDataSchema>;
@@ -33,7 +35,7 @@ const execute: NodeExecutor = async (node, input, { dependencies }) => {
     key: keys.split(',').map((k: string) => k.trim()),
     content: resolveInput(input, data, 'content') ?? '',
     comment: resolveInput(input, data, 'comment') ?? '',
-    disable: false,
+    disable: resolveInput(input, data, 'disable') ?? false,
     keysecondary: [],
   };
 
@@ -52,7 +54,7 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
   component: AsyncDataDrivenNode,
   dataSchema: CreateLorebookEntryNodeDataSchema,
   currentVersion: 1,
-  initialData: { worldName: '', key: '', content: '', comment: '' },
+  initialData: { worldName: '', key: '', content: '', comment: '', disable: false },
   handles: {
     inputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -60,6 +62,7 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
       { id: 'key', type: FlowDataType.STRING },
       { id: 'content', type: FlowDataType.STRING },
       { id: 'comment', type: FlowDataType.STRING },
+      { id: 'disable', type: FlowDataType.BOOLEAN },
     ],
     outputs: [
       { id: 'main', type: FlowDataType.ANY },
@@ -95,6 +98,17 @@ export const createLorebookEntryNodeDefinition: NodeDefinition<CreateLorebookEnt
         createFieldConfig({ id: 'key', label: 'Keys (comma-separated)', component: STInput, props: { type: 'text' } }),
         createFieldConfig({ id: 'comment', label: 'Comment (Title)', component: STInput, props: { type: 'text' } }),
         createFieldConfig({ id: 'content', label: 'Content', component: STTextarea, props: { rows: 2 } }),
+        createFieldConfig({
+          id: 'disable',
+          label: 'Status',
+          component: STSelect,
+          options: [
+            { value: 'false', label: 'Enabled' },
+            { value: 'true', label: 'Disabled' },
+          ],
+          getValueFromEvent: (e: React.ChangeEvent<HTMLSelectElement>) => e.target.value === 'true',
+          formatValue: (value: boolean) => String(value ?? false),
+        }),
       ];
     },
   },
