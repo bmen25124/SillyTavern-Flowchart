@@ -19,9 +19,22 @@ export type QuickReplyTriggerNodeData = z.infer<typeof QuickReplyTriggerNodeData
 type QrButtonInfo = QuickReplyTriggerNodeData & { flowId: string; nodeId: string };
 let qrButtonInfos: QrButtonInfo[] = [];
 
+/**
+ * Clears any existing flowchart QR buttons from the DOM.
+ */
+function clearQrButtonsFromDom() {
+  document
+    .querySelectorAll('#qr--bar .flowchart-qr-group, #qr--popout .flowchart-qr-group')
+    .forEach((el) => el.remove());
+}
+
 export function renderAllQrButtons() {
-  const qrBar = document.querySelector('#qr--bar');
-  if (!qrBar) return;
+  // First, clear any existing buttons to prevent duplicates when re-rendering.
+  clearQrButtonsFromDom();
+
+  // Prioritize the popout's body if it exists, otherwise fall back to the bar.
+  const qrContainer = document.querySelector('#qr--popout .qr--body') ?? document.querySelector('#qr--bar');
+  if (!qrContainer) return;
 
   const qrButtonsByGroup: Record<string, QrButtonInfo[]> = {};
   for (const info of qrButtonInfos) {
@@ -61,7 +74,7 @@ export function renderAllQrButtons() {
       buttonEl.innerHTML = `<div class="qr--button-label">${iconHtml} ${btnData.buttonText}</div>`;
       groupEl.appendChild(buttonEl);
     }
-    qrBar.appendChild(groupEl);
+    qrContainer.appendChild(groupEl);
   }
 }
 
@@ -93,7 +106,7 @@ export const quickReplyTriggerNodeDefinition: NodeDefinition<QuickReplyTriggerNo
   },
   unregisterAll: () => {
     qrButtonInfos = [];
-    document.querySelectorAll('#qr--bar .flowchart-qr-group').forEach((el) => el.remove());
+    clearQrButtonsFromDom();
   },
 };
 
