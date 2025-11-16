@@ -6,7 +6,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STTextarea } from 'sillytavern-utils-lib/components';
 
 export const StringNodeDataSchema = z.object({
   value: z.string(),
@@ -40,7 +40,7 @@ export const stringNodeDefinition: NodeDefinition<StringNodeData> = {
   },
   execute,
   meta: {
-    fields: [createFieldConfig({ id: 'value', label: 'Value', component: STInput, props: { type: 'text' } })],
+    fields: [createFieldConfig({ id: 'value', label: 'Value', component: STTextarea, props: { rows: 2 } })],
   },
 };
 
