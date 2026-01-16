@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { VariableSchemaNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STButton, STSelect } from 'sillytavern-utils-lib/components';
+import { STButton, STSelect } from 'sillytavern-utils-lib/components/react';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { registrator } from '../autogen-imports.js';
 import { FieldEditor } from '../SchemaNode/SchemaNode.js';

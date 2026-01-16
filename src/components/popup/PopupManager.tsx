@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Popup } from 'sillytavern-utils-lib/components';
+import { Popup } from 'sillytavern-utils-lib/components/react';
 import { POPUP_TYPE } from 'sillytavern-utils-lib/types/popup';
 import { FlowchartDataPopup } from './FlowchartDataPopup.js';
 import { eventEmitter } from '../../events.js';

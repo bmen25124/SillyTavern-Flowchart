@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { BaseNode } from '../BaseNode.js';
 import { ForEachNodeData } from './definition.js';
-import { STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components/react';
 import { settingsManager } from '../../../config.js';
 import { createFieldConfig } from '../fieldConfig.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';

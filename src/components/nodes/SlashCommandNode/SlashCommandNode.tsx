@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { ArgumentDefinition, SlashCommandNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { STInput, STButton, STSelect, STTextarea } from 'sillytavern-utils-lib/components/react';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
 import { generateUUID } from '../../../utils/uuid.js';

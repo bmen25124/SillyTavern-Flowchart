@@ -10,7 +10,7 @@ import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 import { createDynamicOutputHandlesForSchema } from '../../../utils/handle-logic.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components/react';
 import { settingsManager } from '../../../config.js';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';

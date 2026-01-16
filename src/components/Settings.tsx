@@ -1,5 +1,5 @@
 import { FC, useCallback } from 'react';
-import { STButton, STInput } from 'sillytavern-utils-lib/components';
+import { STButton, STInput } from 'sillytavern-utils-lib/components/react';
 import { ExtensionSettings, settingsManager, DEFAULT_SETTINGS } from '../config.js';
 import { useForceUpdate } from '../hooks/useForceUpdate.js';
 import { PopupManager } from './popup/PopupManager.js';

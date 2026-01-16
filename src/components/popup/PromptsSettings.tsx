@@ -1,5 +1,5 @@
 import { FC, useEffect } from 'react';
-import { STButton, STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STTextarea } from 'sillytavern-utils-lib/components/react';
 import { useForceUpdate } from '../../hooks/useForceUpdate.js';
 import {
   DEFAULT_SETTINGS,

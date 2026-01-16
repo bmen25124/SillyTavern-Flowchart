@@ -1,5 +1,5 @@
 import { FC, useState, useEffect } from 'react';
-import { STButton } from 'sillytavern-utils-lib/components';
+import { STButton } from 'sillytavern-utils-lib/components/react';
 import { PromptsSettings } from './PromptsSettings.js';
 import { FlowchartEditor } from './FlowchartEditor.js';
 import { FlowHistory } from './FlowHistory.js';

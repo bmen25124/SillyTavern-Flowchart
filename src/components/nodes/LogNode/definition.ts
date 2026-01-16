@@ -6,7 +6,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STInput } from 'sillytavern-utils-lib/components/react';
 
 export const LogNodeDataSchema = z.object({
   prefix: z.string().default(''),

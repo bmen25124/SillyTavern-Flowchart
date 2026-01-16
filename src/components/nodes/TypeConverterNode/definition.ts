@@ -6,7 +6,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STSelect } from 'sillytavern-utils-lib/components';
+import { STSelect } from 'sillytavern-utils-lib/components/react';
 
 export const TypeConverterNodeDataSchema = z.object({
   targetType: z.enum(['string', 'number', 'object', 'array']).default('string'),

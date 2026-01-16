@@ -7,7 +7,7 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components';
+import { STConnectionProfileSelect, STInput } from 'sillytavern-utils-lib/components/react';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import React from 'react';
 

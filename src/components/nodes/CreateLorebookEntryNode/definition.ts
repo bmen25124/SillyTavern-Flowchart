@@ -9,7 +9,7 @@ import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown, STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STInput, STSelect, STTextarea } from 'sillytavern-utils-lib/components/react';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 

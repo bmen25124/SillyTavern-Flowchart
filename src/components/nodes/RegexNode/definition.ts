@@ -7,7 +7,7 @@ import { NodeExecutor } from '../../../NodeExecutor.js';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown, STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STSelect, STTextarea } from 'sillytavern-utils-lib/components/react';
 import { RegexScriptData } from 'sillytavern-utils-lib/types/regex';
 
 export const RegexNodeDataSchema = z.object({

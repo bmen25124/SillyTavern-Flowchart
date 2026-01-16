@@ -5,7 +5,7 @@ import { BaseNode } from '../BaseNode.js';
 import { TriggerNodeData } from './definition.js';
 import { registrator } from '../autogen-imports.js';
 import { NodeHandleRenderer } from '../NodeHandleRenderer.js';
-import { STInput, STSelect } from 'sillytavern-utils-lib/components';
+import { STInput, STSelect } from 'sillytavern-utils-lib/components/react';
 import { EventCategories, EventDescriptions, EventNames } from '../../../flow-types.js';
 
 export type TriggerNodeProps = NodeProps<Node<TriggerNodeData>>;

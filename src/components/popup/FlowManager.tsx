@@ -2,7 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { getNodesBounds, getViewportForBounds, useReactFlow } from '@xyflow/react';
 import { toPng } from 'html-to-image';
-import { PresetItem, PresetButtonDef } from 'sillytavern-utils-lib/components';
+import { PresetItem, PresetButtonDef } from 'sillytavern-utils-lib/components/react';
 import { useFlowStore } from './flowStore.js';
 import { FlowCanvas } from './FlowCanvas.js';
 import { FlowToolbar } from './FlowToolbar.js';

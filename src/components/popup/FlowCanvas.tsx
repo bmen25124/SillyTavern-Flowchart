@@ -11,7 +11,7 @@ import {
   OnNodeDrag,
   useReactFlow,
 } from '@xyflow/react';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STInput } from 'sillytavern-utils-lib/components/react';
 import { useFlowStore } from './flowStore.js';
 import { useFlowRunStore } from './flowRunStore.js';
 import { checkConnectionValidity } from '../../utils/connection-logic.js';

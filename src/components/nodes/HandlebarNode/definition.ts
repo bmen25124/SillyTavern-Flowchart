@@ -12,7 +12,7 @@ import {
   createRequiredFieldValidator,
 } from '../../../utils/validation-helpers.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STTextarea } from 'sillytavern-utils-lib/components';
+import { STTextarea } from 'sillytavern-utils-lib/components/react';
 
 export const HandlebarNodeDataSchema = z.object({
   template: z.string().default('Hello, {{name}}!'),

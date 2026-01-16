@@ -9,7 +9,7 @@ import { notify } from '../../../utils/notify.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STSelect, STTextarea } from 'sillytavern-utils-lib/components';
+import { STSelect, STTextarea } from 'sillytavern-utils-lib/components/react';
 
 const NotificationTypeSchema = z.enum(['info', 'success', 'error', 'warning']);
 

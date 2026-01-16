@@ -9,7 +9,7 @@ import { applySchema, resolveSchemaFromHandle } from '../../../utils/schema-buil
 import { zodTypeToFlowType } from '../../../utils/type-mapping.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STInput } from 'sillytavern-utils-lib/components/react';
 
 export const GetFlowVariableNodeDataSchema = z.object({
   variableName: z.string().optional(),

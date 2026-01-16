@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { NoteNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STTextarea } from 'sillytavern-utils-lib/components';
+import { STTextarea } from 'sillytavern-utils-lib/components/react';
 
 export type NoteNodeProps = NodeProps<Node<NoteNodeData>>;
 

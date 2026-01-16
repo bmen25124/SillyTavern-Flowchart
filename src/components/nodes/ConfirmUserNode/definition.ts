@@ -8,7 +8,7 @@ import { combineValidators, createRequiredFieldValidator } from '../../../utils/
 import { Edge } from '@xyflow/react';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STTextarea } from 'sillytavern-utils-lib/components';
+import { STTextarea } from 'sillytavern-utils-lib/components/react';
 
 export const ConfirmUserNodeDataSchema = z.object({
   message: z.string().optional(),

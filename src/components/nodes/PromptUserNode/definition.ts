@@ -7,7 +7,7 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STInput, STTextarea } from 'sillytavern-utils-lib/components';
+import { STInput, STTextarea } from 'sillytavern-utils-lib/components/react';
 
 export const PromptUserNodeDataSchema = z.object({
   message: z.string().optional(),

@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from 'react';
 import { useFlowStore } from './flowStore.js';
-import { STInput } from 'sillytavern-utils-lib/components';
+import { STInput } from 'sillytavern-utils-lib/components/react';
 import { registrator } from '../nodes/autogen-imports.js';
 import { ALL_CATEGORIES, NodeDefinition } from '../nodes/definitions/types.js';
 import { useReactFlow } from '@xyflow/react';

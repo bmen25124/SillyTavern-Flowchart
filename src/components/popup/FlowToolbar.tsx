@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import type { ChangeEvent } from 'react';
-import { STButton, STInput, STPresetSelect, PresetItem, PresetButtonDef } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STPresetSelect, PresetItem, PresetButtonDef } from 'sillytavern-utils-lib/components/react';
 
 type PresetEditResult = { confirmed: boolean; value?: PresetItem };
 

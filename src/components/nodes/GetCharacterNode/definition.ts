@@ -8,7 +8,7 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components/react';
 
 export const GetCharacterNodeDataSchema = z.object({
   characterAvatar: z.string().default(''),

@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { STButton } from 'sillytavern-utils-lib/components';
+import { STButton } from 'sillytavern-utils-lib/components/react';
 import { notify } from '../../utils/notify.js';
 import { clearExecutionHistory, executionHistory } from '../../FlowRunner.js';
 import { safeJsonStringify } from '../../utils/safeJsonStringify.js';

@@ -3,7 +3,7 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { LLMRequestNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components';
+import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components/react';
 import { PromptEngineeringMode } from '../../../config.js';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import { useIsConnected } from '../../../hooks/useIsConnected.js';

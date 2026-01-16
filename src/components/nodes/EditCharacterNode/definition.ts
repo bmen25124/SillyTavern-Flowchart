@@ -7,7 +7,7 @@ import { Character } from 'sillytavern-utils-lib/types';
 import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown, STTextarea } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STTextarea } from 'sillytavern-utils-lib/components/react';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 
 const CharacterFieldsSchema = {

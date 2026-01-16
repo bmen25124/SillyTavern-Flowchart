@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
 import { NodeReport } from '../popup/flowRunStore.js';
 import { safeJsonStringify } from '../../utils/safeJsonStringify.js';
-import { STButton } from 'sillytavern-utils-lib/components';
+import { STButton } from 'sillytavern-utils-lib/components/react';
 import { notify } from '../../utils/notify.js';
 
 interface NodeRunReportProps {

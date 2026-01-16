@@ -7,7 +7,7 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { DataDrivenNode } from '../DataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STTextarea } from 'sillytavern-utils-lib/components';
+import { STTextarea } from 'sillytavern-utils-lib/components/react';
 
 export const UpdateChatInputNodeDataSchema = z.object({
   value: z.string().optional(),

@@ -1,0 +1,13 @@
+{
+    "include": [
+        "src/**",
+        "scripts/**",
+        "readme.md",
+        "package.json"
+    ],
+    "ignore": {
+        "customPatterns": [
+            "src/test/**"
+        ]
+    }
+}

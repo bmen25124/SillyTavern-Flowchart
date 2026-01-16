@@ -8,7 +8,7 @@ import { resolveInput } from '../../../utils/node-logic.js';
 import { combineValidators, createRequiredFieldValidator } from '../../../utils/validation-helpers.js';
 import { AsyncDataDrivenNode } from '../AsyncDataDrivenNode.js';
 import { createFieldConfig } from '../fieldConfig.js';
-import { STFancyDropdown } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown } from 'sillytavern-utils-lib/components/react';
 import { getWorldInfos } from 'sillytavern-utils-lib';
 import { WIEntry } from 'sillytavern-utils-lib/types/world-info';
 

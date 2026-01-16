@@ -31,17 +31,16 @@ const MAX_HISTORY_LENGTH = 50;
 const MAX_STRING_LENGTH_IN_HISTORY = 2048;
 const CHARACTER_FIELDS_TO_LOG = ['name', 'description', 'first_mes', 'personality', 'scenario', 'tags', 'avatar'];
 
-type StoredExecutionReport = ExecutionReport & { flowId: string; timestamp: string };
+type StoredExecutionReport = ExecutionReport & { flowId: string; timestamp: string | Date };
 
-function loadHistory(): (ExecutionReport & { flowId: string; timestamp: Date })[] {
+async function loadHistory() {
   try {
-    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (!saved) return [];
-    const parsed: StoredExecutionReport[] = JSON.parse(saved);
-    return parsed.map((item) => ({ ...item, timestamp: new Date(item.timestamp) }));
+    const saved = await SillyTavern.libs.localforage.getItem<StoredExecutionReport[]>(HISTORY_STORAGE_KEY);
+    if (!saved) return;
+    const loaded = saved.map((item) => ({ ...item, timestamp: new Date(item.timestamp) }));
+    executionHistory.splice(0, executionHistory.length, ...loaded);
   } catch (e) {
     console.error('[Flowchart] Failed to load execution history:', e);
-    return [];
   }
 }
 
@@ -86,26 +85,26 @@ function sanitizeReportForHistory(report: ExecutionReport): ExecutionReport {
   };
 }
 
-function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Date })[]) {
+async function saveHistory(history: (ExecutionReport & { flowId: string; timestamp: Date })[]) {
   try {
-    const storable = history.map((item) => ({
-      ...item,
-      timestamp: item.timestamp.toISOString(),
-    }));
-    localStorage.setItem(HISTORY_STORAGE_KEY, safeJsonStringify(storable, 0));
+    await SillyTavern.libs.localforage.setItem(HISTORY_STORAGE_KEY, history);
   } catch (e: any) {
     console.error('[Flowchart] Failed to save execution history:', e);
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+    if (history.length > 0) {
+      history.pop();
+      saveHistory(history);
+    } else {
       notify('error', 'Flowchart: Could not save execution history. Storage quota exceeded.', 'execution');
     }
   }
 }
 
-export let executionHistory = loadHistory();
+export let executionHistory: (ExecutionReport & { flowId: string; timestamp: Date })[] = [];
+loadHistory();
 
 export function clearExecutionHistory() {
-  executionHistory = [];
-  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  executionHistory.splice(0, executionHistory.length);
+  SillyTavern.libs.localforage.removeItem(HISTORY_STORAGE_KEY);
 }
 
 export class FlowRunner {

@@ -2,7 +2,7 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { BaseNode } from '../BaseNode.js';
-import { STFancyDropdown, STSelect } from 'sillytavern-utils-lib/components';
+import { STFancyDropdown, STSelect } from 'sillytavern-utils-lib/components/react';
 import { settingsManager } from '../../../config.js';
 import { PickerNodeData, PickerType, pickerNodeDefinition } from './definition.js';
 import { PromptEngineeringMode } from '../../../config.js';

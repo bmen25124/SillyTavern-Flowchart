@@ -3,7 +3,7 @@ import { Handle, Position, Node, NodeProps } from '@xyflow/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { useFlowStore } from '../../popup/flowStore.js';
-import { STButton, STInput, STSelect } from 'sillytavern-utils-lib/components';
+import { STButton, STInput, STSelect } from 'sillytavern-utils-lib/components/react';
 import { BaseNode } from '../BaseNode.js';
 import { IfNodeData, Condition, OPERATORS, Operator } from './definition.js';
 import { useInputSchema } from '../../../hooks/useInputSchema.js';
