@@ -3,8 +3,8 @@ import { NodeProps, Node } from '@xyflow/react';
 import { useFlowStore } from '../../popup/flowStore.js';
 import { LLMRequestNodeData } from './definition.js';
 import { BaseNode } from '../BaseNode.js';
-import { STConnectionProfileSelect, STInput, STSelect } from 'sillytavern-utils-lib/components/react';
-import { PromptEngineeringMode } from '../../../config.js';
+import { STConnectionProfileSelect, STFancyDropdown, STInput, STSelect } from 'sillytavern-utils-lib/components/react';
+import { PromptEngineeringMode, settingsManager } from '../../../config.js';
 import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import { useIsConnected } from '../../../hooks/useIsConnected.js';
 import { createFieldConfig } from '../fieldConfig.js';
@@ -18,6 +18,23 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
   const updateNodeData = useFlowStore((state) => state.updateNodeData);
   const definition = registrator.nodeDefinitionMap.get(type);
   const isSchemaConnected = useIsConnected(id, 'schema');
+  const { flows, activeFlow } = settingsManager.getSettings();
+
+  const streamFlowOptions = useMemo(
+    () =>
+      Object.values(flows)
+        .filter((flow) => {
+          if (flow.id === activeFlow) return false;
+
+          return flow.flow.nodes.some(
+            (node) =>
+              (node.type === 'onStreamTriggerNode' || node.type === 'manualTriggerNode') &&
+              !flow.flow.edges.some((edge) => edge.target === node.id),
+          );
+        })
+        .map(({ id, name }) => ({ value: id, label: name })),
+    [flows, activeFlow],
+  );
 
   const fields = useMemo(() => {
     const config = [
@@ -49,6 +66,26 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
           getValueFromEvent: (e: React.ChangeEvent<HTMLInputElement>) => e.target.checked,
         }),
       );
+
+      if (data?.stream) {
+        config.push(
+          createFieldConfig({
+            id: 'onStreamFlowId',
+            label: 'On Stream Flow',
+            component: STFancyDropdown,
+            props: {
+              items: streamFlowOptions,
+              multiple: false,
+              inputClasses: 'nodrag',
+              containerClasses: 'nodrag nowheel',
+              closeOnSelect: true,
+              enableSearch: true,
+            },
+            getValueFromEvent: (e: string[]) => e[0],
+            formatValue: (value) => [value ?? ''],
+          }),
+        );
+      }
     }
 
     // These fields are only relevant (and their handles only exist) when a schema is connected.
@@ -75,7 +112,7 @@ export const LLMRequestNode: FC<LLMRequestNodeProps> = ({ id, selected, type }) 
       );
     }
     return config;
-  }, [isSchemaConnected, data?.profileId, id, updateNodeData]);
+  }, [isSchemaConnected, data?.profileId, data?.stream, id, streamFlowOptions, updateNodeData]);
 
   if (!data || !definition) return null;
 
