@@ -36,7 +36,13 @@ const execute: NodeExecutor = async (node, input, context) => {
       throw new DOMException('Flow execution was aborted.', 'AbortError');
     }
 
-    const subFlowInput = { item, index };
+    const subFlowInput = {
+      item,
+      index,
+      array,
+      length: array.length,
+      remainingItems: array.slice(index + 1),
+    };
     const report = await context.dependencies.executeSubFlow(
       flowId,
       subFlowInput,

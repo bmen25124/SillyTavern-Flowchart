@@ -34,6 +34,7 @@ import { triggerNodeDefinition } from '../../components/nodes/TriggerNode/defini
 import { typeConverterNodeDefinition } from '../../components/nodes/TypeConverterNode/definition.js';
 import { dateTimeNodeDefinition } from '../../components/nodes/DateTimeNode/definition.js';
 import { manualTriggerNodeDefinition } from '../../components/nodes/ManualTriggerNode/definition.js';
+import { forEachNodeDefinition } from '../../components/nodes/ForEachNode/definition.js';
 
 describe('Node Executors', () => {
   let dependencies: jest.Mocked<FlowRunnerDependencies>;
@@ -74,6 +75,48 @@ describe('Node Executors', () => {
       const node = createMockNode(numberNodeDefinition, { value: 99 });
       const result = await execute(node, { value: '123.45' }, context);
       expect(result).toEqual({ value: 123.45 });
+    });
+  });
+
+  describe('ForEachNode', () => {
+    const { execute } = forEachNodeDefinition;
+
+    it('passes loop metadata to each sub-flow execution', async () => {
+      const node = createMockNode(forEachNodeDefinition, { flowId: 'child-flow' });
+      dependencies.executeSubFlow.mockResolvedValue({ lastOutput: 'ok' } as any);
+
+      const array = ['first', 'second', 'third'];
+      const result = await execute(node, { array }, context);
+
+      expect(result).toEqual({ results: ['ok', 'ok', 'ok'] });
+      expect(dependencies.executeSubFlow).toHaveBeenNthCalledWith(
+        1,
+        'child-flow',
+        {
+          item: 'first',
+          index: 0,
+          array,
+          length: 3,
+          remainingItems: ['second', 'third'],
+        },
+        context.depth + 1,
+        context.executionPath,
+        context.runId,
+      );
+      expect(dependencies.executeSubFlow).toHaveBeenNthCalledWith(
+        2,
+        'child-flow',
+        {
+          item: 'second',
+          index: 1,
+          array,
+          length: 3,
+          remainingItems: ['third'],
+        },
+        context.depth + 1,
+        context.executionPath,
+        context.runId,
+      );
     });
   });
 
